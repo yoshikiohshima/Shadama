@@ -1,3 +1,11 @@
+var src;
+var dst;
+
+var debugCanvas;
+var debugArray;
+
+var gl;
+
 function createShader(gl, type, id) {
     var shader = gl.createShader(type);
 
@@ -32,6 +40,20 @@ function createProgram(gl, vertexShader, fragmentShader) {
   gl.deleteProgram(program);
 };
 
+function useFramebuffer(gl, buffer, tex, active) {
+    gl.activeTexture(active);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+}
+
 function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
     for (var i in buffers) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
@@ -43,12 +65,17 @@ function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
 };
 
 
-function render(image) {
+function render(image, destImage) {
+    debugCanvas = document.getElementById('debugCanvas');
+    debugCanvas.width = 256;
+    debugCanvas.height = 256;
+
+
     var c = document.getElementById('canvas');
-    c.width = 512;
-    c.height = 512;
+    c.width = 256;
+    c.height = 256;
     
-    var gl = c.getContext('webgl2'); 
+    gl = c.getContext('webgl2'); 
 	
     var vertexShader = createShader(gl, gl.VERTEX_SHADER, "s3.vert");
     var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, "s3.frag");
@@ -61,6 +88,7 @@ function render(image) {
     var uniLocations = {};
     uniLocations["u_resolution"] = gl.getUniformLocation(program, "u_resolution");
     uniLocations["u_image"] = gl.getUniformLocation(program, "u_image");
+    uniLocations["u_dest"] = gl.getUniformLocation(program, "u_dest");
 
     // Create a vertex array object (attribute state)
     var vao = gl.createVertexArray();
@@ -77,11 +105,11 @@ function render(image) {
 			 [positionBuffer, texCoordBuffer],
 			 [
 			     [0,   0,
-			      150, 0,
-			      0, 100,
-			      0, 100,
-			      150, 0,
-			      150, 100],
+			      256, 0,
+			      0, 256,
+			      0, 256,
+			      256, 0,
+			      256, 256],
 			     [
 				 0.0,  0.0,
 				 1.0,  0.0,
@@ -117,6 +145,15 @@ function render(image) {
                   srcType,
                   image);
 
+    var destTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, destTexture);
+
+    var framebuffer = gl.createFramebuffer();
+
+    useFramebuffer(gl, framebuffer, destTexture, gl.TEXTURE1);
+
+
 //    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -135,7 +172,17 @@ function render(image) {
 
     var count = 6;
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.flush();
 };
+
+function debugDisplay(gl, tex) {
+    debugArray = new Uint8Array(256*256*4);
+    gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
+    var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), 256, 256);
+    debugCanvas.getContext('2d').putImageData(img, 0, 0);
+}
+
 
 function makePos() {
     var ary = new Uint8ClampedArray(256*256*4);
@@ -151,6 +198,13 @@ function makePos() {
     return new ImageData(ary, 256, 256);
 };
 
+function makeDest() {
+    var ary = new Uint8ClampedArray(256*256*4);
+    return new ImageData(ary, 256, 256);
+};
+
 onload = function () {
-    render(makePos());
+    src = makePos();
+    dst = makeDest();
+    render(src, dst);
 }
