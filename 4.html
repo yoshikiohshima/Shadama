@@ -1,0 +1,47 @@
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Shadama2 3</title>
+		<script src="minMatrixb.js" type="text/javascript"></script>
+		<script src="script4.js" type="text/javascript"></script>
+
+        <script id="s3.vert" type="x-shader/x-vertex">#version 300 es
+in vec2 a_position;
+
+uniform vec2 u_resolution;
+out vec2 v_texCoord;
+
+// all shaders have a main function
+void main() {
+    // convert the position from pixels to 0.0 to 1.0
+    vec2 zeroToOne = a_position / u_resolution;
+
+     // convert from 0->1 to 0->2
+    vec2 zeroToTwo = zeroToOne * 2.0;
+ 
+    // convert from 0->2 to -1->+1 (clipspace)
+    vec2 clipSpace = zeroToTwo - 1.0;
+
+    gl_Position = vec4(clipSpace, 0, 1);
+    v_texCoord = zeroToOne;
+  }
+        </script>
+        <script id="s3.frag" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform sampler2D u_image;
+in vec2 v_texCoord;
+
+out vec4 outColor;
+ 
+void main() {
+  outColor = vec4(v_texCoord, 1.0, 1.0); //texture(u_image, v_texCoord);
+}
+        </script>
+	</head>
+	<body>
+		<canvas id="canvas"></canvas>
+		<canvas id="debugCanvas1"></canvas>
+		<canvas id="debugCanvas2"></canvas>
+	</body>
+</html>
