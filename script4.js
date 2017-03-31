@@ -91,8 +91,8 @@ function render(image, destImage) {
     
     gl = c.getContext('webgl2'); 
 	
-    var vertexShader = createShader(gl, gl.VERTEX_SHADER, "s3.vert");
-    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, "s3.frag");
+    var vertexShader = createShader(gl, gl.VERTEX_SHADER, "copy.vert");
+    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, "copy.frag");
     var program = createProgram(gl, vertexShader, fragmentShader);
 
     var attrLocations = [];
@@ -115,32 +115,23 @@ function render(image, destImage) {
 	indices[i] = i;
     }
 
-    var vertices = new Array(65536*2);
+    var vertices = new Array(65536 * 2);
     for (var j = 0; j < 256; j++) {
 	for (i = 0; i < 256; i++) {
 	    var ind = (j * 256 + i) * 2;
-	    vertices[ind + 0] = j;
-	    vertices[ind + 1] = i;
+	    vertices[ind + 0] = i;
+	    vertices[ind + 1] = j;
 	}
     }
 
-//    var ibo = createIBO(gl, indices);
-
+    var ibo = createIBO(gl, indices);
     
     var positionBuffer = gl.createBuffer();
 //    var texCoordBuffer = gl.createBuffer();
 
     set_buffer_attribute(gl,
 			 [positionBuffer],
-			 [
-		     [0,   0,
-		      256, 0,
-		      0, 256,
-		      0, 256,
-		      256, 0,
-		      256, 256],
-
-
+			 [vertices
 //			     [0, 0, 256, 0, 0, 256,256, 256],
 			     //    [0.0,  0.0, 1.0,  0.0, 0.0,  1.0, 1.0,  1.0]
 			 ],
@@ -196,20 +187,19 @@ function render(image, destImage) {
     // Bind the attribute/buffer set we want.
     gl.bindVertexArray(vao);
 
-//    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
 
     gl.uniform2f(uniLocations["u_resolution"], gl.canvas.width, gl.canvas.height);
     gl.uniform1i(uniLocations["u_image"], 0);
 
-//    gl.drawElements(gl.TRIANGLES, 20000, gl.UNSIGNED_SHORT, 0);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.drawElements(gl.POINTS, 20000, gl.UNSIGNED_SHORT, 0);
+//    gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
 };
 
 function debugDisplay(gl) {
     debugArray = new Uint8Array(256*256*4);
-
     gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
     var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), 256, 256);
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
