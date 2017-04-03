@@ -94,7 +94,6 @@ function createTexture(gl, imageData) {
 
 
 function initFramebuffer(gl, buffer, tex) {
-    gl.activeTexture(active);
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     
@@ -105,6 +104,8 @@ function initFramebuffer(gl, buffer, tex) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
     gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
 function setTargetBuffer(gl, buffer, tex) {
@@ -178,6 +179,11 @@ function Breed(gl, count, color) {
     this.color = color;
 };
 
+function step() {
+    myBreed.render(gl);
+    myBreed.forward(gl, 3.0);
+    window.requestAnimationFrame(step);
+}
 
 onload = function() {
     debugCanvas1 = document.getElementById('debugCanvas1');
@@ -195,12 +201,12 @@ onload = function() {
     
     gl = c.getContext('webgl2'); 
 
-//    programs['forward'] = forwardProgram(gl);
     programs['renderBreed'] = renderBreedProgram(gl);
+    programs['forward'] = forwardProgram(gl);
 
-    myBreed = new Breed(gl, 20000, [1.0, 0.0, 0.0, 1.0]);
+    myBreed = new Breed(gl, 32768, [1.0, 0.0, 0.0, 1.0]);
 
-    myBreed.render(gl);
+    window.requestAnimationFrame(step);
 };
 
 function forwardProgram(gl) {
@@ -226,8 +232,9 @@ function forwardProgram(gl) {
     var vao = gl.createVertexArray();
     // and make it the one we're currently working with
     gl.bindVertexArray(vao);
+
     var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], attrLocations, attrStrides);
+    set_buffer_attribute(gl, [positionBuffer], [vertices], attrLocations, attrStrides);
 
 
     return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao};

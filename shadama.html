@@ -14,27 +14,26 @@ uniform sampler2D u_position;
 uniform sampler2D u_direction;
 uniform float u_amount;
 
-out vec2 v_texCoord;
 out vec4 vColor;
 
 vec2 decodePos(vec4 c) {
-    return vec2((c.r * 256.0 + c.g), c.b * 256.0 + c.a);
+    return vec2(c.r * 256.0 + c.g, c.b * 256.0 + c.a);
 }
 
 vec2 decodeDir(vec4 c) {
     const float PI = 3.1415926535897932384626433832795;
-    float v = (c.r * 16711680.0) + (c.g * 65280.0) + c.b;
-    float p = (PI * 2.0) / 16777215.0 * v;
+    float v = (c.r * 256.0 * 256.0) + (c.g * 256.0) + c.b;
+    float p = (PI * 2.0) / 65536.0 * v;
     return vec2(cos(p), sin(p));
 }
 
 vec4 encodePos(vec2 pos) {
-    return vec4(mod(floor(pos.x), 256.0), mod(pos.x, 1.0) * 256.0,
-                mod(floor(pos.y), 256.0), mod(pos.y, 1.0) * 256.0);
+    // (0-256.0, 0-256.0)
+    return vec4(mod(pos.x, 256.0) / 256.0, mod(pos.x, 1.0),
+	 mod(pos.y, 256.0) / 256.0, mod(pos.y, 1.0));
 }
 
 void main(void) {
-    // convert the position from pixels to 0.0 to 1.0
     vec2 zeroToOne = a_position / u_resolution;
     vec2 zeroToTwo = zeroToOne * 2.0;
     vec2 clipSpace = zeroToTwo - 1.0;
@@ -45,8 +44,7 @@ void main(void) {
     vec2 dPos = decodePos(pos);         // (0-256.0, 0-256.0)
     vec2 dDir = decodeDir(dir);  // normalized direction vector
     vec2 newPos = dPos + (dDir * u_amount);
-    vColor = encodePos(newPos);
-    v_texCoord = zeroToOne;
+    vColor = encodePos(newPos);   // (0-1.0, 0-1.0, 0-1.0, 0-1.0)
     gl_PointSize = 1.0;
 }
         </script>
@@ -68,13 +66,11 @@ uniform vec2 u_resolution;
 uniform sampler2D u_position;
 
 vec2 decodePos(vec4 c) {
-    return vec2((c.r * 256.0 + (c.g / 1.0)), c.b * 256.0 + (c.a / 1.0));
+    return vec2(c.r * 256.0 + c.g, c.b * 256.0 + c.a);
 }
 
 void main(void) {
-    // convert the position from pixels to 0.0 to 1.0
     vec2 zeroToOne = a_position / u_resolution;
-
 
     vec4 pos = texture(u_position, zeroToOne);  //encoded
     vec2 dPos = decodePos(pos);   // (0-256.0, 0-256.0)
