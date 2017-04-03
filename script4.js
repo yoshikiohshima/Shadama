@@ -57,6 +57,11 @@ function useFramebuffer(gl, buffer, tex, active) {
     gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 }
 
+function setTargetBuffer(gl, buffer, tex) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+}
+
 function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
     for (var i in buffers) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
@@ -196,15 +201,25 @@ function render(image, destImage) {
 //    gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
+
 };
 
-function debugDisplay(gl) {
+
+function debugDisplay1(gl) {
     debugArray = new Uint8Array(256*256*4);
+    setTargetBuffer(gl, framebuffer, src);
     gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
     var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), 256, 256);
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
-}
+};
 
+function debugDisplay2(gl) {
+    debugArray = new Uint8Array(256*256*4);
+    setTargetBuffer(gl, framebuffer, dst);
+    gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
+    var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), 256, 256);
+    debugCanvas2.getContext('2d').putImageData(img, 0, 0);
+};
 
 function makePos() {
     var ary = new Uint8ClampedArray(256*256*4);
