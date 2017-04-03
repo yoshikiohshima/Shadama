@@ -48,13 +48,12 @@ function step() {
     frames++;
     var sTime = Date.now();
 
-
     myBreed.render();
     myBreed.forward(3.0);
 
     diffTime += (Date.now() - sTime);
     if (frames % 60 === 0) {
-	console.log(diffTime / 60.0);
+	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
 	diffTime = 0;
     }
     window.requestAnimationFrame(step);
@@ -64,6 +63,8 @@ onload = function() {
     var c = document.getElementById('canvas');
     c.width = 256;
     c.height = 256;
+
+    readout = document.getElementById('readout');
     
     myBreed = new Breed(32768, [1.0, 0.0, 0.0, 1.0]);
 

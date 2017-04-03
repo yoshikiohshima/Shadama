@@ -4,6 +4,8 @@ var dst;
 var debugCanvas1;
 var debugCanvas2;
 
+var readout;
+
 var debugArray;
 
 var gl;
@@ -19,6 +21,8 @@ var myBreed;
 
 var frames;
 var diffTime;
+
+
 
 function initIndices(gl) {
     allIndices = new Array(65536);
@@ -187,11 +191,9 @@ function step() {
     myBreed.render(gl);
     myBreed.forward(gl, 3.0);
 
-//    debugDisplay1(gl, myBreed);
-
     diffTime += (Date.now() - sTime);
     if (frames % 60 === 0) {
-	console.log(diffTime / 60.0);
+	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
 	diffTime = 0;
     }
 
@@ -207,6 +209,7 @@ onload = function() {
     debugCanvas2.width = 256;
     debugCanvas2.height = 256;
 
+    readout = document.getElementById('readout');
 
     var c = document.getElementById('canvas');
     c.width = 256;
@@ -302,7 +305,7 @@ Breed.prototype.render = function(gl) {
     gl.uniform1i(prog.uniLocations['u_position'], 0);
     gl.uniform4fv(prog.uniLocations['u_color'], this.color);
 
-    gl.clearColor(0.0, 1.0, 0.7, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -338,7 +341,7 @@ Breed.prototype.forward = function(gl, amount) {
     gl.uniform1i(prog.uniLocations["u_direction"], 1);
     gl.uniform1f(prog.uniLocations["u_amount"], amount);
 
-    gl.clearColor(0.0, 0.7, 0.7, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
