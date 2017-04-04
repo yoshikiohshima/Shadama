@@ -92,8 +92,8 @@ function createTexture(gl, data, format) {
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
 			
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
-			
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, format, data);
+
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -103,11 +103,14 @@ function createTexture(gl, data, format) {
 };
 
 
-function initFramebuffer(gl, buffer, tex) {
+function initFramebuffer(gl, buffer, tex, format) {
+    if (!format) {
+	format = gl.UNSIGNED_BYTE;
+    }
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, format, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -116,22 +119,6 @@ function initFramebuffer(gl, buffer, tex) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 
     gl.bindTexture(gl.TEXTURE_2D, null);
-};
-
-function initFloatFramebuffer(gl, buffer, tex, data) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.FLOAT, data);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    return tex;
 };
 
 function setTargetBuffer(gl, buffer, tex) {
@@ -158,33 +145,29 @@ function createIBO (gl, data) {
 };
 
 function randomDirection() {
-  return encodeOne24(Math.random());
-};
-
-function encodeOne24(value) {
-  var v = Math.floor(value * 0x1000000);
-  return [(v & 0xFF0000) >> 16, (v & 0xFF00) >> 8, v & 0xFF];
+  var r = Math.random();
+  var r = r * Math.PI * 2.0;
+  return [Math.cos(r), Math.sin(r)];
 };
 
 function Breed(gl, count, color) {
     var imageData;
 
-    var ary = new Uint8ClampedArray(256*256*4);
+    var ary = new Float32Array(256*256*4);
     for (var j = 0; j < 256; j++) {
 	for (var i = 0; i < 256; i++) {
 	    var ind = (j * 256 + i) * 4;
+	    var r = randomDirection();
 	    ary[ind + 0] = i;
-	    ary[ind + 1] = 0;
-	    ary[ind + 2] = j;
-	    ary[ind + 3] = 0;
+	    ary[ind + 1] = j;
+	    ary[ind + 2] = r[0];
+	    ary[ind + 3] = r[1];
 	}
     }
-    imageData = new ImageData(ary, 256, 256);
+    this.pos = createTexture(gl, ary, gl.FLOAT);
 
-    this.pos = createTexture(gl, imageData);
-
-    imageData = new ImageData(ary, 256, 256);
-    this.newPos = createTexture(gl, imageData);
+    ary = new Float32Array(256*256*4);
+    this.newPos = createTexture(gl, ary, gl.FLOAT);
 
     var ary = new Uint8ClampedArray(256*256*4);
     for (var i = 0; i < 256 * 256; i++) {
@@ -195,13 +178,11 @@ function Breed(gl, count, color) {
 	ary[ind + 2] = d[2];
     }
 
-    imageData = new ImageData(ary, 256, 256);
-    this.dir = createTexture(gl, imageData);
+//    imageData = new ImageData(ary, 256, 256);
+//    this.dir = createTexture(gl, imageData);
 
-    imageData = new ImageData(ary, 256, 256);
-    this.newDir = createTexture(gl, imageData);
-
-    var ary = new Float32Array(256*256);
+//    imageData = new ImageData(ary, 256, 256);
+//    this.newDir = createTexture(gl, imageData);
 
     this.count = count;
     this.color = color;
@@ -275,7 +256,6 @@ function forwardProgram(gl) {
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
-    uniLocations['u_direction'] = gl.getUniformLocation(prog, 'u_direction');
     uniLocations['u_amount'] = gl.getUniformLocation(prog, 'u_amount');
   
 
@@ -351,10 +331,7 @@ Breed.prototype.forward = function(gl, amount) {
     var prog = programs['forward'];
     if (!framebuffer) {
 	framebuffer = gl.createFramebuffer();
-
-	this.floatPos = gl.createTexture();
-	
-	initFloatFramebuffer(gl, framebuffer, this.floatPos, new Float32Array(256*256*4));
+	initFramebuffer(gl, framebuffer, this.newPos, gl.FLOAT);
     } else {
 	setTargetBuffer(gl, framebuffer, this.newPos);
     }
@@ -367,13 +344,10 @@ Breed.prototype.forward = function(gl, amount) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
 
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.dir);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     gl.uniform2f(prog.uniLocations["u_resolution"], gl.canvas.width, gl.canvas.height);
     gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1i(prog.uniLocations["u_direction"], 1);
     gl.uniform1f(prog.uniLocations["u_amount"], amount);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);

@@ -11,26 +11,20 @@ attribute vec2 a_position;
 
 uniform vec2 u_resolution;
 uniform sampler2D u_position;
-uniform sampler2D u_direction;
 uniform float u_amount;
 
 varying vec4 vColor;
 
 vec2 decodePos(vec4 c) {
-    return vec2(c.r * 256.0 + c.g, c.b * 256.0 + c.a);
+    return c.rg;
 }
 
 vec2 decodeDir(vec4 c) {
-    const float PI = 3.1415926535897932384626433832795;
-    float v = (c.r * 256.0 * 256.0) + (c.g * 256.0) + c.b;
-    float p = (PI * 2.0) / 65536.0 * v;
-    return vec2(cos(p), sin(p));
+    return c.ba;
 }
 
-vec4 encodePos(vec2 pos) {
-    // (0-256.0, 0-256.0)
-    return vec4(mod(pos.x, 256.0) / 256.0, mod(pos.x, 1.0),
-	 mod(pos.y, 256.0) / 256.0, mod(pos.y, 1.0));
+vec4 encodeVal(vec2 pos, vec2 dir) {
+    return vec4(mod(pos, 256.0), dir);
 }
 
 void main(void) {
@@ -39,12 +33,11 @@ void main(void) {
     vec2 clipSpace = zeroToTwo - 1.0;
     gl_Position = vec4(clipSpace, 0, 1);
 
-    vec4 pos = texture2D(u_position, zeroToOne);  //encoded
-    vec4 dir = texture2D(u_direction, zeroToOne);
-    vec2 dPos = decodePos(pos);         // (0-256.0, 0-256.0)
-    vec2 dDir = decodeDir(dir);  // normalized direction vector
+    vec4 val = texture2D(u_position, zeroToOne);
+    vec2 dPos = decodePos(val);
+    vec2 dDir = decodeDir(val);
     vec2 newPos = dPos + (dDir * u_amount);
-    vColor = encodePos(newPos);   // (0-1.0, 0-1.0, 0-1.0, 0-1.0)
+    vColor = encodeVal(newPos, dDir);
     gl_PointSize = 1.0;
 }
         </script>
@@ -65,14 +58,14 @@ uniform vec2 u_resolution;
 uniform sampler2D u_position;
 
 vec2 decodePos(vec4 c) {
-    return vec2(c.r * 256.0 + c.g, c.b * 256.0 + c.a);
+    return c.rg;
 }
 
 void main(void) {
     vec2 zeroToOne = a_position / u_resolution;
 
-    vec4 pos = texture2D(u_position, zeroToOne);  //encoded
-    vec2 dPos = decodePos(pos);   // (0-256.0, 0-256.0)
+    vec4 val = texture2D(u_position, zeroToOne);
+    vec2 dPos = decodePos(val);   // (0-256.0, 0-256.0)
     vec2 normPos = dPos / 256.0;  // (0-1.0, 0-1.0)
     vec2 normPos2 = normPos * 2.0;  // (0-2.0, 0-2.0)
     vec2 clipPos = normPos2 - 1.0;  // (-1.0-1.0, -1.0-1.0)
