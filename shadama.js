@@ -1,3 +1,6 @@
+var TEXTURE_SIZE 512;
+var FIELD_SIZE 256;
+
 var src;
 var dst;
 
@@ -91,8 +94,12 @@ function createTexture(gl, data, format) {
     }
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-			
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, format, data);
+    
+    if (format != gl.UNSIGNED_BYTE) {
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, format, data);
+    } else {
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
+    }
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -150,7 +157,7 @@ function randomDirection() {
   return [Math.cos(r), Math.sin(r)];
 };
 
-function Breed(gl, count, color) {
+function Breed(gl, count) {
     var imageData;
 
     var ary = new Float32Array(256*256*4);
@@ -169,23 +176,30 @@ function Breed(gl, count, color) {
     ary = new Float32Array(256*256*4);
     this.newPos = createTexture(gl, ary, gl.FLOAT);
 
-    var ary = new Uint8ClampedArray(256*256*4);
-    for (var i = 0; i < 256 * 256; i++) {
-	var d = randomDirection();
-	var ind = i * 4;
-	ary[ind + 0] = d[0];
-	ary[ind + 1] = d[1];
-	ary[ind + 2] = d[2];
-    }
-
 //    imageData = new ImageData(ary, 256, 256);
 //    this.dir = createTexture(gl, imageData);
 
 //    imageData = new ImageData(ary, 256, 256);
 //    this.newDir = createTexture(gl, imageData);
 
+    ary = new Uint8ClampedArray(256*256*4);
+    for (var j = 0; j < 256; j++) {
+	for (var i = 0; i < 256; i++) {
+	    var ind = (j * 256 + i) * 4;
+	    if (i > 128) {
+		var c = [0, 0, 255, 255];
+	    } else {
+		c = [255.0, 0, 0, 255];
+	    }
+	    ary[ind + 0] = c[0];
+	    ary[ind + 1] = c[1];
+	    ary[ind + 2] = c[2];
+	    ary[ind + 3] = c[3];
+	}
+    }
+
+    this.color = createTexture(gl, new ImageData(ary, 256, 256));
     this.count = count;
-    this.color = color;
 };
 
 function step() {
@@ -233,7 +247,7 @@ onload = function() {
     programs['renderBreed'] = renderBreedProgram(gl);
     programs['forward'] = forwardProgram(gl);
 
-    myBreed = new Breed(gl, 32768, [1.0, 0.0, 0.0, 1.0]);
+    myBreed = new Breed(gl, 32768);
 
     frames = 0;
     diffTime = 0;
@@ -311,11 +325,14 @@ Breed.prototype.render = function(gl) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
 
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.color);
+
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     gl.uniform2f(prog.uniLocations["u_resolution"], gl.canvas.width, gl.canvas.height);
     gl.uniform1i(prog.uniLocations['u_position'], 0);
-    gl.uniform4fv(prog.uniLocations['u_color'], this.color);
+    gl.uniform1i(prog.uniLocations['u_color'], 1);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clearDepth(1.0);

@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>Shadama2 5</title>
+		<title>Shadama2</title>
 		<script src="minMatrixb.js" type="text/javascript"></script>
 		<script src="shadama.js" type="text/javascript"></script>
 
@@ -57,6 +57,8 @@ attribute vec2 a_position;
 uniform vec2 u_resolution;
 uniform sampler2D u_position;
 
+varying vec2 v_coord;
+
 vec2 decodePos(vec4 c) {
     return c.rg;
 }
@@ -70,6 +72,8 @@ void main(void) {
     vec2 normPos2 = normPos * 2.0;  // (0-2.0, 0-2.0)
     vec2 clipPos = normPos2 - 1.0;  // (-1.0-1.0, -1.0-1.0)
 
+    v_coord = zeroToOne;
+
     gl_Position = vec4(clipPos, 0, 1.0);
     gl_PointSize = 1.0;
 }
@@ -78,10 +82,12 @@ void main(void) {
         <script id="renderBreed.frag" type="x-shader/x-fragment">
 precision mediump float;
 
-uniform    vec4 u_color;
+uniform sampler2D u_color;
+
+varying vec2 v_coord;
 
 void main(void) {
-  gl_FragColor = u_color;
+  gl_FragColor = texture2D(u_color, v_coord);
 }
         </script>
 	</head>
