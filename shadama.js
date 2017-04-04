@@ -11,7 +11,6 @@ var src;
 var dst;
 
 var debugCanvas1;
-var debugCanvas2;
 
 var readout;
 
@@ -172,7 +171,7 @@ function Breed(gl, count) {
 	for (var i = 0; i < T; i++) {
 	    var ind = (j * T + i) * 4;
 	    var r = randomDirection();
-	    ary[ind + 0] = (a+= 4);
+	    ary[ind + 0] = (a += 4);
 	    ary[ind + 1] = j;
 	    ary[ind + 2] = r[0];
 	    ary[ind + 3] = r[1];
@@ -223,10 +222,6 @@ onload = function() {
     debugCanvas1 = document.getElementById('debugCanvas1');
     debugCanvas1.width = F;
     debugCanvas1.height = F;
-
-    debugCanvas2 = document.getElementById('debugCanvas2');
-    debugCanvas2.width = F;
-    debugCanvas2.height = F;
 
     readout = document.getElementById('readout');
 
@@ -392,10 +387,3 @@ function debugDisplay1(gl, breed) {
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 };
 
-function debugDisplay2(gl, breed) {
-    debugArray = new Uint8Array(256*256*4);
-    setTargetBuffer(gl, framebuffer, breed.newPos);
-    gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
-    var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), 256, 256);
-    debugCanvas2.getContext('2d').putImageData(img, 0, 0);
-};
