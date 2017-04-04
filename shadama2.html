@@ -6,15 +6,15 @@
 		<script src="minMatrixb.js" type="text/javascript"></script>
 		<script src="shadama.js" type="text/javascript"></script>
 
-        <script id="forward.vert" type="x-shader/x-vertex">
-attribute vec2 a_position;
+        <script id="forward.vert" type="x-shader/x-vertex">#version 300 es
+in vec2 a_position;
 
 uniform vec2 u_resolution;
 uniform sampler2D u_position;
 uniform sampler2D u_direction;
 uniform float u_amount;
 
-varying vec4 vColor;
+out vec4 vColor;
 
 vec2 decodePos(vec4 c) {
     return vec2(c.r * 256.0 + c.g, c.b * 256.0 + c.a);
@@ -39,8 +39,8 @@ void main(void) {
     vec2 clipSpace = zeroToTwo - 1.0;
     gl_Position = vec4(clipSpace, 0, 1);
 
-    vec4 pos = texture2D(u_position, zeroToOne);  //encoded
-    vec4 dir = texture2D(u_direction, zeroToOne);
+    vec4 pos = texture(u_position, zeroToOne);  //encoded
+    vec4 dir = texture(u_direction, zeroToOne);
     vec2 dPos = decodePos(pos);         // (0-256.0, 0-256.0)
     vec2 dDir = decodeDir(dir);  // normalized direction vector
     vec2 newPos = dPos + (dDir * u_amount);
@@ -48,18 +48,19 @@ void main(void) {
     gl_PointSize = 1.0;
 }
         </script>
-        <script id="forward.frag" type="x-shader/x-fragment">
+        <script id="forward.frag" type="x-shader/x-fragment">#version 300 es
 precision mediump float;
 
-varying vec4 vColor;
+in vec4 vColor;
+out vec4 outColor;
 
 void main(void) {
-    gl_FragColor = vColor;
+    outColor = vColor;
 }
         </script>
 
-        <script id="renderBreed.vert" type="x-shader/x-vertex">
-attribute vec2 a_position;
+        <script id="renderBreed.vert" type="x-shader/x-vertex">#version 300 es
+in vec2 a_position;
 
 uniform vec2 u_resolution;
 uniform sampler2D u_position;
@@ -71,7 +72,7 @@ vec2 decodePos(vec4 c) {
 void main(void) {
     vec2 zeroToOne = a_position / u_resolution;
 
-    vec4 pos = texture2D(u_position, zeroToOne);  //encoded
+    vec4 pos = texture(u_position, zeroToOne);  //encoded
     vec2 dPos = decodePos(pos);   // (0-256.0, 0-256.0)
     vec2 normPos = dPos / 256.0;  // (0-1.0, 0-1.0)
     vec2 normPos2 = normPos * 2.0;  // (0-2.0, 0-2.0)
@@ -82,13 +83,15 @@ void main(void) {
 }
         </script>
 
-        <script id="renderBreed.frag" type="x-shader/x-fragment">
+        <script id="renderBreed.frag" type="x-shader/x-fragment">#version 300 es
 precision mediump float;
 
 uniform    vec4 u_color;
 
+out vec4 outColor;
+
 void main(void) {
-  gl_FragColor = u_color;
+  outColor = u_color;
 }
         </script>
 	</head>

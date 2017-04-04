@@ -9,6 +9,9 @@ var readout;
 var debugArray;
 
 var gl;
+var VAOExt;
+var floatExt;
+
 var framebuffer;
 
 var programs = {};
@@ -21,7 +24,6 @@ var myBreed;
 
 var frames;
 var diffTime;
-
 
 
 function initIndices(gl) {
@@ -83,11 +85,14 @@ function createProgram(gl, vertexShader, fragmentShader) {
   gl.deleteProgram(program);
 };
 
-function createTexture(gl, imageData) {
+function createTexture(gl, data, format) {
+    if (!format) {
+	format = gl.UNSIGNED_BYTE;
+    }
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
 			
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
 			
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -108,15 +113,31 @@ function initFramebuffer(gl, buffer, tex) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
-    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 
     gl.bindTexture(gl.TEXTURE_2D, null);
-}
+};
+
+function initFloatFramebuffer(gl, buffer, tex, data) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.FLOAT, data);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return tex;
+};
 
 function setTargetBuffer(gl, buffer, tex) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
-    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-}
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+};
 
 function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
     for (var i in buffers) {
@@ -180,6 +201,8 @@ function Breed(gl, count, color) {
     imageData = new ImageData(ary, 256, 256);
     this.newDir = createTexture(gl, imageData);
 
+    var ary = new Float32Array(256*256);
+
     this.count = count;
     this.color = color;
 };
@@ -215,7 +238,16 @@ onload = function() {
     c.width = 256;
     c.height = 256;
     
-    gl = c.getContext('webgl2'); 
+    gl = c.getContext('webgl'); 
+
+    VAOExt = gl.getExtension('OES_vertex_array_object');
+
+    floatExt = gl.getExtension('OES_texture_float');
+    if (!floatExt) {
+	alert('float texture not supported');
+	return;
+    }
+
 
     programs['renderBreed'] = renderBreedProgram(gl);
     programs['forward'] = forwardProgram(gl);
@@ -248,9 +280,9 @@ function forwardProgram(gl) {
   
 
     // Create a vertex array object (attribute state)
-    var vao = gl.createVertexArray();
+    var vao = VAOExt.createVertexArrayOES();
     // and make it the one we're currently working with
-    gl.bindVertexArray(vao);
+    VAOExt.bindVertexArrayOES(vao);
 
     var positionBuffer = gl.createBuffer();
     set_buffer_attribute(gl, [positionBuffer], [vertices], attrLocations, attrStrides);
@@ -278,9 +310,9 @@ function renderBreedProgram(gl) {
     uniLocations['u_color'] = gl.getUniformLocation(prog, 'u_color');
 
     // Create a vertex array object (attribute state)
-    var vao = gl.createVertexArray();
+    var vao = VAOExt.createVertexArrayOES();
     // and make it the one we're currently working with
-    gl.bindVertexArray(vao);
+    VAOExt.bindVertexArrayOES(vao);
 
     initIndices(gl);
 
@@ -294,7 +326,7 @@ Breed.prototype.render = function(gl) {
     var prog = programs['renderBreed'];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
+    VAOExt.bindVertexArrayOES(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -319,13 +351,16 @@ Breed.prototype.forward = function(gl, amount) {
     var prog = programs['forward'];
     if (!framebuffer) {
 	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, this.newPos);
+
+	this.floatPos = gl.createTexture();
+	
+	initFloatFramebuffer(gl, framebuffer, this.floatPos, new Float32Array(256*256*4));
     } else {
 	setTargetBuffer(gl, framebuffer, this.newPos);
     }
 
     gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
+    VAOExt.bindVertexArrayOES(prog.vao);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesIBO);
 
