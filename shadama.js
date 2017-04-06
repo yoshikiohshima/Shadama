@@ -507,6 +507,35 @@ Breed.prototype.setPatch = function(gl, patch, value) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
+Breed.prototype.increasePatch = function(gl, patch, value) {
+    var prog = programs['setPatch'];  // the same program but with blend enabled.
+    if (!framebuffer) {
+	framebuffer = gl.createFramebuffer();
+	initFramebuffer(gl, framebuffer, patch.values, gl.FLOAT, FW, FH);
+    } else {
+	setTargetBuffer(gl, framebuffer, patch.values);
+    }
+
+    gl.useProgram(prog.program);
+    VAOExt.bindVertexArrayOES(prog.vao);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+
+    gl.viewport(0, 0, FW, FH);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform4fv(prog.uniLocations["u_value"], value);
+    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.disable(gl.BLEND);
+};
+
 Breed.prototype.getPatch = function(gl, patch, dest) {
     var prog = programs['getPatch'];
     if (!framebuffer) {
@@ -536,6 +565,20 @@ Breed.prototype.getPatch = function(gl, patch, dest) {
     gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
 //    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Patch.prototype.clear = function(gl) {
+    var prog = programs['clearPatch'];
+    if (!framebuffer) {
+	framebuffer = gl.createFramebuffer();
+	initFramebuffer(gl, framebuffer, this.values, gl.FLOAT, T, T);
+    } else {
+	setTargetBuffer(gl, framebuffer, this.values);
+    }
+
+    gl.viewport(0, 0, FW, FH);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 };
 
 Patch.prototype.draw = function(gl) {
@@ -635,7 +678,7 @@ onload = function() {
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
 
-    myBreed = new Breed(gl, 50);
+    myBreed = new Breed(gl, 10000);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 
@@ -645,6 +688,7 @@ onload = function() {
     diffTime = 0;
 
     window.requestAnimationFrame(step);
+    debugArray = new Float32Array(FW * FH * 4);
 };
 
 function step() {
@@ -653,30 +697,40 @@ function step() {
 
 //----------------------
     clear();
+    myPatch.clear(gl);
     myBreed.forward(gl, 1.0);
     myBreed.turn(gl, 0.05);
-    myBreed.setPatch(gl, myPatch, [0.0, 10.0, 10.0, 255.0]);
-    for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+    myBreed.increasePatch(gl, myPatch, [1.0, 0.0, 0.0, 0.0]);
 
     myBreed.getPatch(gl, myPatch, myBreed.buf);
-//    debugArray = new Float32Array(T * T * 4);
-//    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+
+    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
+
+//  for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+
+
 
     myPatch.draw(gl);
     myBreed.draw(gl);
 //----------------------
 
-//    debugArray2 = new Uint8ClampedArray(T * T * 4);
+    debugArray2 = new Uint8ClampedArray(FW * FH * 4);
+    for (var i = 0; i < FW * FH; i++) {
+	if (debugArray[i * 4 + 0] > 1) {
+	    debugArray2[i * 4 + 0] = 255;
+	    debugArray2[i * 4 + 1] = 0;
+	    debugArray2[i * 4 + 2] = 0;
+	    debugArray2[i * 4 + 3] = 255;
+	} else {
+	    debugArray2[i * 4 + 0] = 255;
+	    debugArray2[i * 4 + 1] = 255;
+	    debugArray2[i * 4 + 2] = 255;
+	    debugArray2[i * 4 + 3] = 255;
+	}
+    }
 
-//    for (var i = 0; i < T * T * 4; i++) {
-//	debugArray2[i] = debugArray[i];
-//	if (i % 4 == 3) {
-//	    debugArray2[i] = 255;
-//	}
-//    }
-
-//    var img = new ImageData(debugArray2, T, T);
-//    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
+    var img = new ImageData(debugArray2, FW, FH);
+    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
