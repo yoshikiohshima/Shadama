@@ -16,6 +16,7 @@ var readout;
 var debugArray;
 
 var gl;
+var defaultVAO;
 var VAOExt;
 var floatExt;
 
@@ -24,8 +25,6 @@ var framebuffer;
 var programs = {};
 
 var allIndices;
-var vertices;
-var indicesIBO;
 
 var myBreed;
 var myPatch;
@@ -39,17 +38,6 @@ function initIndices(gl) {
     for (var i = 0; i < T * T; i++) {
 	allIndices[i] = i;
     }
-
-    vertices = new Array(T * T * 2);
-    for (var j = 0; j < T; j++) {
-	for (i = 0; i < T; i++) {
-	    var ind = (j * T + i) * 2;
-	    vertices[ind + 0] = i;
-	    vertices[ind + 1] = j;
-	}
-    }
-
-    indicesIBO = createIBO(gl, allIndices);
 };
 
 function createShader(gl, id) {
@@ -247,10 +235,10 @@ function forwardProgram(gl) {
     var prog = createProgram(gl, vs, fs);
     
     var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_position');
+    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
     
     var attrStrides = new Array(1);
-    attrStrides[0] = 2;
+    attrStrides[0] = 1;
 
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
@@ -258,17 +246,15 @@ function forwardProgram(gl) {
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_amount'] = gl.getUniformLocation(prog, 'u_amount');
   
-
     // Create a vertex array object (attribute state)
     var vao = VAOExt.createVertexArrayOES();
     // and make it the one we're currently working with
     VAOExt.bindVertexArrayOES(vao);
 
     var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [vertices], attrLocations, attrStrides);
+    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
 
-
-    return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao};
+    return {program: prog, uniLocations: uniLocations, vao: vao};
 };
 
 function setPatchProgram(gl) {
@@ -278,10 +264,10 @@ function setPatchProgram(gl) {
     var prog = createProgram(gl, vs, fs);
     
     var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_position');
+    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
     
     var attrStrides = new Array(1);
-    attrStrides[0] = 2;
+    attrStrides[0] = 1;
 
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
@@ -296,10 +282,10 @@ function setPatchProgram(gl) {
     VAOExt.bindVertexArrayOES(vao);
 
     var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [vertices], attrLocations, attrStrides);
+    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
 
 
-    return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao};
+    return {program: prog, uniLocations: uniLocations, vao: vao};
 };
 
 function drawPatchProgram(gl) {
@@ -380,16 +366,16 @@ function turnProgram(gl) {
     var prog = createProgram(gl, vs, fs);
     
     var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_position');
+    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
     
     var attrStrides = new Array(1);
-    attrStrides[0] = 2;
+    attrStrides[0] = 1;
 
     var uniLocations = {};
+    uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_rot'] = gl.getUniformLocation(prog, 'u_rot');
-  
 
     // Create a vertex array object (attribute state)
     var vao = VAOExt.createVertexArrayOES();
@@ -397,9 +383,9 @@ function turnProgram(gl) {
     VAOExt.bindVertexArrayOES(vao);
 
     var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [vertices], attrLocations, attrStrides);
+    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
 
-    return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao};
+    return {program: prog, uniLocations: uniLocations, vao: vao};
 };
 
 function drawBreedProgram(gl) {
@@ -409,12 +395,11 @@ function drawBreedProgram(gl) {
     var prog = createProgram(gl, vs, fs);
     
     var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_position');
+    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
     
     var attrStrides = new Array(1);
-    attrStrides[0] = 2;
+    attrStrides[0] = 1;
 
-    var uniLocations = {};
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
@@ -426,13 +411,11 @@ function drawBreedProgram(gl) {
     // and make it the one we're currently working with
     VAOExt.bindVertexArrayOES(vao);
 
-    initIndices(gl);
-
     var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [vertices], attrLocations, attrStrides);
+    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
 
-    return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao};
-}
+    return {program: prog, uniLocations: uniLocations, vao: vao};
+};
 
 function clear() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -460,8 +443,7 @@ Breed.prototype.draw = function(gl) {
     gl.uniform1i(prog.uniLocations['u_position'], 0);
     gl.uniform1i(prog.uniLocations['u_color'], 1);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesIBO);
-    gl.drawElements(gl.POINTS, this.count, gl.UNSIGNED_SHORT, 0);
+    gl.drawArrays(gl.POINTS, 0, this.count);
 
     gl.flush();
 };
@@ -478,14 +460,12 @@ Breed.prototype.forward = function(gl, amount) {
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesIBO);
-
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
 
     gl.viewport(0, 0, T, T);
 
-    gl.uniform2f(prog.uniLocations["u_resolution"], gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations["u_position"], 0);
     gl.uniform1f(prog.uniLocations["u_amount"], amount);
@@ -493,7 +473,7 @@ Breed.prototype.forward = function(gl, amount) {
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.drawElements(gl.POINTS, this.count, gl.UNSIGNED_SHORT, 0);
+    gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -514,13 +494,12 @@ Breed.prototype.turn = function(gl, amount) {
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesIBO);
-
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
 
     gl.viewport(0, 0, T, T);
 
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations["u_position"], 0);
     var cos = Math.cos(amount);
@@ -531,7 +510,7 @@ Breed.prototype.turn = function(gl, amount) {
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.drawElements(gl.POINTS, this.count, gl.UNSIGNED_SHORT, 0);
+    gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -552,8 +531,6 @@ Breed.prototype.setPatch = function(gl, patch, value) {
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesIBO);
-
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
 
@@ -565,7 +542,7 @@ Breed.prototype.setPatch = function(gl, patch, value) {
     gl.uniform4fv(prog.uniLocations["u_value"], value);
     gl.uniform1i(prog.uniLocations["u_type"], patch.type);
 
-    gl.drawElements(gl.POINTS, this.count, gl.UNSIGNED_SHORT, 0);
+    gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
@@ -634,31 +611,6 @@ function debugDisplay1(gl, breed) {
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 };
 
-function step() {
-    frames++;
-    var sTime = Date.now();
-
-
-//----------------------
-    clear();
-    myBreed.forward(gl, 1.0);
-    myBreed.setPatch(gl, myPatch, [0.0, 10.0, 10.0, 255.0]);
-    for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
-    myBreed.turn(gl, 0.05);
-
-    myPatch.draw(gl);
-    myBreed.draw(gl);
-//----------------------
-
-    diffTime += (Date.now() - sTime);
-    if (frames % 60 === 0) {
-	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
-	diffTime = 0;
-    }
-
-    window.requestAnimationFrame(step);
-};
-
 onload = function() {
     debugCanvas1 = document.getElementById('debugCanvas1');
     debugCanvas1.width = FW;
@@ -680,6 +632,8 @@ onload = function() {
 	return;
     }
 
+    initIndices(gl);
+
     programs['drawBreed'] = drawBreedProgram(gl);
     programs['forward'] = forwardProgram(gl);
     programs['turn'] = turnProgram(gl);
@@ -687,7 +641,7 @@ onload = function() {
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
 
-    myBreed = new Breed(gl, 100);
+    myBreed = new Breed(gl, 10000);
 
     myPatch = new Patch('Color');
 
@@ -696,3 +650,28 @@ onload = function() {
 
     window.requestAnimationFrame(step);
 };
+
+function step() {
+    frames++;
+    var sTime = performance.now();
+
+//----------------------
+    clear();
+    myBreed.forward(gl, 1.0);
+    myBreed.turn(gl, 0.05);
+    myBreed.setPatch(gl, myPatch, [0.0, 10.0, 10.0, 255.0]);
+    for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+  
+    myPatch.draw(gl);
+    myBreed.draw(gl);
+//----------------------
+
+    diffTime += (performance.now() - sTime);
+    if (frames % 60 === 0) {
+	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
+	diffTime = 0.0;
+    }
+
+    window.requestAnimationFrame(step);
+};
+
