@@ -1,5 +1,5 @@
 var TEXTURE_SIZE = 256;
-var FIELD_WIDTH = 768;
+var FIELD_WIDTH = 512;
 var FIELD_HEIGHT = 512;
 
 var T = TEXTURE_SIZE;
@@ -173,6 +173,10 @@ function randomDirection() {
   return [Math.cos(r), Math.sin(r)];
 };
 
+function randomPosition() {
+  return [Math.random() * FW, Math.random() * FH];
+};
+
 function Breed(gl, count) {
     var imageData;
 
@@ -183,8 +187,14 @@ function Breed(gl, count) {
 	for (var i = 0; i < T; i++) {
 	    var ind = (j * T + i) * 4;
 	    var r = randomDirection();
-	    ary[ind + 0] = (a += 4);
-	    ary[ind + 1] = j;
+            var p = randomPosition();
+//	    ary[ind + 0] = (a += 4) + FW / 2;
+//	    ary[ind + 1] = j + FH /2;
+//	    ary[ind + 2] = r[0];
+//	    ary[ind + 3] = r[1];
+
+	    ary[ind + 0] = p[0];
+	    ary[ind + 1] = p[1];
 	    ary[ind + 2] = r[0];
 	    ary[ind + 3] = r[1];
 	}
@@ -428,8 +438,7 @@ function clear() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clearDepth(1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 }
 
 Breed.prototype.draw = function(gl) {
@@ -482,8 +491,7 @@ Breed.prototype.forward = function(gl, amount) {
     gl.uniform1f(prog.uniLocations["u_amount"], amount);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clearDepth(1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawElements(gl.POINTS, this.count, gl.UNSIGNED_SHORT, 0);
     gl.flush();
@@ -521,8 +529,7 @@ Breed.prototype.turn = function(gl, amount) {
     gl.uniformMatrix2fv(prog.uniLocations["u_rot"], false, [cos, sin, -sin, cos]);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clearDepth(1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawElements(gl.POINTS, this.count, gl.UNSIGNED_SHORT, 0);
     gl.flush();
@@ -606,8 +613,7 @@ Patch.prototype.diffuse = function(gl) {
     gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clearDepth(1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -636,7 +642,7 @@ function step() {
 //----------------------
     clear();
     myBreed.forward(gl, 1.0);
-    myBreed.setPatch(gl, myPatch, [0.0, 200.0, 200.0, 255.0]);
+    myBreed.setPatch(gl, myPatch, [0.0, 10.0, 10.0, 255.0]);
     for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
     myBreed.turn(gl, 0.05);
 
@@ -681,7 +687,7 @@ onload = function() {
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
 
-    myBreed = new Breed(gl, 32768);
+    myBreed = new Breed(gl, 100);
 
     myPatch = new Patch('Color');
 
