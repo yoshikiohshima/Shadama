@@ -201,7 +201,7 @@ function Breed(gl, count) {
 	    if (i > T/2) {
 		var c = [0, 0, 255, 255];
 	    } else {
-		c = [255.0, 0, 0, 255];
+		var c = [0, 0, 255, 255];
 	    }
 	    ary[ind + 0] = c[0];
 	    ary[ind + 1] = c[1];
@@ -229,68 +229,6 @@ function Patch(type) {
     }
 }
 
-
-function step() {
-    frames++;
-    var sTime = Date.now();
-
-
-//----------------------
-    clear();
-    myBreed.forward(gl, 1.0);
-    myBreed.setPatch(gl, myPatch, [0.0, 200.0, 200.0, 255.0]);
-    myPatch.diffuse(gl);
-    myBreed.turn(gl, 0.05);
-    myPatch.draw(gl);
-    myBreed.draw(gl);
-//----------------------
-
-    diffTime += (Date.now() - sTime);
-    if (frames % 60 === 0) {
-	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
-	diffTime = 0;
-    }
-
-    window.requestAnimationFrame(step);
-};
-
-onload = function() {
-    debugCanvas1 = document.getElementById('debugCanvas1');
-    debugCanvas1.width = FW;
-    debugCanvas1.height = FH;
-
-    readout = document.getElementById('readout');
-
-    var c = document.getElementById('canvas');
-    c.width = FW;
-    c.height = FH;
-    
-    gl = c.getContext('webgl'); 
-
-    VAOExt = gl.getExtension('OES_vertex_array_object');
-
-    floatExt = gl.getExtension('OES_texture_float');
-    if (!floatExt) {
-	alert('float texture not supported');
-	return;
-    }
-
-    programs['drawBreed'] = drawBreedProgram(gl);
-    programs['forward'] = forwardProgram(gl);
-    programs['turn'] = turnProgram(gl);
-    programs['setPatch'] = setPatchProgram(gl);
-    programs['drawPatch'] = drawPatchProgram(gl);
-    programs['diffusePatch'] = diffusePatchProgram(gl);
-
-    myBreed = new Breed(gl, 32768);
-
-    myPatch = new Patch('Color');
-
-    frames = 0;
-    diffTime = 0;
-
-    window.requestAnimationFrame(step);
-};
 
 function forwardProgram(gl) {
     var vs = createShader(gl, 'forward.vert');
@@ -640,13 +578,9 @@ Patch.prototype.draw = function(gl) {
     gl.uniform1i(prog.uniLocations['u_value'], 0);
     gl.uniform1i(prog.uniLocations['u_type'], this.type);
 
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clearDepth(1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-
     gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
 
@@ -678,6 +612,7 @@ Patch.prototype.diffuse = function(gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     var tmp = this.newValues;
     this.newValues = this.values;
@@ -693,3 +628,65 @@ function debugDisplay1(gl, breed) {
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 };
 
+function step() {
+    frames++;
+    var sTime = Date.now();
+
+
+//----------------------
+    clear();
+    myBreed.forward(gl, 1.0);
+    myBreed.setPatch(gl, myPatch, [0.0, 200.0, 200.0, 255.0]);
+    for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+    myBreed.turn(gl, 0.05);
+
+    myPatch.draw(gl);
+    myBreed.draw(gl);
+//----------------------
+
+    diffTime += (Date.now() - sTime);
+    if (frames % 60 === 0) {
+	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
+	diffTime = 0;
+    }
+
+    window.requestAnimationFrame(step);
+};
+
+onload = function() {
+    debugCanvas1 = document.getElementById('debugCanvas1');
+    debugCanvas1.width = FW;
+    debugCanvas1.height = FH;
+
+    readout = document.getElementById('readout');
+
+    var c = document.getElementById('canvas');
+    c.width = FW;
+    c.height = FH;
+    
+    gl = c.getContext('webgl'); 
+
+    VAOExt = gl.getExtension('OES_vertex_array_object');
+
+    floatExt = gl.getExtension('OES_texture_float');
+    if (!floatExt) {
+	alert('float texture not supported');
+	return;
+    }
+
+    programs['drawBreed'] = drawBreedProgram(gl);
+    programs['forward'] = forwardProgram(gl);
+    programs['turn'] = turnProgram(gl);
+    programs['setPatch'] = setPatchProgram(gl);
+    programs['drawPatch'] = drawPatchProgram(gl);
+    programs['diffusePatch'] = diffusePatchProgram(gl);
+
+    myBreed = new Breed(gl, 32768);
+
+    myPatch = new Patch('Color');
+
+    frames = 0;
+    diffTime = 0;
+
+    window.requestAnimationFrame(step);
+};

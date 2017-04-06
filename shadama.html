@@ -232,8 +232,8 @@ const float weight8 = 0.077847;
 
 void main(void) {
   vec2 onePixel = vec2(1.0) / u_resolution;
-  vec2 fc = vec2(gl_FragCoord.s, u_resolution.y - gl_FragCoord.t);
-  vec4 v = texture2D(u_value, (fc + vec2(-1.0, -1.0)) * onePixel) * weight0;
+  vec2 fc = vec2(gl_FragCoord.s, gl_FragCoord.t);
+  vec4 v  = texture2D(u_value, (fc + vec2(-1.0, -1.0)) * onePixel) * weight0;
        v += texture2D(u_value, (fc + vec2(-1.0,  0.0)) * onePixel) * weight1;
        v += texture2D(u_value, (fc + vec2(-1.0,  1.0)) * onePixel) * weight2;
        v += texture2D(u_value, (fc + vec2(-1.0,  0.0)) * onePixel) * weight3;
