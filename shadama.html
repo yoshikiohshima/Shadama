@@ -200,6 +200,53 @@ void main(void) {
   }
 }
         </script>
+        <script id="bounceIf.vert" type="x-shader/x-vertex">
+attribute float a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+uniform sampler2D u_position;
+uniform sampler2D u_buffer;
+
+varying vec4 vColor;
+
+vec4 encodeVal(vec2 pos, vec2 dir) {
+    return vec4(mod(pos, u_resolution), dir);
+}
+
+void main(void) {
+    vec2 position = vec2(mod(a_index, u_particleLength), floor(a_index / u_particleLength));
+    vec2 zeroToOne = position / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
+    gl_Position = vec4(oneToOne, 0, 1);
+
+    vec4 val = texture2D(u_position, zeroToOne);
+    vec2 dPos = val.rg; // decodePos(val);
+    vec2 dDir = val.ba; // decodeDir(val);
+
+    vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
+
+    float v = texture2D(u_buffer, normPos).r;
+
+    vec2 newDir;
+    if (v > 0.9) {
+      newDir = mat2(-1.0, 0.0, 0.0, -1.0) * dDir;
+    } else {
+      newDir = dDir;
+    }
+    vColor = encodeVal(dPos, newDir);
+    gl_PointSize = 1.0;
+}
+        </script>
+        <script id="bounceIf.frag" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 vColor;
+
+void main(void) {
+    gl_FragColor = vColor;
+}
+        </script>
         <script id="drawPatch.vert" type="x-shader/x-vertex">
 attribute vec2 a_position;
 

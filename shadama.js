@@ -346,6 +346,21 @@ function turnProgram(gl) {
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
+function bounceIfProgram(gl) {
+    var vs = createShader(gl, 'bounceIf.vert');
+    var fs = createShader(gl, 'bounceIf.frag');
+    
+    var prog = createProgram(gl, vs, fs);
+    
+    var uniLocations = {};
+    uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
+    uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
+    uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
+    uniLocations['u_buffer'] = gl.getUniformLocation(prog, 'u_buffer');
+
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
+};
+
 function drawBreedProgram(gl) {
     var vs = createShader(gl, 'drawBreed.vert');
     var fs = createShader(gl, 'drawBreed.frag');
@@ -361,7 +376,7 @@ function drawBreedProgram(gl) {
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
-function clear() {
+function clear(gl) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -458,6 +473,38 @@ Breed.prototype.turn = function(gl, amount) {
     this.newPos = tmp;
 };
 
+Breed.prototype.bounceIf = function(gl, patch) {
+    var prog = programs['bounceIf'];
+    setTargetBuffer(gl, framebufferT, this.newPos);
+
+    gl.useProgram(prog.program);
+    VAOExt.bindVertexArrayOES(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, patch.values);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1i(prog.uniLocations["u_buffer"], 1);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.pos;
+    this.pos = this.newPos;
+    this.newPos = tmp;
+};
+
 Breed.prototype.setPatch = function(gl, patch, value) {
     var prog = programs['setPatch'];
     setTargetBuffer(gl, framebufferF, patch.values);
@@ -501,6 +548,7 @@ Breed.prototype.increasePatch = function(gl, patch, value) {
 
     gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
+    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.disable(gl.BLEND);
 };
@@ -627,6 +675,7 @@ onload = function() {
     programs['drawBreed'] = drawBreedProgram(gl);
     programs['forward'] = forwardProgram(gl);
     programs['turn'] = turnProgram(gl);
+    programs['bounceIf'] = bounceIfProgram(gl);
     programs['setPatch'] = setPatchProgram(gl);
     programs['getPatch'] = getPatchProgram(gl);
     programs['drawPatch'] = drawPatchProgram(gl);
@@ -640,17 +689,18 @@ onload = function() {
 
     frames = 0;
     diffTime = 0;
-    debugArray = new Float32Array(FW * FH * 4);
 
-    var tmp = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
     framebufferT = gl.createFramebuffer();
     initFramebuffer(gl, framebufferT, tmp, gl.FLOAT, T, T);
 
     framebufferF = framebufferT;
 
-//    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, T, T);
-//    framebufferF = gl.createFramebuffer();
-//    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
+    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, T, T);
+    framebufferF = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
+
+    debugArray = new Float32Array(FW * FH * 4);
 
     window.requestAnimationFrame(step);
 };
@@ -660,17 +710,18 @@ function step() {
     var sTime = performance.now();
 
 //----------------------
-    clear();
-//    myPatch.clear(gl);
+    clear(gl);
+    myPatch.clear(gl);
     myBreed.forward(gl, 1.0);
     myBreed.turn(gl, 0.05);
-    myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 256.0]);
+    myBreed.increasePatch(gl, myPatch, [1.0, 0.0, 0.0, 255.0]);
+    //myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 255.0]);
+    //for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+    myBreed.bounceIf(gl, myPatch);
 
 //    myBreed.getPatch(gl, myPatch, myBreed.buf);
 
-//    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
 
-  for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
 
 
 
