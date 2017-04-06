@@ -16,27 +16,19 @@ uniform float u_amount;
 
 varying vec4 vColor;
 
-vec2 decodePos(vec4 c) {
-    return c.rg;
-}
-
-vec2 decodeDir(vec4 c) {
-    return c.ba;
-}
-
 vec4 encodeVal(vec2 pos, vec2 dir) {
     return vec4(mod(pos, u_resolution), dir);
 }
 
 void main(void) {
-    vec2 position = vec2(mod(a_index, u_resolution.x), floor(a_index / u_resolution.y));
+    vec2 position = vec2(mod(a_index, u_particleLength), floor(a_index / u_particleLength));
     vec2 zeroToOne = position / u_particleLength;
     vec2 oneToOne = zeroToOne * 2.0 - 1.0;
     gl_Position = vec4(oneToOne, 0, 1);
 
     vec4 val = texture2D(u_position, zeroToOne);
-    vec2 dPos = decodePos(val);
-    vec2 dDir = decodeDir(val);
+    vec2 dPos = val.rg; // decodePos(val);
+    vec2 dDir = val.ba; // decodeDir(val);
     vec2 newPos = dPos + (dDir * u_amount);
     vColor = encodeVal(newPos, dDir);
     gl_PointSize = 1.0;
@@ -62,27 +54,19 @@ uniform mat2 u_rot;
 
 varying vec4 vColor;
 
-vec2 decodePos(vec4 c) {
-    return c.rg;
-}
-
-vec2 decodeDir(vec4 c) {
-    return c.ba;
-}
-
 vec4 encodeVal(vec2 pos, vec2 dir) {
     return vec4(pos, dir);
 }
 
 void main(void) {
-    vec2 position = vec2(mod(a_index, u_resolution.x), floor(a_index / u_resolution.y));
+    vec2 position = vec2(mod(a_index, u_particleLength), floor(a_index / u_particleLength));
     vec2 zeroToOne = position / u_particleLength;
     vec2 oneToOne = zeroToOne * 2.0 - 1.0;
     gl_Position = vec4(oneToOne, 0, 1);
 
     vec4 val = texture2D(u_position, zeroToOne);
-    vec2 dPos = decodePos(val);
-    vec2 dDir = decodeDir(val);
+    vec2 dPos = val.rg; // decodePos(val);
+    vec2 dDir = val.ba; // decodeDir(val);
     
     vec2 newDir = u_rot * dDir;
     vColor = encodeVal(dPos, newDir);
@@ -113,7 +97,7 @@ vec2 decodePos(vec4 c) {
 }
 
 void main(void) {
-    vec2 position = vec2(mod(a_index, u_resolution.x), floor(a_index / u_resolution.y));
+    vec2 position = vec2(mod(a_index, u_particleLength), floor(a_index / u_particleLength));
     vec2 zeroToOne = position / u_particleLength;
 
     vec4 val = texture2D(u_position, zeroToOne);
@@ -146,16 +130,12 @@ uniform vec2 u_resolution;
 uniform float u_particleLength;
 uniform sampler2D u_position;
 
-vec2 decodePos(vec4 c) {
-    return c.rg;
-}
-
 void main(void) {
-    vec2 position = vec2(mod(a_index, u_resolution.x), floor(a_index / u_resolution.y));
+    vec2 position = vec2(mod(a_index, u_particleLength), floor(a_index / u_particleLength));
     vec2 zeroToOne = position / u_particleLength;
 
     vec4 val = texture2D(u_position, zeroToOne);
-    vec2 dPos = decodePos(val);   // (0-resolution, 0-resolution)
+    vec2 dPos = val.rg; // decodePos(val);   // (0-resolution, 0-resolution)
     vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
     vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
 
@@ -174,6 +154,47 @@ void main(void) {
     gl_FragColor = u_value;
   } else if(u_type == 1) {
     gl_FragColor = u_value;
+  } else {
+    discard;
+  }
+}
+        </script>
+        <script id="getPatch.vert" type="x-shader/x-vertex">
+attribute float a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+uniform sampler2D u_position;
+
+varying vec2 v_coord;
+
+void main(void) {
+    vec2 position = vec2(mod(a_index, u_particleLength), floor(a_index / u_particleLength));
+    vec2 zeroToOne = position / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
+
+    vec4 val = texture2D(u_position, zeroToOne);
+    vec2 dPos = val.rg; // decodePos(val);   // (0-resolution, 0-resolution)
+    vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
+
+    gl_Position = vec4(oneToOne, 0, 1);
+    v_coord = normPos;
+    gl_PointSize = 1.0;
+}
+        </script>
+
+        <script id="getPatch.frag" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_value;
+uniform int u_type; // 0 = Number, 1 = Color
+
+varying vec2 v_coord;
+
+void main(void) {
+  if (u_type == 0) {
+    gl_FragColor = texture2D(u_value, v_coord);
+  } else if(u_type == 1) {
+    gl_FragColor = texture2D(u_value, v_coord);
   } else {
     discard;
   }

@@ -1,43 +1,85 @@
 var TEXTURE_SIZE = 256;
-var FIELD_WIDTH = 512;
-var FIELD_HEIGHT = 512;
+var FIELD_WIDTH = 400;
+var FIELD_HEIGHT = 300;
 
 var T = TEXTURE_SIZE;
 var FW = FIELD_WIDTH;
 var FH = FIELD_HEIGHT;
 
-var src;
-var dst;
-
-var debugCanvas1;
-
 var readout;
 
-var debugArray;
-
 var gl;
-var defaultVAO;
 var VAOExt;
 var floatExt;
+
+var breedVAO;
+var patchVAO;
 
 var framebuffer;
 
 var programs = {};
 
-var allIndices;
-
 var myBreed;
 var myPatch;
+
+var debugCanvas1;
+
+var debugArray;
+var debugArray2;
 
 var frames;
 var diffTime;
 
-
-function initIndices(gl) {
-    allIndices = new Array(T * T);
+function initBreedVAO(gl) {
+    var allIndices = new Array(T * T);
     for (var i = 0; i < T * T; i++) {
 	allIndices[i] = i;
     }
+
+    // Create a vertex array object (attribute state)
+    breedVAO = VAOExt.createVertexArrayOES();
+    // and make it the one we're currently working with
+    VAOExt.bindVertexArrayOES(breedVAO);
+
+    var positionBuffer = gl.createBuffer();
+
+    var attrLocations = new Array(1);
+    // this probably is a very bad idea of assuming the a_index should always be the first one in the vertex shader programs
+    attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index');
+    
+    var attrStrides = new Array(1);
+    attrStrides[0] = 1;
+
+    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
+    VAOExt.bindVertexArrayOES(null);
+};
+
+function initPatchVAO(gl) {
+
+    // Create a vertex array object (attribute state)
+    patchVAO = VAOExt.createVertexArrayOES();
+    // and make it the one we're currently working with
+    VAOExt.bindVertexArrayOES(patchVAO);
+
+    var positionBuffer = gl.createBuffer();
+    var rect = [
+	-1.0,  1.0,
+ 	 1.0,  1.0,
+        -1.0, -1.0,
+         1.0,  1.0,
+         1.0, -1.0,
+        -1.0, -1.0,
+    ];
+
+    var attrLocations = new Array(1);
+    // this probably is a very bad idea of assuming the a_index should always be the first one in the vertex shader programs
+    attrLocations[0] = 0; //gl.getAttribLocation(prog, 'a_position');
+    
+    var attrStrides = new Array(1);
+    attrStrides[0] = 2;
+
+    set_buffer_attribute(gl, [positionBuffer], [rect], attrLocations, attrStrides);
+    VAOExt.bindVertexArrayOES(null);
 };
 
 function createShader(gl, id) {
@@ -234,27 +276,13 @@ function forwardProgram(gl) {
     
     var prog = createProgram(gl, vs, fs);
     
-    var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
-    
-    var attrStrides = new Array(1);
-    attrStrides[0] = 1;
-
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_amount'] = gl.getUniformLocation(prog, 'u_amount');
   
-    // Create a vertex array object (attribute state)
-    var vao = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
-    VAOExt.bindVertexArrayOES(vao);
-
-    var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
-
-    return {program: prog, uniLocations: uniLocations, vao: vao};
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function setPatchProgram(gl) {
@@ -263,12 +291,6 @@ function setPatchProgram(gl) {
     
     var prog = createProgram(gl, vs, fs);
     
-    var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
-    
-    var attrStrides = new Array(1);
-    attrStrides[0] = 1;
-
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
@@ -276,16 +298,22 @@ function setPatchProgram(gl) {
     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
     uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
   
-    // Create a vertex array object (attribute state)
-    var vao = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
-    VAOExt.bindVertexArrayOES(vao);
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
+};
 
-    var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
-
-
-    return {program: prog, uniLocations: uniLocations, vao: vao};
+function getPatchProgram(gl) {
+    var vs = createShader(gl, 'getPatch.vert');
+    var fs = createShader(gl, 'getPatch.frag');
+    
+    var prog = createProgram(gl, vs, fs);
+    
+    var uniLocations = {};
+    uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
+    uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
+    uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
+    uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
+  
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function drawPatchProgram(gl) {
@@ -293,34 +321,12 @@ function drawPatchProgram(gl) {
     var fs = createShader(gl, 'drawPatch.frag');
     
     var prog = createProgram(gl, vs, fs);
+
+     var uniLocations = {};
+     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
+     uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
     
-    var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_position');
-    
-    var attrStrides = new Array(1);
-    attrStrides[0] = 2;
-
-    var uniLocations = {};
-    uniLocations['u_patch'] = gl.getUniformLocation(prog, 'u_patch');
-  
-    // Create a vertex array object (attribute state)
-    var vao = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
-    VAOExt.bindVertexArrayOES(vao);
-
-    var positionBuffer = gl.createBuffer();
-
-    var rect = [
-	-1.0,  1.0,
- 	 1.0,  1.0,
-        -1.0, -1.0,
-         1.0,  1.0,
-         1.0, -1.0,
-        -1.0, -1.0,
-    ];
-    set_buffer_attribute(gl, [positionBuffer], [rect], attrLocations, attrStrides);
-
-    return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao, pos: positionBuffer};
+    return {program: prog, uniLocations: uniLocations, vao: patchVAO};
 };
 
 function diffusePatchProgram(gl) {
@@ -329,34 +335,11 @@ function diffusePatchProgram(gl) {
     
     var prog = createProgram(gl, vs, fs);
     
-    var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_position');
-    
-    var attrStrides = new Array(1);
-    attrStrides[0] = 2;
-
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
   
-    // Create a vertex array object (attribute state)
-    var vao = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
-    VAOExt.bindVertexArrayOES(vao);
-
-    var positionBuffer = gl.createBuffer();
-
-    var rect = [
-	-1.0,  1.0,
- 	 1.0,  1.0,
-        -1.0, -1.0,
-         1.0,  1.0,
-         1.0, -1.0,
-        -1.0, -1.0,
-    ];
-    set_buffer_attribute(gl, [positionBuffer], [rect], attrLocations, attrStrides);
-
-    return {program: prog, attrLocations: attrLocations, attrStrides: attrStrides, uniLocations: uniLocations, vao: vao, pos: positionBuffer};
+    return {program: prog, uniLocations: uniLocations, vao: patchVAO};
 };
 
 function turnProgram(gl) {
@@ -365,27 +348,13 @@ function turnProgram(gl) {
     
     var prog = createProgram(gl, vs, fs);
     
-    var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
-    
-    var attrStrides = new Array(1);
-    attrStrides[0] = 1;
-
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_rot'] = gl.getUniformLocation(prog, 'u_rot');
 
-    // Create a vertex array object (attribute state)
-    var vao = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
-    VAOExt.bindVertexArrayOES(vao);
-
-    var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
-
-    return {program: prog, uniLocations: uniLocations, vao: vao};
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function drawBreedProgram(gl) {
@@ -394,27 +363,13 @@ function drawBreedProgram(gl) {
     
     var prog = createProgram(gl, vs, fs);
     
-    var attrLocations = new Array(1);
-    attrLocations[0] = gl.getAttribLocation(prog, 'a_index');
-    
-    var attrStrides = new Array(1);
-    attrStrides[0] = 1;
-
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_color'] = gl.getUniformLocation(prog, 'u_color');
 
-    // Create a vertex array object (attribute state)
-    var vao = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
-    VAOExt.bindVertexArrayOES(vao);
-
-    var positionBuffer = gl.createBuffer();
-    set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
-
-    return {program: prog, uniLocations: uniLocations, vao: vao};
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function clear() {
@@ -422,7 +377,12 @@ function clear() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-}
+};
+
+Breed.prototype.addOwnVariable = function(gl, name, type) {
+    ary = new Float32Array(T * T * 4);
+    this[name] = createTexture(gl, ary, gl.FLOAT);
+};
 
 Breed.prototype.draw = function(gl) {
     var prog = programs['drawBreed'];
@@ -438,7 +398,7 @@ Breed.prototype.draw = function(gl) {
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    gl.uniform2f(prog.uniLocations["u_resolution"], gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations['u_position'], 0);
     gl.uniform1i(prog.uniLocations['u_color'], 1);
@@ -536,7 +496,7 @@ Breed.prototype.setPatch = function(gl, patch, value) {
 
     gl.viewport(0, 0, FW, FH);
 
-    gl.uniform2f(prog.uniLocations["u_resolution"], gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations["u_position"], 0);
     gl.uniform4fv(prog.uniLocations["u_value"], value);
@@ -545,6 +505,37 @@ Breed.prototype.setPatch = function(gl, patch, value) {
     gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.getPatch = function(gl, patch, dest) {
+    var prog = programs['getPatch'];
+    if (!framebuffer) {
+	framebuffer = gl.createFramebuffer();
+	initFramebuffer(gl, framebuffer, dest, gl.FLOAT, T, T);
+    } else {
+	setTargetBuffer(gl, framebuffer, dest);
+    }
+
+    gl.useProgram(prog.program);
+    VAOExt.bindVertexArrayOES(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, patch.values);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1i(prog.uniLocations["u_value"], 1);
+    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+//    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
 Patch.prototype.draw = function(gl) {
@@ -566,7 +557,6 @@ Patch.prototype.draw = function(gl) {
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
-
 
 Patch.prototype.diffuse = function(gl) {
     var prog = programs['diffusePatch'];
@@ -602,7 +592,6 @@ Patch.prototype.diffuse = function(gl) {
     this.values = tmp;
 };
 
-
 function debugDisplay1(gl, breed) {
     debugArray = new Uint8Array(T * T * 4);
     setTargetBuffer(gl, framebuffer, breed.pos);
@@ -625,23 +614,30 @@ onload = function() {
     gl = c.getContext('webgl'); 
 
     VAOExt = gl.getExtension('OES_vertex_array_object');
-
+    if (!VAOExt) {
+	alert('vertex array object extension not supported');
+	return;
+    }
     floatExt = gl.getExtension('OES_texture_float');
     if (!floatExt) {
 	alert('float texture not supported');
 	return;
     }
 
-    initIndices(gl);
+    initBreedVAO(gl);
+    initPatchVAO(gl);
 
     programs['drawBreed'] = drawBreedProgram(gl);
     programs['forward'] = forwardProgram(gl);
     programs['turn'] = turnProgram(gl);
     programs['setPatch'] = setPatchProgram(gl);
+    programs['getPatch'] = getPatchProgram(gl);
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
 
-    myBreed = new Breed(gl, 10000);
+    myBreed = new Breed(gl, 50);
+
+    myBreed.addOwnVariable(gl, 'buf', 'Color');
 
     myPatch = new Patch('Color');
 
@@ -661,10 +657,26 @@ function step() {
     myBreed.turn(gl, 0.05);
     myBreed.setPatch(gl, myPatch, [0.0, 10.0, 10.0, 255.0]);
     for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
-  
+
+    myBreed.getPatch(gl, myPatch, myBreed.buf);
+//    debugArray = new Float32Array(T * T * 4);
+//    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+
     myPatch.draw(gl);
     myBreed.draw(gl);
 //----------------------
+
+//    debugArray2 = new Uint8ClampedArray(T * T * 4);
+
+//    for (var i = 0; i < T * T * 4; i++) {
+//	debugArray2[i] = debugArray[i];
+//	if (i % 4 == 3) {
+//	    debugArray2[i] = 255;
+//	}
+//    }
+
+//    var img = new ImageData(debugArray2, T, T);
+//    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
@@ -674,4 +686,3 @@ function step() {
 
     window.requestAnimationFrame(step);
 };
-
