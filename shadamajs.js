@@ -49,7 +49,7 @@ function Breed(count, color) {
 
     this.newPos = new Float32Array(T2 * 2);
 
-    this.dir = new Float32Array(T2 *2);
+    this.dir = new Float32Array(T2 * 2);
     for (var j = 0; j < T; j++) {
 	for (var i = 0; i < T; i++) {
 	    var ind = (j * T + i) * 2;
