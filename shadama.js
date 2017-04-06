@@ -15,8 +15,6 @@ var floatExt;
 var breedVAO;
 var patchVAO;
 
-var framebuffer;
-
 var programs = {};
 
 var myBreed;
@@ -30,15 +28,16 @@ var debugArray2;
 var frames;
 var diffTime;
 
+var framebufferT;
+var framebufferF;
+
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T);
     for (var i = 0; i < T * T; i++) {
 	allIndices[i] = i;
     }
 
-    // Create a vertex array object (attribute state)
     breedVAO = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
     VAOExt.bindVertexArrayOES(breedVAO);
 
     var positionBuffer = gl.createBuffer();
@@ -55,10 +54,7 @@ function initBreedVAO(gl) {
 };
 
 function initPatchVAO(gl) {
-
-    // Create a vertex array object (attribute state)
     patchVAO = VAOExt.createVertexArrayOES();
-    // and make it the one we're currently working with
     VAOExt.bindVertexArrayOES(patchVAO);
 
     var positionBuffer = gl.createBuffer();
@@ -164,13 +160,6 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-
     gl.bindTexture(gl.TEXTURE_2D, null);
 };
 
@@ -410,12 +399,7 @@ Breed.prototype.draw = function(gl) {
 
 Breed.prototype.forward = function(gl, amount) {
     var prog = programs['forward'];
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, this.newPos, gl.FLOAT);
-    } else {
-	setTargetBuffer(gl, framebuffer, this.newPos);
-    }
+    setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
@@ -444,12 +428,7 @@ Breed.prototype.forward = function(gl, amount) {
 
 Breed.prototype.turn = function(gl, amount) {
     var prog = programs['turn'];
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, this.newPos, gl.FLOAT);
-    } else {
-	setTargetBuffer(gl, framebuffer, this.newPos);
-    }
+    setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
@@ -481,12 +460,7 @@ Breed.prototype.turn = function(gl, amount) {
 
 Breed.prototype.setPatch = function(gl, patch, value) {
     var prog = programs['setPatch'];
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, patch.values, gl.FLOAT, FW, FH);
-    } else {
-	setTargetBuffer(gl, framebuffer, patch.values);
-    }
+    setTargetBuffer(gl, framebufferF, patch.values);
 
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
@@ -509,12 +483,7 @@ Breed.prototype.setPatch = function(gl, patch, value) {
 
 Breed.prototype.increasePatch = function(gl, patch, value) {
     var prog = programs['setPatch'];  // the same program but with blend enabled.
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, patch.values, gl.FLOAT, FW, FH);
-    } else {
-	setTargetBuffer(gl, framebuffer, patch.values);
-    }
+    setTargetBuffer(gl, framebufferF, patch.values);
 
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
@@ -538,12 +507,7 @@ Breed.prototype.increasePatch = function(gl, patch, value) {
 
 Breed.prototype.getPatch = function(gl, patch, dest) {
     var prog = programs['getPatch'];
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, dest, gl.FLOAT, T, T);
-    } else {
-	setTargetBuffer(gl, framebuffer, dest);
-    }
+    setTargetBuffer(gl, framebufferT, dest);
 
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
@@ -569,12 +533,7 @@ Breed.prototype.getPatch = function(gl, patch, dest) {
 
 Patch.prototype.clear = function(gl) {
     var prog = programs['clearPatch'];
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, this.values, gl.FLOAT, T, T);
-    } else {
-	setTargetBuffer(gl, framebuffer, this.values);
-    }
+    setTargetBuffer(gl, framebufferF, this.values);
 
     gl.viewport(0, 0, FW, FH);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -604,12 +563,7 @@ Patch.prototype.draw = function(gl) {
 Patch.prototype.diffuse = function(gl) {
     var prog = programs['diffusePatch'];
 
-    if (!framebuffer) {
-	framebuffer = gl.createFramebuffer();
-	initFramebuffer(gl, framebuffer, this.newValues, gl.FLOAT);
-    } else {
-	setTargetBuffer(gl, framebuffer, this.newValues);
-    }
+    setTargetBuffer(gl, framebufferF, this.newValues);
 
     gl.useProgram(prog.program);
     VAOExt.bindVertexArrayOES(prog.vao);
@@ -637,7 +591,7 @@ Patch.prototype.diffuse = function(gl) {
 
 function debugDisplay1(gl, breed) {
     debugArray = new Uint8Array(T * T * 4);
-    setTargetBuffer(gl, framebuffer, breed.pos);
+    setTargetBuffer(gl, framebufferT, breed.pos);
     gl.readPixels(0, 0, T, T, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
     var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), T, T);
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
@@ -678,7 +632,7 @@ onload = function() {
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
 
-    myBreed = new Breed(gl, 10000);
+    myBreed = new Breed(gl, 50);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 
@@ -686,9 +640,19 @@ onload = function() {
 
     frames = 0;
     diffTime = 0;
+    debugArray = new Float32Array(FW * FH * 4);
+
+    var tmp = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    framebufferT = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferT, tmp, gl.FLOAT, T, T);
+
+    framebufferF = framebufferT;
+
+//    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, T, T);
+//    framebufferF = gl.createFramebuffer();
+//    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
 
     window.requestAnimationFrame(step);
-    debugArray = new Float32Array(FW * FH * 4);
 };
 
 function step() {
@@ -697,16 +661,16 @@ function step() {
 
 //----------------------
     clear();
-    myPatch.clear(gl);
+//    myPatch.clear(gl);
     myBreed.forward(gl, 1.0);
     myBreed.turn(gl, 0.05);
-    myBreed.increasePatch(gl, myPatch, [1.0, 0.0, 0.0, 0.0]);
+    myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 256.0]);
 
-    myBreed.getPatch(gl, myPatch, myBreed.buf);
+//    myBreed.getPatch(gl, myPatch, myBreed.buf);
 
-    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
+//    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
 
-//  for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+  for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
 
 
 
