@@ -236,11 +236,11 @@ void main(void) {
   vec4 v  = texture2D(u_value, (fc + vec2(-1.0, -1.0)) * onePixel) * weight0;
        v += texture2D(u_value, (fc + vec2(-1.0,  0.0)) * onePixel) * weight1;
        v += texture2D(u_value, (fc + vec2(-1.0,  1.0)) * onePixel) * weight2;
-       v += texture2D(u_value, (fc + vec2(-1.0,  0.0)) * onePixel) * weight3;
+       v += texture2D(u_value, (fc + vec2( 0.0, -1.0)) * onePixel) * weight3;
        v += texture2D(u_value, (fc + vec2( 0.0,  0.0)) * onePixel) * weight4;
-       v += texture2D(u_value, (fc + vec2( 1.0,  0.0)) * onePixel) * weight5;
-       v += texture2D(u_value, (fc + vec2(-1.0, -1.0)) * onePixel) * weight6;
-       v += texture2D(u_value, (fc + vec2(-1.0,  0.0)) * onePixel) * weight7;
+       v += texture2D(u_value, (fc + vec2( 0.0,  1.0)) * onePixel) * weight5;
+       v += texture2D(u_value, (fc + vec2( 1.0, -1.0)) * onePixel) * weight6;
+       v += texture2D(u_value, (fc + vec2( 1.0,  0.0)) * onePixel) * weight7;
        v += texture2D(u_value, (fc + vec2( 1.0,  1.0)) * onePixel) * weight8;
        gl_FragColor = v;
 }
