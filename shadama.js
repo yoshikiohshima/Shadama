@@ -391,19 +391,19 @@ function drawBreedProgram(gl) {
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
-function clear(gl) {
+function clear() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 };
 
-Breed.prototype.addOwnVariable = function(gl, name, type) {
+Breed.prototype.addOwnVariable = function(name, type) {
     ary = new Float32Array(T * T * 4);
     this[name] = createTexture(gl, ary, gl.FLOAT);
 };
 
-Breed.prototype.draw = function(gl) {
+Breed.prototype.draw = function() {
     var prog = programs['drawBreed'];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
@@ -427,7 +427,7 @@ Breed.prototype.draw = function(gl) {
     gl.flush();
 };
 
-Breed.prototype.forward = function(gl, amount) {
+Breed.prototype.forward = function(amount) {
     var prog = programs['forward'];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
@@ -456,7 +456,7 @@ Breed.prototype.forward = function(gl, amount) {
     this.newPos = tmp;
 };
 
-Breed.prototype.turn = function(gl, amount) {
+Breed.prototype.turn = function(amount) {
     var prog = programs['turn'];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
@@ -488,7 +488,7 @@ Breed.prototype.turn = function(gl, amount) {
     this.newPos = tmp;
 };
 
-Breed.prototype.bounceIf = function(gl, patch) {
+Breed.prototype.bounceIf = function(patch) {
     var prog = programs['bounceIf'];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
@@ -520,7 +520,7 @@ Breed.prototype.bounceIf = function(gl, patch) {
     this.newPos = tmp;
 };
 
-Breed.prototype.setPatch = function(gl, patch, value) {
+Breed.prototype.setPatch = function(patch, value) {
     var prog = programs['setPatch'];
     setTargetBuffer(gl, framebufferF, patch.values);
 
@@ -543,7 +543,7 @@ Breed.prototype.setPatch = function(gl, patch, value) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-Breed.prototype.increasePatch = function(gl, patch, value) {
+Breed.prototype.increasePatch = function(patch, value) {
     var prog = programs['setPatch'];  // the same program but with blend enabled.
     setTargetBuffer(gl, framebufferF, patch.values);
 
@@ -567,7 +567,7 @@ Breed.prototype.increasePatch = function(gl, patch, value) {
     gl.disable(gl.BLEND);
 };
 
-Breed.prototype.getPatch = function(gl, patch, dest) {
+Breed.prototype.getPatch = function(patch, dest) {
     var prog = programs['getPatch'];
     setTargetBuffer(gl, framebufferT, dest);
 
@@ -593,7 +593,7 @@ Breed.prototype.getPatch = function(gl, patch, dest) {
 //    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-Patch.prototype.clear = function(gl) {
+Patch.prototype.clear = function() {
     var prog = programs['clearPatch'];
     setTargetBuffer(gl, framebufferF, this.values);
 
@@ -602,7 +602,7 @@ Patch.prototype.clear = function(gl) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 };
 
-Patch.prototype.draw = function(gl) {
+Patch.prototype.draw = function() {
     var prog = programs['drawPatch'];
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -622,7 +622,7 @@ Patch.prototype.draw = function(gl) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-Patch.prototype.diffuse = function(gl) {
+Patch.prototype.diffuse = function() {
     var prog = programs['diffusePatch'];
 
     setTargetBuffer(gl, framebufferF, this.newValues);
@@ -777,13 +777,13 @@ function runner() {
 };
 
 function step() {
-    clear(gl);
-    myPatch.clear(gl);
-    myBreed.forward(gl, 1.5);
-    myBreed.increasePatch(gl, myPatch, [0.25, 0.0, 0.0, 0.0]);
-    myBreed.bounceIf(gl, myPatch);
-    myPatch.draw(gl);
-    myBreed.draw(gl);
+    clear();
+    myPatch.clear();
+    myBreed.forward(1.5);
+    myBreed.increasePatch(myPatch, [0.25, 0.0, 0.0, 0.0]);
+    myBreed.bounceIf(myPatch);
+    myPatch.draw();
+    myBreed.draw();
 }
 
 //function step() {
