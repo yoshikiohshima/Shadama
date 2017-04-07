@@ -230,10 +230,13 @@ void main(void) {
     float v = texture2D(u_buffer, normPos).r;
 
     vec2 newDir;
+    vec2 newPos;
     if (v > 0.25) {
       newDir = mat2(-1.0, 0.0, 0.0, -1.0) * dDir;
+      //newPos = dPos + newDir * 1.4;
     } else {
       newDir = dDir;
+      //newPos = dPos;
     }
     vColor = encodeVal(dPos, newDir);
     gl_PointSize = 1.0;
