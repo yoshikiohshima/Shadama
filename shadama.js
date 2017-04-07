@@ -1,6 +1,7 @@
 var TEXTURE_SIZE = 256;
 var FIELD_WIDTH = 400;
 var FIELD_HEIGHT = 300;
+var ENLARGE = 2;
 
 var T = TEXTURE_SIZE;
 var FW = FIELD_WIDTH;
@@ -655,6 +656,8 @@ onload = function() {
     var c = document.getElementById('canvas');
     c.width = FW;
     c.height = FH;
+    c.style.width = (FW * ENLARGE) + "px";
+    c.style.height = (FH * ENLARGE) + "px";
 
     gl = c.getContext('webgl');
 
