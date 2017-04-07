@@ -651,15 +651,12 @@ Patch.prototype.diffuse = function(gl) {
     this.values = tmp;
 };
 
-function debugDisplay1(gl, breed) {
-    debugArray = new Uint8Array(T * T * 4);
-    setTargetBuffer(gl, framebufferT, breed.pos);
-    gl.readPixels(0, 0, T, T, gl.RGBA, gl.UNSIGNED_BYTE, debugArray);
-    var img = new ImageData(new Uint8ClampedArray(debugArray.buffer), T, T);
-    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
-};
-
 function debugDisplay2(gl, tex) {
+    if (!debugCanvas1) {
+	debugCanvas1 = document.getElementById('debugCanvas1');
+	debugCanvas1.width = FW;
+	debugCanvas1.height = FH;
+    }
     var prog = programs['debugPatch'];
     setTargetBuffer(gl, framebufferF, debugTexture);
 
@@ -698,10 +695,6 @@ function debugDisplay2(gl, tex) {
 };
 
 onload = function() {
-    debugCanvas1 = document.getElementById('debugCanvas1');
-    debugCanvas1.width = FW;
-    debugCanvas1.height = FH;
-
     readout = document.getElementById('readout');
 
     var c = document.getElementById('canvas');
@@ -760,30 +753,19 @@ onload = function() {
 
     debugArray = new Float32Array(FW * FH * 4);
 
+    window.requestAnimationFrame(runner);
 
+    var code = document.getElementById('code');
+    var codeArray = step.toString().split('\n');
 
-    window.requestAnimationFrame(step);
+    code.innerHTML = codeArray.splice(1, codeArray.length - 2).join('<br>');
 };
 
-function step() {
+function runner() {
     frames++;
     var sTime = performance.now();
 
-//----------------------
-    clear(gl);
-    myPatch.clear(gl);
-    myBreed.forward(gl, 1.5);
-//    myBreed.turn(gl, 0.05);
-    myBreed.increasePatch(gl, myPatch, [0.25, 0.0, 0.0, 0.0]);
-    myBreed.bounceIf(gl, myPatch);
-    //myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 255.0]);
-    //for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
-
-//    myBreed.getPatch(gl, myPatch, myBreed.buf);
-
-    myPatch.draw(gl);
-    myBreed.draw(gl);
-//----------------------
+    step();
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
@@ -791,5 +773,32 @@ function step() {
 	diffTime = 0.0;
     }
 
-    window.requestAnimationFrame(step);
+    window.requestAnimationFrame(runner);
 };
+
+function step() {
+    clear(gl);
+    myPatch.clear(gl);
+    myBreed.forward(gl, 1.5);
+    myBreed.increasePatch(gl, myPatch, [0.25, 0.0, 0.0, 0.0]);
+    myBreed.bounceIf(gl, myPatch);
+    myPatch.draw(gl);
+    myBreed.draw(gl);
+}
+
+//function step() {
+//    clear(gl);
+//    myPatch.clear(gl);
+//    myBreed.forward(gl, 1.5);
+//    myBreed.turn(gl, 0.05);
+//    myBreed.increasePatch(gl, myPatch, [0.25, 0.0, 0.0, 0.0]);
+//    myBreed.bounceIf(gl, myPatch);
+    //myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 255.0]);
+    //for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
+
+//    myBreed.getPatch(gl, myPatch, myBreed.buf);
+
+//    myPatch.draw(gl);
+//    myBreed.draw(gl);
+//}
+
