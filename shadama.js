@@ -45,7 +45,7 @@ function initBreedVAO(gl) {
     var attrLocations = new Array(1);
     // this probably is a very bad idea of assuming the a_index should always be the first one in the vertex shader programs
     attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index');
-    
+
     var attrStrides = new Array(1);
     attrStrides[0] = 1;
 
@@ -70,7 +70,7 @@ function initPatchVAO(gl) {
     var attrLocations = new Array(1);
     // this probably is a very bad idea of assuming the a_index should always be the first one in the vertex shader programs
     attrLocations[0] = 0; //gl.getAttribLocation(prog, 'a_position');
-    
+
     var attrStrides = new Array(1);
     attrStrides[0] = 2;
 
@@ -98,7 +98,7 @@ function createShader(gl, id) {
     if (success) {
 	return shader;
     }
-    
+
     console.log(gl.getShaderInfoLog(shader));
     alert(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
@@ -113,7 +113,7 @@ function createProgram(gl, vertexShader, fragmentShader) {
   if (success) {
     return program;
   }
- 
+
   console.log(gl.getProgramInfoLog(program));
   alert(gl.getProgramInfoLog(program));
   gl.deleteProgram(program);
@@ -131,7 +131,7 @@ function createTexture(gl, data, format, width, height) {
     }
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    
+
     if (format != gl.UNSIGNED_BYTE) {
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, data);
     } else {
@@ -262,81 +262,81 @@ function Patch(type) {
 function forwardProgram(gl) {
     var vs = createShader(gl, 'forward.vert');
     var fs = createShader(gl, 'forward.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_amount'] = gl.getUniformLocation(prog, 'u_amount');
-  
+
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function setPatchProgram(gl) {
     var vs = createShader(gl, 'setPatch.vert');
     var fs = createShader(gl, 'setPatch.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
     uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
-  
+
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function getPatchProgram(gl) {
     var vs = createShader(gl, 'getPatch.vert');
     var fs = createShader(gl, 'getPatch.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
     uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
     uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
-  
+
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
 function drawPatchProgram(gl) {
     var vs = createShader(gl, 'drawPatch.vert');
     var fs = createShader(gl, 'drawPatch.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
 
      var uniLocations = {};
      uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
      uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
-    
+
     return {program: prog, uniLocations: uniLocations, vao: patchVAO};
 };
 
 function diffusePatchProgram(gl) {
     var vs = createShader(gl, 'diffusePatch.vert');
     var fs = createShader(gl, 'diffusePatch.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
-  
+
     return {program: prog, uniLocations: uniLocations, vao: patchVAO};
 };
 
 function turnProgram(gl) {
     var vs = createShader(gl, 'turn.vert');
     var fs = createShader(gl, 'turn.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
@@ -349,9 +349,9 @@ function turnProgram(gl) {
 function bounceIfProgram(gl) {
     var vs = createShader(gl, 'bounceIf.vert');
     var fs = createShader(gl, 'bounceIf.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
@@ -364,9 +364,9 @@ function bounceIfProgram(gl) {
 function drawBreedProgram(gl) {
     var vs = createShader(gl, 'drawBreed.vert');
     var fs = createShader(gl, 'drawBreed.frag');
-    
+
     var prog = createProgram(gl, vs, fs);
-    
+
     var uniLocations = {};
     uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
     uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
@@ -655,8 +655,8 @@ onload = function() {
     var c = document.getElementById('canvas');
     c.width = FW;
     c.height = FH;
-    
-    gl = c.getContext('webgl'); 
+
+    gl = c.getContext('webgl');
 
     VAOExt = gl.getExtension('OES_vertex_array_object');
     if (!VAOExt) {
