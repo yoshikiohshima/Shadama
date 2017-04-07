@@ -32,6 +32,8 @@ var diffTime;
 var framebufferT;
 var framebufferF;
 
+var debugTexture;
+
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T);
     for (var i = 0; i < T * T; i++) {
@@ -312,9 +314,21 @@ function drawPatchProgram(gl) {
 
     var prog = createProgram(gl, vs, fs);
 
-     var uniLocations = {};
-     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
-     uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
+    var uniLocations = {};
+    uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
+    uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
+    
+    return {program: prog, uniLocations: uniLocations, vao: patchVAO};
+};
+
+function debugPatchProgram(gl) {
+    var vs = createShader(gl, 'debugPatch.vert');
+    var fs = createShader(gl, 'debugPatch.frag');
+
+    var prog = createProgram(gl, vs, fs);
+
+    var uniLocations = {};
+    uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
 
     return {program: prog, uniLocations: uniLocations, vao: patchVAO};
 };
@@ -549,7 +563,6 @@ Breed.prototype.increasePatch = function(gl, patch, value) {
 
     gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
-    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.disable(gl.BLEND);
 };
@@ -646,6 +659,44 @@ function debugDisplay1(gl, breed) {
     debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 };
 
+function debugDisplay2(gl, tex) {
+    var prog = programs['debugPatch'];
+    setTargetBuffer(gl, framebufferF, debugTexture);
+
+    gl.useProgram(prog.program);
+    VAOExt.bindVertexArrayOES(patchVAO);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.uniform1i(prog.uniLocations['u_value'], 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.flush();
+    debugArray = new Float32Array(FW * FH * 4);
+    debugArray2 = new Uint8ClampedArray(FW * FH * 4);
+    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
+
+    for (var i = 0; i < FW * FH; i++) {
+	if (debugArray[i * 4 + 0] > 1) {
+	    debugArray2[i * 4 + 0] = 255;
+	    debugArray2[i * 4 + 1] = 0;
+	    debugArray2[i * 4 + 2] = 0;
+	    debugArray2[i * 4 + 3] = 255;
+	} else {
+	    debugArray2[i * 4 + 0] = 255;
+	    debugArray2[i * 4 + 1] = 255;
+	    debugArray2[i * 4 + 2] = 255;
+	    debugArray2[i * 4 + 3] = 255;
+	}
+    }
+
+    var img = new ImageData(debugArray2, FW, FH);
+    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
+};
+
 onload = function() {
     debugCanvas1 = document.getElementById('debugCanvas1');
     debugCanvas1.width = FW;
@@ -683,8 +734,9 @@ onload = function() {
     programs['getPatch'] = getPatchProgram(gl);
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
+    programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 50);
+    myBreed = new Breed(gl, 400);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 
@@ -693,17 +745,22 @@ onload = function() {
     frames = 0;
     diffTime = 0;
 
+    debugTexture = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+
+
     var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
     framebufferT = gl.createFramebuffer();
     initFramebuffer(gl, framebufferT, tmp, gl.FLOAT, T, T);
 
     framebufferF = framebufferT;
 
-    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, T, T);
+    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
     framebufferF = gl.createFramebuffer();
     initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
 
     debugArray = new Float32Array(FW * FH * 4);
+
+
 
     window.requestAnimationFrame(step);
 };
@@ -715,40 +772,18 @@ function step() {
 //----------------------
     clear(gl);
     myPatch.clear(gl);
-    myBreed.forward(gl, 1.0);
-    myBreed.turn(gl, 0.05);
-    myBreed.increasePatch(gl, myPatch, [1.0, 0.0, 0.0, 255.0]);
+    myBreed.forward(gl, 1.5);
+//    myBreed.turn(gl, 0.05);
+    myBreed.increasePatch(gl, myPatch, [0.25, 0.0, 0.0, 0.0]);
+    myBreed.bounceIf(gl, myPatch);
     //myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 255.0]);
     //for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
-    myBreed.bounceIf(gl, myPatch);
 
 //    myBreed.getPatch(gl, myPatch, myBreed.buf);
-
-
-
-
 
     myPatch.draw(gl);
     myBreed.draw(gl);
 //----------------------
-
-    debugArray2 = new Uint8ClampedArray(FW * FH * 4);
-    for (var i = 0; i < FW * FH; i++) {
-	if (debugArray[i * 4 + 0] > 1) {
-	    debugArray2[i * 4 + 0] = 255;
-	    debugArray2[i * 4 + 1] = 0;
-	    debugArray2[i * 4 + 2] = 0;
-	    debugArray2[i * 4 + 3] = 255;
-	} else {
-	    debugArray2[i * 4 + 0] = 255;
-	    debugArray2[i * 4 + 1] = 255;
-	    debugArray2[i * 4 + 2] = 255;
-	    debugArray2[i * 4 + 3] = 255;
-	}
-    }
-
-    var img = new ImageData(debugArray2, FW, FH);
-    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {

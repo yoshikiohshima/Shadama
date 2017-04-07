@@ -230,7 +230,7 @@ void main(void) {
     float v = texture2D(u_buffer, normPos).r;
 
     vec2 newDir;
-    if (v > 0.9) {
+    if (v > 0.25) {
       newDir = mat2(-1.0, 0.0, 0.0, -1.0) * dDir;
     } else {
       newDir = dDir;
@@ -319,6 +319,28 @@ void main(void) {
        gl_FragColor = v;
 }
         </script>
+        <script id="debugPatch.vert" type="x-shader/x-vertex">
+attribute vec2 a_position;
+
+varying vec2 v_coord;
+
+void main(void) {
+    v_coord = (a_position / 2.0) + 0.5;
+    gl_Position = vec4(a_position, 0, 1.0);
+}
+        </script>
+
+        <script id="debugPatch.frag" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_value;
+
+varying vec2 v_coord;
+
+void main(void) {
+    gl_FragColor = texture2D(u_value, v_coord) * 100.0;
+}
+        </script>
+
 	</head>
 	<body>
 		<canvas id="canvas"></canvas>
