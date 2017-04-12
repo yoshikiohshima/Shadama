@@ -28,6 +28,8 @@ var debugArray2;
 
 var frames;
 var diffTime;
+var realFrameTime;
+var realFrameDiff;
 
 var framebufferT;
 var framebufferF;
@@ -35,9 +37,13 @@ var framebufferF;
 var debugTexture;
 
 function initBreedVAO(gl) {
-    var allIndices = new Array(T * T);
-    for (var i = 0; i < T * T; i++) {
-	allIndices[i] = i;
+    var allIndices = new Array(T * T * 2);
+    for (var j = 0; j < T; j++) {
+	for (var i = 0; i < T; i++) {
+	    var ind = ((j * T) + i) * 2;
+	    allIndices[ind + 0] = i;
+	    allIndices[ind + 1] = j;
+	}
     }
 
     breedVAO = gl.createVertexArray();
@@ -50,7 +56,7 @@ function initBreedVAO(gl) {
     attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index');
 
     var attrStrides = new Array(1);
-    attrStrides[0] = 1;
+    attrStrides[0] = 2;
 
     set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
     gl.bindVertexArray(null);
