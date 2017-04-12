@@ -40,8 +40,8 @@ function initBreedVAO(gl) {
 	allIndices[i] = i;
     }
 
-    breedVAO = VAOExt.createVertexArrayOES();
-    VAOExt.bindVertexArrayOES(breedVAO);
+    breedVAO = gl.createVertexArray();
+    gl.bindVertexArray(breedVAO);
 
     var positionBuffer = gl.createBuffer();
 
@@ -53,12 +53,12 @@ function initBreedVAO(gl) {
     attrStrides[0] = 1;
 
     set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
-    VAOExt.bindVertexArrayOES(null);
+    gl.bindVertexArray(null);
 };
 
 function initPatchVAO(gl) {
-    patchVAO = VAOExt.createVertexArrayOES();
-    VAOExt.bindVertexArrayOES(patchVAO);
+    patchVAO = gl.createVertexArray();
+    gl.bindVertexArray(patchVAO);
 
     var positionBuffer = gl.createBuffer();
     var rect = [
@@ -78,7 +78,7 @@ function initPatchVAO(gl) {
     attrStrides[0] = 2;
 
     set_buffer_attribute(gl, [positionBuffer], [rect], attrLocations, attrStrides);
-    VAOExt.bindVertexArrayOES(null);
+    gl.bindVertexArray(null);
 };
 
 function createShader(gl, id) {
@@ -136,7 +136,8 @@ function createTexture(gl, data, format, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
     if (format != gl.UNSIGNED_BYTE) {
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, data);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, data);
+
     } else {
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
     }
@@ -162,7 +163,7 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
     gl.bindTexture(gl.TEXTURE_2D, null);
 };
 
@@ -407,7 +408,7 @@ Breed.prototype.draw = function() {
     var prog = programs['drawBreed'];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -432,7 +433,7 @@ Breed.prototype.forward = function(amount) {
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -461,7 +462,7 @@ Breed.prototype.turn = function(amount) {
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -493,7 +494,7 @@ Breed.prototype.bounceIf = function(patch) {
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -525,7 +526,7 @@ Breed.prototype.setPatch = function(patch, value) {
     setTargetBuffer(gl, framebufferF, patch.values);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -548,7 +549,7 @@ Breed.prototype.increasePatch = function(patch, value) {
     setTargetBuffer(gl, framebufferF, patch.values);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
@@ -572,7 +573,7 @@ Breed.prototype.getPatch = function(patch, dest) {
     setTargetBuffer(gl, framebufferT, dest);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -607,7 +608,7 @@ Patch.prototype.draw = function() {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.values);
@@ -628,7 +629,7 @@ Patch.prototype.diffuse = function() {
     setTargetBuffer(gl, framebufferF, this.newValues);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(prog.vao);
+    gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.values);
@@ -661,7 +662,7 @@ function debugDisplay2(gl, tex) {
     setTargetBuffer(gl, framebufferF, debugTexture);
 
     gl.useProgram(prog.program);
-    VAOExt.bindVertexArrayOES(patchVAO);
+    gl.bindVertexArray(patchVAO);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -703,18 +704,20 @@ onload = function() {
     c.style.width = (FW * ENLARGE) + "px";
     c.style.height = (FH * ENLARGE) + "px";
 
-    gl = c.getContext('webgl');
+    gl = c.getContext('webgl2');
 
-    VAOExt = gl.getExtension('OES_vertex_array_object');
-    if (!VAOExt) {
-	alert('vertex array object extension not supported');
-	return;
-    }
-    floatExt = gl.getExtension('OES_texture_float');
-    if (!floatExt) {
-	alert('float texture not supported');
-	return;
-    }
+    var ext = gl.getExtension('EXT_color_buffer_float');
+    
+    // VAOExt = gl.getExtension('OES_vertex_array_object');
+    // if (!VAOExt) {
+    // 	alert('vertex array object extension not supported');
+    // 	return;
+    // }
+    // floatExt = gl.getExtension('OES_texture_float');
+    // if (!floatExt) {
+    // 	alert('float texture not supported');
+    // 	return;
+    // }
 
     initBreedVAO(gl);
     initPatchVAO(gl);
