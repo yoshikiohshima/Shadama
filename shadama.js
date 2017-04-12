@@ -746,6 +746,8 @@ onload = function() {
 
     frames = 0;
     diffTime = 0;
+    realFrameTime = 0;
+    realFrameDiff = 0;
 
     debugTexture = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
@@ -773,13 +775,16 @@ onload = function() {
 function runner() {
     frames++;
     var sTime = performance.now();
+    realFrameDiff += sTime - realFrameTime;
+    realFrameTime = sTime;
 
     step();
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
-	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0);
-	diffTime = 0.0;
+	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0) + ', realTime: ' + realFrameDiff / 60.0;
+ 	diffTime = 0.0;
+	realFrameDiff = 0;
     }
 
     window.requestAnimationFrame(runner);
