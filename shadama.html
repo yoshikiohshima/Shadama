@@ -289,10 +289,7 @@ void main(void) {
         <script id="diffusePatch.vert" type="x-shader/x-vertex">#version 300 es
 in vec2 a_position;
 
-out vec2 v_coord;
-
 void main(void) {
-    v_coord = (a_position / 2.0) + 0.5;
     gl_Position = vec4(a_position, 0, 1.0);
 }
         </script>
@@ -302,32 +299,24 @@ precision mediump float;
 uniform vec2      u_resolution;
 uniform sampler2D u_value;
 
-const float weight0 = 0.077847;
-const float weight1 = 0.123317;
-const float weight2 = 0.077847;
-
-const float weight3 = 0.123317;
-const float weight4 = 0.195346;
-const float weight5 = 0.123317;
-
-const float weight6 = 0.077847;
-const float weight7 = 0.123317;
-const float weight8 = 0.077847;
+const float weight[9] = float[9](
+    0.077847, 0.123317, 0.077847,
+    0.123317, 0.195346, 0.123317,
+    0.077847, 0.123317, 0.077847);
 
 out vec4 fragColor;
 
 void main(void) {
-  vec2 onePixel = vec2(1.0) / u_resolution;
-  vec2 fc = vec2(gl_FragCoord.s, gl_FragCoord.t);
-  vec4 v  = texture(u_value, (fc + vec2(-1.0, -1.0)) * onePixel) * weight0;
-       v += texture(u_value, (fc + vec2(-1.0,  0.0)) * onePixel) * weight1;
-       v += texture(u_value, (fc + vec2(-1.0,  1.0)) * onePixel) * weight2;
-       v += texture(u_value, (fc + vec2( 0.0, -1.0)) * onePixel) * weight3;
-       v += texture(u_value, (fc + vec2( 0.0,  0.0)) * onePixel) * weight4;
-       v += texture(u_value, (fc + vec2( 0.0,  1.0)) * onePixel) * weight5;
-       v += texture(u_value, (fc + vec2( 1.0, -1.0)) * onePixel) * weight6;
-       v += texture(u_value, (fc + vec2( 1.0,  0.0)) * onePixel) * weight7;
-       v += texture(u_value, (fc + vec2( 1.0,  1.0)) * onePixel) * weight8;
+  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+  vec4 v  = texelFetch(u_value, fc + ivec2(-1, -1), 0) * weight[0];
+       v += texelFetch(u_value, fc + ivec2(-1,  0), 0) * weight[1];
+       v += texelFetch(u_value, fc + ivec2(-1,  1), 0) * weight[2];
+       v += texelFetch(u_value, fc + ivec2( 0, -1), 0) * weight[3];
+       v += texelFetch(u_value, fc + ivec2( 0,  0), 0) * weight[4];
+       v += texelFetch(u_value, fc + ivec2( 0,  1), 0) * weight[5];
+       v += texelFetch(u_value, fc + ivec2( 1, -1), 0) * weight[6];
+       v += texelFetch(u_value, fc + ivec2( 1,  0), 0) * weight[7];
+       v += texelFetch(u_value, fc + ivec2( 1,  1), 0) * weight[8];
        fragColor = v;
 }
         </script>
@@ -346,12 +335,11 @@ void main(void) {
 precision mediump float;
 uniform sampler2D u_value;
 
-in vec2 v_coord;
-
 out vec4 fragColor;
 
 void main(void) {
-    fragColor = texture(u_value, v_coord) * 100.0;
+    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+    fragColor = texelFetch(u_value, fc, 0) * 100.0;
 }
         </script>
 
