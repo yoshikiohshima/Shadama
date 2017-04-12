@@ -259,10 +259,7 @@ void main(void) {
         <script id="drawPatch.vert" type="x-shader/x-vertex">#version 300 es
 in vec2 a_position;
 
-out vec2 v_coord;
-
 void main(void) {
-    v_coord = (a_position / 2.0) + 0.5;
     gl_Position = vec4(a_position, 0, 1.0);
 }
         </script>
@@ -272,15 +269,14 @@ precision mediump float;
 uniform sampler2D u_value;
 uniform int u_type;  // 0 = Number, 1 = Color
 
-in vec2 v_coord;
-
 out vec4 fragColor;
 
 void main(void) {
+  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
   if (u_type == 0) {
-    fragColor = texture(u_value, v_coord);
+    fragColor = texelFetch(u_value, fc, 0);
   } else if(u_type == 1) {
-    fragColor = texture(u_value, v_coord);
+    fragColor = texelFetch(u_value, fc, 0);
   } else {
     discard;
   }
@@ -326,7 +322,6 @@ in vec2 a_position;
 out vec2 v_coord;
 
 void main(void) {
-    v_coord = (a_position / 2.0) + 0.5;
     gl_Position = vec4(a_position, 0, 1.0);
 }
         </script>
