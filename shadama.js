@@ -1,4 +1,4 @@
-var TEXTURE_SIZE = 256;
+var TEXTURE_SIZE = 512;
 var FIELD_WIDTH = 400;
 var FIELD_HEIGHT = 300;
 var ENLARGE = 2;
@@ -738,7 +738,7 @@ onload = function() {
     programs['diffusePatch'] = diffusePatchProgram(gl);
     programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 400);
+    myBreed = new Breed(gl, 250000);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 
@@ -782,7 +782,7 @@ function runner() {
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
-	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0) + ', realTime: ' + realFrameDiff / 60.0;
+	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0) + ', real time: ' + realFrameDiff / 60.0 + 'msecs/frame';
  	diffTime = 0.0;
 	realFrameDiff = 0;
     }
@@ -792,11 +792,9 @@ function runner() {
 
 function step() {
     clear();
-    myPatch.clear();
-    myBreed.forward(1.5);
-    myBreed.increasePatch(myPatch, [0.25, 0.0, 0.0, 0.0]);
-    myBreed.bounceIf(myPatch);
-    myPatch.draw();
+    for (var i = 0; i < 100; i++) {
+	myBreed.forward(1.5);
+    }
     myBreed.draw();
 }
 
