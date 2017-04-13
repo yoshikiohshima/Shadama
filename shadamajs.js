@@ -13,10 +13,7 @@ var debugArray;
 
 var programs = {};
 
-var frames;
-var diffTime;
-var realFrameTime;
-var realFrameDiff;
+var times = [];
 
 function randomDirection() {
     var r = Math.random();
@@ -85,11 +82,6 @@ onload = function() {
 
     myBreed = new Breed(250000);
 
-    frames = 0;
-    diffTime = 0;
-    realFrameTime = 0;
-    realFrameDiff = 0;
-
     window.requestAnimationFrame(runner);
 
     var code = document.getElementById('code');
@@ -150,18 +142,17 @@ Breed.prototype.forward = function(amount) {
 };
 
 function runner() {
-    frames++;
-    var sTime = performance.now();
-    realFrameDiff += sTime - realFrameTime;
-    realFrameTime = sTime;
-
+    var start = performance.now();
     step();
+    var now = performance.now();
 
-    diffTime += (performance.now() - sTime);
-    if (frames % 60 === 0) {
-        readout.innerHTML = 'compute: ' + (diffTime / 60.0).toFixed(3) + ' msecs/step, real time: ' + (realFrameDiff / 60.0).toFixed(1) + ' msecs/frame (' + (60000 / realFrameDiff).toFixed(1) + ' fps)';
-        diffTime = 0.0;
-        realFrameDiff = 0;
+    times.push({start: start, step: now - start});
+
+    if (now - times[0].start > 1000 || times.length === 2) {
+        while (now - times[0].start > 500) { times.shift() };
+        var frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
+        var stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
+        readout.innerHTML = 'compute: ' + stepTime.toFixed(3) + ' msecs/step, real time: ' + frameTime.toFixed(1) + ' msecs/frame (' + (1000 / frameTime).toFixed(1) + ' fps)';
     }
 
     window.requestAnimationFrame(runner);
