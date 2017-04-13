@@ -39,11 +39,11 @@ var debugTexture;
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T * 2);
     for (var j = 0; j < T; j++) {
-	for (var i = 0; i < T; i++) {
-	    var ind = ((j * T) + i) * 2;
-	    allIndices[ind + 0] = i;
-	    allIndices[ind + 1] = j;
-	}
+        for (var i = 0; i < T; i++) {
+            var ind = ((j * T) + i) * 2;
+            allIndices[ind + 0] = i;
+            allIndices[ind + 1] = j;
+        }
     }
 
     breedVAO = gl.createVertexArray();
@@ -68,7 +68,7 @@ function initPatchVAO(gl) {
 
     var positionBuffer = gl.createBuffer();
     var rect = [
-	-1.0,  1.0,
+        -1.0,  1.0,
  	 1.0,  1.0,
         -1.0, -1.0,
          1.0,  1.0,
@@ -90,9 +90,9 @@ function initPatchVAO(gl) {
 function createShader(gl, id) {
     var type;
     if (id.endsWith('.vert')) {
-	type = gl.VERTEX_SHADER;
+        type = gl.VERTEX_SHADER;
     } else if (id.endsWith('.frag')) {
-	type = gl.FRAGMENT_SHADER;
+        type = gl.FRAGMENT_SHADER;
     }
 
     var shader = gl.createShader(type);
@@ -105,7 +105,7 @@ function createShader(gl, id) {
     gl.compileShader(shader);
     var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
     if (success) {
-	return shader;
+        return shader;
     }
 
     console.log(gl.getShaderInfoLog(shader));
@@ -130,7 +130,7 @@ function createProgram(gl, vertexShader, fragmentShader) {
 
 function createTexture(gl, data, format, width, height) {
     if (!format) {
-	format = gl.UNSIGNED_BYTE;
+        format = gl.UNSIGNED_BYTE;
     }
     if (!width) {
         width = T;
@@ -142,10 +142,10 @@ function createTexture(gl, data, format, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
     if (format != gl.UNSIGNED_BYTE) {
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, data);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, data);
 
     } else {
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
     }
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -158,7 +158,7 @@ function createTexture(gl, data, format, width, height) {
 
 function initFramebuffer(gl, buffer, tex, format, width, height) {
     if (!format) {
-	format = gl.UNSIGNED_BYTE;
+        format = gl.UNSIGNED_BYTE;
     }
     if (!width) {
         width = T;
@@ -181,8 +181,8 @@ function setTargetBuffer(gl, buffer, tex) {
 function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
     for (var i in buffers) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
-	gl.bufferData(gl.ARRAY_BUFFER,
-		      new Float32Array(data[i]), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER,
+              new Float32Array(data[i]), gl.STATIC_DRAW);
         gl.enableVertexAttribArray(attrL[i]);
         gl.vertexAttribPointer(attrL[i], attrS[i], gl.FLOAT, false, 0, 0);
     }
@@ -197,13 +197,13 @@ function createIBO (gl, data) {
 };
 
 function randomDirection() {
-  var r = Math.random();
-  var r = r * Math.PI * 2.0;
-  return [Math.cos(r), Math.sin(r)];
+    var r = Math.random();
+    var r = r * Math.PI * 2.0;
+    return [Math.cos(r), Math.sin(r)];
 };
 
 function randomPosition() {
-  return [Math.random() * FW, Math.random() * FH];
+    return [Math.random() * FW, Math.random() * FH];
 };
 
 function Breed(gl, count) {
@@ -213,20 +213,20 @@ function Breed(gl, count) {
 
     var ary = new Float32Array(T * T * 4);
     for (var j = 0; j < T; j++) {
-	for (var i = 0; i < T; i++) {
-	    var ind = (j * T + i) * 4;
-	    var r = randomDirection();
+        for (var i = 0; i < T; i++) {
+            var ind = (j * T + i) * 4;
+            var r = randomDirection();
             var p = randomPosition();
 //	    ary[ind + 0] = (a += 4) + FW / 2;
 //	    ary[ind + 1] = j + FH /2;
 //	    ary[ind + 2] = r[0];
 //	    ary[ind + 3] = r[1];
 
-	    ary[ind + 0] = p[0];
-	    ary[ind + 1] = p[1];
-	    ary[ind + 2] = r[0];
-	    ary[ind + 3] = r[1];
-	}
+            ary[ind + 0] = p[0];
+            ary[ind + 1] = p[1];
+            ary[ind + 2] = r[0];
+            ary[ind + 3] = r[1];
+        }
     }
     this.pos = createTexture(gl, ary, gl.FLOAT);
 
@@ -235,18 +235,18 @@ function Breed(gl, count) {
 
     ary = new Uint8ClampedArray(T * T * 4);
     for (var j = 0; j < T; j++) {
-	for (var i = 0; i < T; i++) {
-	    var ind = (j * T + i) * 4;
-	    if (i > T/2) {
-		var c = [0, 0, 255, 255];
-	    } else {
-		var c = [0, 0, 255, 255];
-	    }
-	    ary[ind + 0] = c[0];
-	    ary[ind + 1] = c[1];
-	    ary[ind + 2] = c[2];
-	    ary[ind + 3] = c[3];
-	}
+        for (var i = 0; i < T; i++) {
+            var ind = (j * T + i) * 4;
+            if (i > T/2) {
+        var c = [0, 0, 255, 255];
+            } else {
+        var c = [0, 0, 255, 255];
+            }
+            ary[ind + 0] = c[0];
+            ary[ind + 1] = c[1];
+            ary[ind + 2] = c[2];
+            ary[ind + 3] = c[3];
+        }
     }
 
     this.color = createTexture(gl, new ImageData(ary, T, T));
@@ -257,14 +257,14 @@ function Patch(type) {
     if (!type) {type = 'Number'}
 
     if (type == 'Number') {
-	this.values = createTexture(gl, null, gl.FLOAT, FW, FH);
-	this.newValues = createTexture(gl, null, gl.FLOAT, FW, FH);
-	this.type = 0;
-	// need to figure out how to use R32F
+        this.values = createTexture(gl, null, gl.FLOAT, FW, FH);
+        this.newValues = createTexture(gl, null, gl.FLOAT, FW, FH);
+        this.type = 0;
+        // need to figure out how to use R32F
     } else if (type == 'Color') {
-	this.values = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
-	this.newValues = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
-	this.type = 1;
+        this.values = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
+        this.newValues = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
+        this.type = 1;
     }
 }
 
@@ -324,7 +324,7 @@ function drawPatchProgram(gl) {
     var uniLocations = {};
     uniLocations['u_value'] = gl.getUniformLocation(prog, 'u_value');
     uniLocations['u_type'] = gl.getUniformLocation(prog, 'u_type');
-    
+
     return {program: prog, uniLocations: uniLocations, vao: patchVAO};
 };
 
@@ -660,9 +660,9 @@ Patch.prototype.diffuse = function() {
 
 function debugDisplay2(gl, tex) {
     if (!debugCanvas1) {
-	debugCanvas1 = document.getElementById('debugCanvas1');
-	debugCanvas1.width = FW;
-	debugCanvas1.height = FH;
+        debugCanvas1 = document.getElementById('debugCanvas1');
+        debugCanvas1.width = FW;
+        debugCanvas1.height = FH;
     }
     var prog = programs['debugPatch'];
     setTargetBuffer(gl, framebufferF, debugTexture);
@@ -684,17 +684,17 @@ function debugDisplay2(gl, tex) {
     gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
 
     for (var i = 0; i < FW * FH; i++) {
-	if (debugArray[i * 4 + 0] > 1) {
-	    debugArray2[i * 4 + 0] = 255;
-	    debugArray2[i * 4 + 1] = 0;
-	    debugArray2[i * 4 + 2] = 0;
-	    debugArray2[i * 4 + 3] = 255;
-	} else {
-	    debugArray2[i * 4 + 0] = 255;
-	    debugArray2[i * 4 + 1] = 255;
-	    debugArray2[i * 4 + 2] = 255;
-	    debugArray2[i * 4 + 3] = 255;
-	}
+        if (debugArray[i * 4 + 0] > 1) {
+            debugArray2[i * 4 + 0] = 255;
+            debugArray2[i * 4 + 1] = 0;
+            debugArray2[i * 4 + 2] = 0;
+            debugArray2[i * 4 + 3] = 255;
+        } else {
+            debugArray2[i * 4 + 0] = 255;
+            debugArray2[i * 4 + 1] = 255;
+            debugArray2[i * 4 + 2] = 255;
+            debugArray2[i * 4 + 3] = 255;
+        }
     }
 
     var img = new ImageData(debugArray2, FW, FH);
@@ -713,7 +713,7 @@ onload = function() {
     gl = c.getContext('webgl2');
 
     var ext = gl.getExtension('EXT_color_buffer_float');
-    
+
     // VAOExt = gl.getExtension('OES_vertex_array_object');
     // if (!VAOExt) {
     // 	alert('vertex array object extension not supported');
@@ -782,9 +782,9 @@ function runner() {
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
-	readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0) + ', real time: ' + realFrameDiff / 60.0 + 'msecs/frame';
+        readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0) + ', real time: ' + realFrameDiff / 60.0 + 'msecs/frame';
  	diffTime = 0.0;
-	realFrameDiff = 0;
+        realFrameDiff = 0;
     }
 
     window.requestAnimationFrame(runner);
@@ -814,4 +814,3 @@ function step() {
 //    myPatch.draw(gl);
 //    myBreed.draw(gl);
 //}
-
