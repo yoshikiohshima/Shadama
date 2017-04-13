@@ -154,7 +154,7 @@ function runner() {
 
     diffTime += (performance.now() - sTime);
     if (frames % 60 === 0) {
-        readout.innerHTML = 'msecs/frame: ' + (diffTime / 60.0) + ', real time: ' + realFrameDiff / 60.0 + 'msecs/frame';
+        readout.innerHTML = 'compute: ' + (diffTime / 60.0).toFixed(3) + ' msecs/step, real time: ' + (realFrameDiff / 60.0).toFixed(1) + ' msecs/frame (' + (60000 / realFrameDiff).toFixed(1) + ' fps)';
         diffTime = 0.0;
         realFrameDiff = 0;
     }
