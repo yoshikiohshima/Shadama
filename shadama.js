@@ -281,6 +281,22 @@ function forwardProgram(gl) {
     return {program: prog, uniLocations: uniLocations, vao: breedVAO};
 };
 
+function forwardEdgeBounceProgram(gl) {
+    var vs = createShader(gl, 'forwardEdgeBounce.vert');
+    var fs = createShader(gl, 'forwardEdgeBounce.frag');
+
+    var prog = createProgram(gl, vs, fs);
+
+    var uniLocations = {};
+    uniLocations['u_resolution'] = gl.getUniformLocation(prog, 'u_resolution');
+    uniLocations['u_particleLength'] = gl.getUniformLocation(prog, 'u_particleLength');
+    uniLocations['u_position'] = gl.getUniformLocation(prog, 'u_position');
+    uniLocations['u_amount'] = gl.getUniformLocation(prog, 'u_amount');
+    uniLocations['u_edgeCondition'] = gl.getUniformLocation(prog, 'u_edgeCondition');
+
+    return {program: prog, uniLocations: uniLocations, vao: breedVAO};
+};
+
 function setPatchProgram(gl) {
     var vs = createShader(gl, 'setPatch.vert');
     var fs = createShader(gl, 'setPatch.frag');
@@ -459,6 +475,37 @@ Breed.prototype.forward = function(amount) {
     this.pos = this.newPos;
     this.newPos = tmp;
 };
+
+Breed.prototype.forwardEdgeBounce = function(amount, condition) {
+    var prog = programs['forwardEdgeBounce'];
+    setTargetBuffer(gl, framebufferT, this.newPos);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1f(prog.uniLocations["u_amount"], amount);
+    gl.uniform4iv(prog.uniLocations["u_edgeCondition"], condition);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.pos;
+    this.pos = this.newPos;
+    this.newPos = tmp;
+};
+
 
 Breed.prototype.turn = function(amount) {
     var prog = programs['turn'];
@@ -681,17 +728,10 @@ function debugDisplay2(gl, tex) {
     gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
 
     for (var i = 0; i < FW * FH; i++) {
-        if (debugArray[i * 4 + 0] > 1) {
-            debugArray2[i * 4 + 0] = 255;
-            debugArray2[i * 4 + 1] = 0;
-            debugArray2[i * 4 + 2] = 0;
-            debugArray2[i * 4 + 3] = 255;
-        } else {
-            debugArray2[i * 4 + 0] = 255;
-            debugArray2[i * 4 + 1] = 255;
-            debugArray2[i * 4 + 2] = 255;
-            debugArray2[i * 4 + 3] = 255;
-        }
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 1] * 255;
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 2] * 255;
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 3] * 255;
     }
 
     var img = new ImageData(debugArray2, FW, FH);

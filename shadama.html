@@ -46,6 +46,93 @@ void main(void) {
 }
         </script>
 
+        <script id="forwardEdgeBounce.vert" type="x-shader/x-vertex">#version 300 es
+in vec2 a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+uniform sampler2D u_position;
+uniform float u_amount;
+uniform int u_edgeCondition[4]; // left, right, top, bottom.  0=through, 1=boucne, 2=stick
+
+out vec4 vColor;
+
+vec4 encodeVal(vec2 pos, vec2 dir) {
+    return vec4(pos, dir);
+}
+
+void main(void) {
+    vec2 zeroToOne = a_index / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
+    gl_Position = vec4(oneToOne, 0, 1);
+
+    vec4 val = texelFetch(u_position, ivec2(a_index), 0);
+    float px = val.r;
+    float py = val.g;
+    float dx = val.b;
+    float dy = val.a;
+    if (px < 0.0) {
+        if (u_edgeCondition[0] == 1) {
+             px = 10.0 + (10.0 - px);
+	     dx = -dx;
+        } else if (u_edgeCondition[0] == 2) {
+             px = 0.0;
+        } else {
+             // u_edgeCondition[0] == 0
+	     px = mod(px, u_resolution.x);
+	}
+    }
+    if (px > u_resolution.x) {
+        if (true /*u_edgeCondition[2] == 1*/) {
+             px = u_resolution.x - 10.0 - px;
+	     dx = -dx;
+        } else if (u_edgeCondition[2] == 2) {
+             px = u_resolution.x;
+        } else {
+             // u_edgeCondition[2] == 0
+	     px = mod(px, u_resolution.x);
+	}
+    }
+
+    if (py < 0.0) {
+        if (u_edgeCondition[1] == 1) {
+             py = -py;
+	     dy = -dy;
+        } else if (u_edgeCondition[1] == 2) {
+             py = 0.0;
+        } else {
+             // u_edgeCondition[1] == 0
+	     py = mod(py, u_resolution.y);
+	}
+    }
+    if (py > u_resolution.y) {
+        if (u_edgeCondition[3] == 1) {
+             py = -py;
+	     dy = -dy;
+        } else if (u_edgeCondition[3] == 2) {
+             py = u_resolution.y;
+        } else {
+             // u_edgeCondition[3] == 0
+	     py = mod(py, u_resolution.y);
+	}
+    }
+    vColor = vec4(px, py, dx, dy);
+    gl_PointSize = 1.0;
+}
+        </script>
+        <script id="forwardEdgeBounce.frag" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+in vec4 vColor;
+
+out vec4 outColor;
+
+void main(void) {
+    outColor = vColor;
+}
+        </script>
+
+
         <script id="turn.vert" type="x-shader/x-vertex">#version 300 es
 in vec2 a_index;
 
