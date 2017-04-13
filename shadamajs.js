@@ -91,6 +91,11 @@ onload = function() {
     realFrameDiff = 0;
 
     window.requestAnimationFrame(runner);
+
+    var code = document.getElementById('code');
+    var codeArray = step.toString().split('\n');
+
+    code.innerHTML = codeArray.splice(1, codeArray.length - 2).join('<br>');
 };
 
 function clear() {
