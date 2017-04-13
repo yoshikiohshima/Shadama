@@ -111,18 +111,18 @@ function createShader(gl, id) {
 };
 
 function createProgram(gl, vertexShader, fragmentShader) {
-  var program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return program;
-  }
-
-  console.log(gl.getProgramInfoLog(program));
-  alert(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) {
+	return program;
+    }
+    
+    console.log(gl.getProgramInfoLog(program));
+    alert(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
 };
 
 function createTexture(gl, data, format, width, height) {
@@ -492,7 +492,7 @@ Breed.prototype.forwardEdgeBounce = function(amount, condition) {
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations["u_position"], 0);
     gl.uniform1f(prog.uniLocations["u_amount"], amount);
-    gl.uniform4iv(prog.uniLocations["u_edgeCondition"], condition);
+    gl.uniform1iv(prog.uniLocations["u_edgeCondition"], new Int32Array(condition));
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -574,6 +574,7 @@ Breed.prototype.bounceIf = function(patch) {
 Breed.prototype.setPatch = function(patch, value) {
     var prog = programs['setPatch'];
     setTargetBuffer(gl, framebufferF, patch.values);
+    gl.disable(gl.BLEND);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
@@ -767,6 +768,7 @@ onload = function() {
 
     programs['drawBreed'] = drawBreedProgram(gl);
     programs['forward'] = forwardProgram(gl);
+    programs['forwardEdgeBounce'] = forwardEdgeBounceProgram(gl);
     programs['turn'] = turnProgram(gl);
     programs['bounceIf'] = bounceIfProgram(gl);
     programs['setPatch'] = setPatchProgram(gl);
@@ -775,11 +777,11 @@ onload = function() {
     programs['diffusePatch'] = diffusePatchProgram(gl);
     programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 250);
+    myBreed = new Breed(gl, 50);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 
-    myPatch = new Patch('Color');
+    myPatch = new Patch('Number');
 
     debugTexture = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
@@ -823,8 +825,8 @@ function runner() {
 
 function step() {
     clear();
-    myBreed.forward(1.5);
-    myBreed.setPatch(myPatch, [200.0, 0.0, 0.0, 255.0]);
+    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
+    myBreed.setPatch(myPatch, [1.0, 0.0, 0.0, 1.0]);
     for (var i = 0; i < 1; i++) {myPatch.diffuse();}
     myPatch.draw();
     myBreed.draw();

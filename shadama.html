@@ -35,7 +35,7 @@ void main(void) {
 }
         </script>
         <script id="forward.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 
 in vec4 vColor;
 
@@ -53,7 +53,7 @@ uniform vec2 u_resolution;
 uniform float u_particleLength;
 uniform sampler2D u_position;
 uniform float u_amount;
-uniform int u_edgeCondition[4]; // left, right, top, bottom.  0=through, 1=boucne, 2=stick
+uniform int u_edgeCondition[4]; // left, right, bototm, top.  0=through, 1=boucne, 2=stick
 
 out vec4 vColor;
 
@@ -67,13 +67,14 @@ void main(void) {
     gl_Position = vec4(oneToOne, 0, 1);
 
     vec4 val = texelFetch(u_position, ivec2(a_index), 0);
-    float px = val.r;
-    float py = val.g;
+    vec2 maybePos = val.rg + (val.ba * u_amount);
+    float px = maybePos.x;
+    float py = maybePos.y;
     float dx = val.b;
     float dy = val.a;
     if (px < 0.0) {
         if (u_edgeCondition[0] == 1) {
-             px = 10.0 + (10.0 - px);
+             px = - px;
 	     dx = -dx;
         } else if (u_edgeCondition[0] == 2) {
              px = 0.0;
@@ -83,31 +84,31 @@ void main(void) {
 	}
     }
     if (px > u_resolution.x) {
-        if (true /*u_edgeCondition[2] == 1*/) {
-             px = u_resolution.x - 10.0 - px;
+        if (u_edgeCondition[1] == 1) {
+             px = u_resolution.x - (px - u_resolution.x);
 	     dx = -dx;
-        } else if (u_edgeCondition[2] == 2) {
+        } else if (u_edgeCondition[1] == 2) {
              px = u_resolution.x;
         } else {
-             // u_edgeCondition[2] == 0
+             // u_edgeCondition[1] == 0
 	     px = mod(px, u_resolution.x);
 	}
     }
 
     if (py < 0.0) {
-        if (u_edgeCondition[1] == 1) {
+        if (u_edgeCondition[2] == 1) {
              py = -py;
 	     dy = -dy;
-        } else if (u_edgeCondition[1] == 2) {
+        } else if (u_edgeCondition[2] == 2) {
              py = 0.0;
         } else {
-             // u_edgeCondition[1] == 0
+             // u_edgeCondition[2] == 0
 	     py = mod(py, u_resolution.y);
 	}
     }
     if (py > u_resolution.y) {
         if (u_edgeCondition[3] == 1) {
-             py = -py;
+             py = u_resolution.y - (py - u_resolution.y);
 	     dy = -dy;
         } else if (u_edgeCondition[3] == 2) {
              py = u_resolution.y;
@@ -121,7 +122,7 @@ void main(void) {
 }
         </script>
         <script id="forwardEdgeBounce.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 
 in vec4 vColor;
 
@@ -162,7 +163,7 @@ void main(void) {
 }
         </script>
         <script id="turn.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 
 in vec4 vColor;
 
@@ -202,7 +203,7 @@ void main(void) {
         </script>
 
         <script id="drawBreed.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 
 uniform sampler2D u_color;
 
@@ -234,7 +235,7 @@ void main(void) {
         </script>
 
         <script id="setPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 uniform vec4 u_value;
 uniform int u_type; // 0 = Number, 1 = Color
 
@@ -274,7 +275,7 @@ void main(void) {
         </script>
 
         <script id="getPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 uniform sampler2D u_value;
 uniform int u_type; // 0 = Number, 1 = Color
 
@@ -333,7 +334,7 @@ void main(void) {
 }
         </script>
         <script id="bounceIf.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 
 in vec4 vColor;
 
@@ -352,7 +353,7 @@ void main(void) {
         </script>
 
         <script id="drawPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 uniform sampler2D u_value;
 uniform int u_type;  // 0 = Number, 1 = Color
 
@@ -378,14 +379,15 @@ void main(void) {
         </script>
 
         <script id="diffusePatch.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 uniform vec2      u_resolution;
 uniform sampler2D u_value;
 
 const float weight[9] = float[9](
     0.077847, 0.123317, 0.077847,
     0.123317, 0.195346, 0.123317,
-    0.077847, 0.123317, 0.077847);
+    0.077847, 0.123317, 0.077847
+);
 
 out vec4 fragColor;
 
@@ -400,7 +402,7 @@ void main(void) {
        v += texelFetch(u_value, fc + ivec2( 1, -1), 0) * weight[6];
        v += texelFetch(u_value, fc + ivec2( 1,  0), 0) * weight[7];
        v += texelFetch(u_value, fc + ivec2( 1,  1), 0) * weight[8];
-       fragColor = v;
+       fragColor = v.r <= (1.0/128.0) ? vec4(0.0) : v;
 }
         </script>
         <script id="debugPatch.vert" type="x-shader/x-vertex">#version 300 es
@@ -414,14 +416,14 @@ void main(void) {
         </script>
 
         <script id="debugPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision mediump float;
+precision highp float;
 uniform sampler2D u_value;
 
 out vec4 fragColor;
 
 void main(void) {
     ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-    fragColor = texelFetch(u_value, fc, 0) * 100.0;
+    fragColor = texelFetch(u_value, fc, 0);
 }
         </script>
 
@@ -434,8 +436,7 @@ void main(void) {
 		   <div id="code"></div>
                 </div>
                 <br>
-		 <div style="clear: left" id="readout"</div>
-
-<!--		<canvas id="debugCanvas1"></canvas> -->
+		<div style="clear: left" id="readout"></div>
+		<canvas id="debugCanvas1"></canvas>
 	</body>
 </html>
