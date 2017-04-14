@@ -685,7 +685,7 @@ onload = function() {
     programs['diffusePatch'] = diffusePatchProgram(gl);
     programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 5);
+    myBreed = new Breed(gl, 250000);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 
@@ -733,10 +733,11 @@ function runner() {
 
 function step() {
     clear();
+
     myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
     myBreed.setPatch(myPatch, [1.0, 0.0, 0.0, 1.0]);
-    for (var i = 0; i < 1; i++) {myPatch.diffuse();}
+    myPatch.diffuse();
     myPatch.draw();
     myBreed.draw();
 }
