@@ -777,7 +777,7 @@ onload = function() {
     programs['diffusePatch'] = diffusePatchProgram(gl);
     programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 50);
+    myBreed = new Breed(gl, 5);
 
     myBreed.addOwnVariable(gl, 'buf', 'Color');
 

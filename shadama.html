@@ -402,7 +402,7 @@ void main(void) {
        v += texelFetch(u_value, fc + ivec2( 1, -1), 0) * weight[6];
        v += texelFetch(u_value, fc + ivec2( 1,  0), 0) * weight[7];
        v += texelFetch(u_value, fc + ivec2( 1,  1), 0) * weight[8];
-       fragColor = v.r <= (1.0/128.0) ? vec4(0.0) : v;
+       fragColor = v.r <= (1.0/256.0) ? vec4(0.0) : v;
 }
         </script>
         <script id="debugPatch.vert" type="x-shader/x-vertex">#version 300 es
