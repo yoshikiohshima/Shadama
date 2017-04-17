@@ -31,7 +31,8 @@ var times = [];
 var framebufferT;
 var framebufferF;
 
-var debugTexture;
+var debugTexture1;
+var debugTexture2;
 
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T * 2);
@@ -136,11 +137,12 @@ function createTexture(gl, data, format, width, height) {
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
-    if (format != gl.UNSIGNED_BYTE) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, data);
-
-    } else {
+    if (format == gl.UNSIGNED_BYTE) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
+    } else if (format == gl.R32F) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, gl.RED, gl.FLOAT, data);
+    } else {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, data);
     }
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -164,7 +166,11 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
+    if (format == gl.R32F) {
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+    } else {
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
+    }
     gl.bindTexture(gl.TEXTURE_2D, null);
 };
 
@@ -228,11 +234,7 @@ function Breed(gl, count) {
     for (var j = 0; j < T; j++) {
         for (var i = 0; i < T; i++) {
             var ind = (j * T + i) * 4;
-            if (i > T/2) {
-        var c = [0, 0, 255, 255];
-            } else {
-        var c = [0, 0, 255, 255];
-            }
+            var c = [0, 0, 255, 50];
             ary[ind + 0] = c[0];
             ary[ind + 1] = c[1];
             ary[ind + 2] = c[2];
@@ -297,6 +299,14 @@ function bounceIfProgram(gl) {
     return makePrimitive(gl, 'bounceIf', ['u_resolution', 'u_particleLength', 'u_position', 'u_buffer'], breedVAO);
 };
 
+function genericGetProgram(gl) {
+    return makePrimitive(gl, 'genericGet', ['u_resolution', 'u_particleLength', 'u_v_input'], breedVAO);
+};
+
+function genericSetProgram(gl) {
+    return makePrimitive(gl, 'genericSet', ['u_resolution', 'u_particleLength', 'u_use_vector', 'u_v_input', 'u_s_input'], breedVAO);
+};
+
 function drawBreedProgram(gl) {
     return makePrimitive(gl, 'drawBreed', ['u_resolution', 'u_particleLength', 'u_position', 'u_color'], breedVAO);
 };
@@ -307,6 +317,10 @@ function drawPatchProgram(gl) {
 
 function debugPatchProgram(gl) {
     return makePrimitive(gl, 'debugPatch', ['u_value'], patchVAO);
+};
+
+function debugBreedProgram(gl) {
+    return makePrimitive(gl, 'debugBreed', ['u_particleLength', 'u_value'], breedVAO);
 };
 
 function diffusePatchProgram(gl) {
@@ -322,7 +336,7 @@ function clear() {
 
 Breed.prototype.addOwnVariable = function(name, type) {
     ary = new Float32Array(T * T * 4);
-    this[name] = createTexture(gl, ary, gl.FLOAT);
+    this[name] = createTexture(gl, ary, gl.R32F);
 };
 
 Breed.prototype.draw = function() {
@@ -330,6 +344,9 @@ Breed.prototype.draw = function() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pos);
@@ -347,6 +364,7 @@ Breed.prototype.draw = function() {
     gl.drawArrays(gl.POINTS, 0, this.count);
 
     gl.flush();
+    gl.disable(gl.BLEND);
 };
 
 Breed.prototype.forward = function(amount) {
@@ -408,6 +426,60 @@ Breed.prototype.forwardEdgeBounce = function(amount, condition) {
     this.newPos = tmp;
 };
 
+Breed.prototype.genericGet = function(destination, variable) {
+    var prog = programs['genericGet'];
+    setTargetBuffer(gl, framebufferR, destination);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, variable);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.genericSet = function(source, variable) {
+    var prog = programs['genericSet'];
+    setTargetBuffer(gl, framebufferR, variable);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    var use_vector;
+
+    if (source.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, source);
+	use_vector = true;
+    } else {
+	use_vector = false;
+    }
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
+    gl.uniform1i(prog.uniLocations["u_v_input"], 0);
+    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : value);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
 
 Breed.prototype.turn = function(amount) {
     var prog = programs['turn'];
@@ -551,8 +623,6 @@ Breed.prototype.testIfElse = function(condition, t, f) {
     var tex = this.findAvailableTexture();
 }
     
-    
-
 Patch.prototype.clear = function() {
     var prog = programs['clearPatch'];
     setTargetBuffer(gl, framebufferF, this.values);
@@ -611,6 +681,44 @@ Patch.prototype.diffuse = function() {
     this.values = tmp;
 };
 
+function debugDisplay1(gl, tex) {
+    if (!debugCanvas1) {
+        debugCanvas1 = document.getElementById('debugCanvas1');
+        debugCanvas1.width = FW;
+        debugCanvas1.height = FH;
+    }
+    var prog = programs['debugBreed'];
+    setTargetBuffer(gl, framebufferT, debugTexture1);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations['u_value'], 0);
+
+    gl.drawArrays(gl.POINTS, 0, myBreed.count);
+    gl.flush();
+
+    debugArray = new Float32Array(T * T * 4);
+    debugArray2 = new Uint8ClampedArray(T * T * 4);
+    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+
+    for (var i = 0; i < T * T; i++) {
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
+	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
+	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
+	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+    }
+
+    var img = new ImageData(debugArray2, T, T);
+    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
+};
+
 function debugDisplay2(gl, tex) {
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById('debugCanvas1');
@@ -618,7 +726,7 @@ function debugDisplay2(gl, tex) {
         debugCanvas1.height = FH;
     }
     var prog = programs['debugPatch'];
-    setTargetBuffer(gl, framebufferF, debugTexture);
+    setTargetBuffer(gl, framebufferF, debugTexture2);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(patchVAO);
@@ -638,9 +746,9 @@ function debugDisplay2(gl, tex) {
 
     for (var i = 0; i < FW * FH; i++) {
 	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 1] * 255;
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 2] * 255;
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 3] * 255;
+	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
+	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
+	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
     }
 
     var img = new ImageData(debugArray2, FW, FH);
@@ -660,17 +768,6 @@ onload = function() {
 
     var ext = gl.getExtension('EXT_color_buffer_float');
 
-    // VAOExt = gl.getExtension('OES_vertex_array_object');
-    // if (!VAOExt) {
-    // 	alert('vertex array object extension not supported');
-    // 	return;
-    // }
-    // floatExt = gl.getExtension('OES_texture_float');
-    // if (!floatExt) {
-    // 	alert('float texture not supported');
-    // 	return;
-    // }
-
     initBreedVAO(gl);
     initPatchVAO(gl);
 
@@ -681,30 +778,37 @@ onload = function() {
     programs['bounceIf'] = bounceIfProgram(gl);
     programs['setPatch'] = setPatchProgram(gl);
     programs['getPatch'] = getPatchProgram(gl);
+    programs['genericGet'] = genericGetProgram(gl);
+    programs['genericSet'] = genericSetProgram(gl);
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
+    programs['debugBreed'] = debugBreedProgram(gl);
     programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 250000);
-
-    myBreed.addOwnVariable(gl, 'buf', 'Color');
+    myBreed = new Breed(gl, 25000);
+    myBreed.addOwnVariable('buf');
+    myBreed.addOwnVariable('buf2');
 
     myPatch = new Patch('Number');
 
-    debugTexture = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+    debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
 
     var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
     framebufferT = gl.createFramebuffer();
     initFramebuffer(gl, framebufferT, tmp, gl.FLOAT, T, T);
-
-    framebufferF = framebufferT;
+    gl.deleteTexture(tmp);
 
     var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
     framebufferF = gl.createFramebuffer();
     initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
+    gl.deleteTexture(tmp);
 
-    debugArray = new Float32Array(FW * FH * 4);
+    var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
+    framebufferR = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
+    gl.deleteTexture(tmp);
 
     window.requestAnimationFrame(runner);
 
@@ -716,6 +820,7 @@ onload = function() {
 
 function runner() {
     var start = performance.now();
+
     step();
     var now = performance.now();
 
@@ -734,26 +839,13 @@ function runner() {
 function step() {
     clear();
 
-    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
+    myBreed.forwardEdgeBounce(0.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
-    myBreed.setPatch(myPatch, [1.0, 0.0, 0.0, 1.0]);
+    myBreed.genericGet(myBreed.buf, myBreed.pos);
+    myBreed.genericSet(myBreed.buf, myBreed.buf2);
+    myBreed.setPatch(myPatch, [200.0, 0.0, 0.0, 255.0]);
+//    myBreed.genericSet(myPatch, [1.0, 0.0, 0.0, 1.0]);
     myPatch.diffuse();
     myPatch.draw();
     myBreed.draw();
 }
-
-//function step() {
-//    clear(gl);
-//    myPatch.clear(gl);
-//    myBreed.forward(gl, 1.5);
-//    myBreed.turn(gl, 0.05);
-//    myBreed.increasePatch(gl, myPatch, [0.25, 0.0, 0.0, 0.0]);
-//    myBreed.bounceIf(gl, myPatch);
-    //myBreed.setPatch(gl, myPatch, [200.0, 0.0, 0.0, 255.0]);
-    //for (var i = 0; i < 1; i++) {myPatch.diffuse(gl);}
-
-//    myBreed.getPatch(gl, myPatch, myBreed.buf);
-
-//    myPatch.draw(gl);
-//    myBreed.draw(gl);
-//}

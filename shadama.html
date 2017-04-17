@@ -408,8 +408,6 @@ void main(void) {
         <script id="debugPatch.vert" type="x-shader/x-vertex">#version 300 es
 layout (location = 0) in vec2 a_position;
 
-out vec2 v_coord;
-
 void main(void) {
     gl_Position = vec4(a_position, 0, 1.0);
 }
@@ -424,6 +422,109 @@ out vec4 fragColor;
 void main(void) {
     ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
     fragColor = texelFetch(u_value, fc, 0);
+}
+        </script>
+
+        <script id="debugBreed.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_index;
+
+uniform float u_particleLength;
+uniform sampler2D u_value;
+
+out vec4 v_color;
+
+void main(void) {
+    vec2 zeroToOne = a_index / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+
+    v_color = texelFetch(u_value, ivec2(a_index), 0);
+    gl_Position = vec4(oneToOne, 0, 1.0);
+    gl_PointSize = 1.0;
+}
+        </script>
+
+        <script id="debugBreed.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in vec4 v_color;
+
+out vec4 fragColor;
+
+void main(void) {
+    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+    fragColor = v_color;
+}
+        </script>
+
+        <script id="genericGet.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+
+uniform sampler2D u_v_input;
+
+out float v_value;
+
+void main(void) {
+    vec2 zeroToOne = a_index / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
+    float val = texelFetch(u_v_input, ivec2(a_index), 0).r;
+    gl_Position = vec4(oneToOne, 0, 1);
+    v_value = val;
+    gl_PointSize = 1.0;
+}
+        </script>
+
+        <script id="genericGet.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in float v_value;
+
+out vec4 fragColor;
+
+void main(void) {
+    fragColor = vec4(v_value, 0, 0, 0);
+}
+        </script>
+
+
+        <script id="genericSet.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+
+uniform bool u_use_vector;
+uniform sampler2D u_v_input;
+uniform float u_s_input;
+
+out float v_value;
+
+void main(void) {
+    vec2 zeroToOne = a_index / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
+    float val;
+    if (u_use_vector) {
+      val = texelFetch(u_v_input, ivec2(a_index), 0).r;
+    } else {
+      val = u_s_input;
+    }
+    gl_Position = vec4(oneToOne, 0, 1);
+    v_value = val;
+    gl_PointSize = 1.0;
+}
+        </script>
+
+        <script id="genericSet.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in float v_value;
+
+out vec4 fragColor;
+
+void main(void) {
+    fragColor = vec4(v_value, 0, 0, 0);
 }
         </script>
 
