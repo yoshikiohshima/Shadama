@@ -816,7 +816,67 @@ onload = function() {
     var codeArray = step.toString().split('\n');
 
     code.innerHTML = codeArray.splice(1, codeArray.length - 2).join('<br>');
+
+    grammarUnitTests();
 };
+
+function grammarUnitTests() {
+    var g = ohm.grammarFromScriptElement();
+
+    function test(str, rule, ctor) {
+	var match = g.match(str, rule);
+	if (!match.succeeded()) {
+            console.log("did not parse: " + str);
+	}
+	if (!ctor) {
+	    ctor = rule
+	}
+	if (match._cst.ctorName != ctor) {
+            console.log("did not get " + ctor + " from " + str);
+	}
+    }
+
+    test("abc", "ident");
+    test("if", "if");
+    test("breed", "breed");
+    test("patch", "patch");
+    test("else", "else");
+    test("def", "def");
+    test("3.4", "number");
+
+    test("abc", "PrimExpression");
+    test("3.5", "PrimExpression");
+    test("(3.5 + abc)", "PrimExpression");
+    test("3.5 + abc", "AddExpression");
+    test("abc - 3", "AddExpression_minus");
+    test("abc * 3", "AddExpression");
+    test("abc * 3", "MulExpression");
+    test("abc * 3 * 3.0", "Expression");
+
+    test("this.x", "LeftHandSideExpression");
+    test("patch.x", "LeftHandSideExpression");
+
+    test("forward(this.x)", "PrimitiveCall");
+    test("forward(this.x + 3)", "PrimitiveCall");
+
+    test("forward(this.x + 3);", "Statement");
+
+    test("a == b", "EqualityExpression");
+    test("a > 3", "RelationalExpression");
+    test("a > 3 + 4", "RelationalExpression");
+
+    test("this.x = 3 + 4;", "AssignmentStatement");
+
+    test("if (this.x > 3) {this.x = 3;} else {this.x = 4;}", "IfStatement");
+    test("this.x + 3;", "ExpressionStatement");
+    test("var x = 3;", "VariableStatement");
+    test("{var x = 3; x = x + 3;}", "Block");
+
+    test("breed Turtle (x, y)", "Breed");
+    test("patch Patch (x, y)", "Patch");
+    test("def Turtle.foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+}
+
 
 function runner() {
     var start = performance.now();
