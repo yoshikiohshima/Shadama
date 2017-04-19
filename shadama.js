@@ -918,7 +918,6 @@ function grammarUnitTests() {
 	    Patch:  function(_, _, _, _, _) {return {};},
 	    Script: function(_, _, _, _, _, _, _, b) {return b.propOutput();},
 
-	    Block: function(_, s, _) {return s.propOutput();},
 	    StatementList: function(nn) {
 		var result = {};
 		for (var i = 0; i< nn.children.length; i++) {
@@ -927,11 +926,6 @@ function grammarUnitTests() {
 		}
 		return result;
 	    },
-	    Statement: function(s) {return s.propOutput();},
-	    VariableStatement: function(_, s, _) {return s.propOutput();},
-	    VariableDeclaration: function(_, _) {return {};},
-	    Initialiser: function(_, s) {return s.propOutput();},
-	    ExpressionStatement: function(s, _) {return s.propOutput();},
 	    IfStatement: function(_, _, c, _, t, _, optF) {
 		var result = {};
 		var c = t.propOutput();
@@ -941,37 +935,11 @@ function grammarUnitTests() {
 		addAsSet(result, f);
 		return result;
 	    },
-	    AssignmentStatement: function(l, _, s, _) {return l.propOutput();},
-
-	    LeftHandSideExpression: function(n) {return n.propOutput();},
 	    LeftHandSideExpression_field: function(n, _, f) {
 		var v = {};
 		v[n.sourceString + "." + f.sourceString] = [n.sourceString, f.sourceString];
 		return v;
 	    },
-	    Expression: function(s) {return s.propOutput();},
-	    EqualityExpression: function(s) {return {};},
-	    EqualityExpression_equal: function(s, _, t) {return {};},
-	    EqualityExpression_notEqual: function(s, _, t) {return {};},
-
-	    RelationalExpression: function(s) {return {};},
-	    RelationalExpression_lt: function(s, _, t) {return {};},
-	    RelationalExpression_gt: function(s, _, t) {return {};},
-	    RelationalExpression_le: function(s, _, t) {return {};},
-	    RelationalExpression_ge: function(s, _, t) {return {};},
-
-	    AddExpression: function(s) {return {};},
-	    AddExpression_plus: function(s, _, t) {return {};},
-	    AddExpression_minus: function(s, _, t) {return {};},
-
-	    MulExpression: function(s) {return {};},
-	    MulExpression_times: function(s, _, t) {return {};},
-	    MulExpression_divide: function(s, _, t) {return {};},
-
-	    PrimExpression: function(s) {return s.propOutput();},
-	    PrimExpression_paren: function(_, s, _) {return s.propOutput();},
-	    PrimExpression_field: function(n, _, f) {return {};},
-
 	    PrimitiveCall: function(n, _, l, _) {
 		if (n.sourceString == "forward") {
 		    return {
@@ -985,7 +953,14 @@ function grammarUnitTests() {
 	    },
 	    ident: function(_, _) {return {};},
 	    number: function(s) {return {};},
-	    _nonterminal: function(children) {return {};   },
+	    _terminal: function() {return {};},
+	    _nonterminal: function(children) {
+		var result = {};
+		for (var i = 0; i < children.length; i++) {
+		    addAsSet(result, children[i].propOutput());
+		}
+		return result;
+	    },
 	 });
 
     semantics("this.x = 3;", "Statement", s, "propOutput", {"this.x": ["this","x"]});
@@ -1025,11 +1000,11 @@ function grammarUnitTests() {
 		}
 		return result;
 	    },
-	    Statement: function(s) {return s.propInput();},
-	    VariableStatement: function(_, s, _) {return {};},
-	    VariableDeclaration: function(_, s) {return s.propInput();},
-	    Initialiser: function(_, s) {return s.propInput();},
-	    ExpressionStatement: function(s, _) {return s.propInput();},
+//	    Statement: function(s) {return s.propInput();},
+//	    VariableStatement: function(_, s, _) {return {};},
+//	    VariableDeclaration: function(_, s) {return s.propInput();},
+//	    Initialiser: function(_, s) {return s.propInput();},
+//	    ExpressionStatement: function(s, _) {return s.propInput();},
 	    IfStatement: function(_, _, c, _, t, _, optF) {
 		var result = {};
 		var c = t.propInput();
@@ -1039,52 +1014,52 @@ function grammarUnitTests() {
 		addAsSet(result, f);
 		return result;
 	    },
-	    AssignmentStatement: function(l, _, s, _) {return s.propInput();},
+//	    AssignmentStatement: function(l, _, s, _) {return s.propInput();},
 
 	    LeftHandSideExpression: function(n) {return {};},
 	    LeftHandSideExpression_field: function(n, _, f) {return {};},
 
-	    Expression: function(s) {return s.propInput();},
-	    EqualityExpression: function(s) {return s.propInput();},
-	    EqualityExpression_equal: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    EqualityExpression_notEqual: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    RelationalExpression: function(s) {return s.propInput();},
-	    RelationalExpression_lt: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    RelationalExpression_gt: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    RelationalExpression_le: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    RelationalExpression_ge: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    AddExpression: function(s) {
-		return s.propInput();
-	    },
-	    AddExpression_plus: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    AddExpression_minus: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    MulExpression: function(s) {
-		return s.propInput();
-	    },
-	    MulExpression_times: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    MulExpression_divide: function(s, _, t) {
-		return addAsSet(s.propInput(), t.propInput());
-	    },
-	    PrimExpression: function(s) {return s.propInput();},
-	    PrimExpression_paren: function(_, s, _) {return s.propInput();},
+//	    Expression: function(s) {return s.propInput();},
+//	    EqualityExpression: function(s) {return s.propInput();},
+//	    EqualityExpression_equal: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    EqualityExpression_notEqual: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    RelationalExpression: function(s) {return s.propInput();},
+//	    RelationalExpression_lt: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    RelationalExpression_gt: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    RelationalExpression_le: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    RelationalExpression_ge: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    AddExpression: function(s) {
+//		return s.propInput();
+//	    },
+//	    AddExpression_plus: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    AddExpression_minus: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    MulExpression: function(s) {
+//		return s.propInput();
+//	    },
+//	    MulExpression_times: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    MulExpression_divide: function(s, _, t) {
+//		return addAsSet(s.propInput(), t.propInput());
+//	    },
+//	    PrimExpression: function(s) {return s.propInput();},
+//	    PrimExpression_paren: function(_, s, _) {return s.propInput();},
 	    PrimExpression_field: function(n, _, f) {
 		var result = {};
 		result[n.sourceString + "." + f.sourceString] = [n.sourceString, f.sourceString];
@@ -1104,7 +1079,15 @@ function grammarUnitTests() {
 	    },
 	    ident: function(_, _) {return {};},
 	    number: function(s) {return {};},
-//	    _nonterminal: function(children) {return {};   },
+
+	    _terminal: function() {return {};},
+	    _nonterminal: function(children) {
+		var result = {};
+		for (var i = 0; i < children.length; i++) {
+		    addAsSet(result, children[i].propInput());
+		}
+		return result;
+	    },
 	 });
 
     semantics("this.x = 3;", "Statement", s, "propInput", {});
@@ -1114,9 +1097,9 @@ function grammarUnitTests() {
     semantics(`
        if (other.x > 0) {
 	 this.x = other.a;
-         other.a = this.y;
+         other.a = this.y + this.x;
        }
-       `, "Statement", s, "propInput", {"this.y": ["this", "y"], "other.a": ["other", "a"]});
+       `, "Statement", s, "propInput", {"this.y": ["this", "y"], "other.a": ["other", "a"], "this.x": ["this", "x"]});
 
     semantics(`
        if (other.x > 0) {
