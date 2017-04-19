@@ -858,6 +858,7 @@ function grammarUnitTests() {
 
     test("forward(this.x)", "PrimitiveCall");
     test("forward(this.x + 3)", "PrimitiveCall");
+    test("turn(this.x + 3, x)", "PrimitiveCall");
 
     test("forward(this.x + 3);", "Statement");
 
@@ -875,6 +876,19 @@ function grammarUnitTests() {
     test("breed Turtle (x, y)", "Breed");
     test("patch Patch (x, y)", "Patch");
     test("def Turtle.foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+
+    var s = g.createSemantics();
+
+    s.addOperation(
+        'selfOutput', 
+        {
+	    Breed:  function(_, _, _, _, _) {return [];},
+	    Patch:  function(_, _, _, _, _) {return [];},
+	    Script: function(_, _, _, _, _, _, _, b) {return b.selfOutput();},
+	    Block: function(_, s, _) {return s.selfOutput();},
+	    StatementList: function(s) {return s.forEach(function(e) {return e.selfOutput();})},
+	    Statement: function(s) {return s.selfOutput();},
+	 });
 }
 
 
@@ -901,8 +915,6 @@ function step() {
 
     myBreed.forwardEdgeBounce(0.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
-    myBreed.genericGet(myBreed.buf, myBreed.pos);
-    myBreed.genericSet(myBreed.buf, myBreed.buf2);
     myBreed.setPatch(myPatch, [200.0, 0.0, 0.0, 255.0]);
 //    myBreed.genericSet(myPatch, [1.0, 0.0, 0.0, 1.0]);
     myPatch.diffuse();
