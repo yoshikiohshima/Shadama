@@ -624,6 +624,60 @@ void main(void) {
 }
         </script>
 
+        <script id="genericSet2.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+
+uniform bool u_use_vector1;
+uniform sampler2D u_v_input1;
+uniform float u_s_input1;
+
+uniform bool u_use_vector2;
+uniform sampler2D u_v_input2;
+uniform float u_s_input2;
+
+out float v_value1;
+out float v_value2;
+
+void main(void) {
+    vec2 zeroToOne = a_index / u_particleLength;
+    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
+    float val1;
+    if (u_use_vector1) {
+      val1 = texelFetch(u_v_input1, ivec2(a_index), 0).r;
+    } else {
+      val1 = u_s_input2;
+    }
+    float val2;
+    if (u_use_vector2) {
+      val2 = texelFetch(u_v_input2, ivec2(a_index), 0).r;
+    } else {
+      val2 = u_s_input2;
+    }
+    gl_Position = vec4(oneToOne, 0, 1);
+    v_value1 = val1;
+    v_value2 = val2;
+    gl_PointSize = 1.0;
+}
+        </script>
+
+        <script id="genericSet2.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in float v_value1;
+in float v_value2;
+
+layout (location = 0) out float fragData1;
+layout (location = 1) out float fragData2;
+
+void main(void) {
+    fragData1 = v_value1;
+    fragData2 = v_value2;
+}
+        </script>
+
 	</head>
 	<body>
 		<div>

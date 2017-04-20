@@ -182,6 +182,17 @@ function setTargetBuffer(gl, buffer, tex) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 };
 
+function setTargetBuffers(gl, buffer, tex) {
+    var list = [];
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    for (var i = 0; i < tex.length; i++) {
+	var val = gl.COLOR_ATTACHMENT0 + i;
+	gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, val, gl.TEXTURE_2D, tex[i], 0);
+	list.push(val);
+    }
+    gl.drawBuffers(list);
+};
+
 function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
     for (var i in buffers) {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
@@ -310,6 +321,10 @@ function genericSetProgram(gl) {
     return makePrimitive(gl, 'genericSet', ['u_resolution', 'u_particleLength', 'u_use_vector', 'u_v_input', 'u_s_input'], breedVAO);
 };
 
+function genericSet2Program(gl) {
+    return makePrimitive(gl, 'genericSet2', ['u_resolution', 'u_particleLength', 'u_use_vector1', 'u_v_input1', 'u_s_input1', 'u_use_vector2', 'u_v_input2', 'u_s_input2'], breedVAO);
+};
+
 function drawBreedProgram(gl) {
     return makePrimitive(gl, 'drawBreed', ['u_resolution', 'u_particleLength', 'u_position', 'u_color'], breedVAO);
 };
@@ -338,7 +353,7 @@ function clear() {
 };
 
 Breed.prototype.addOwnVariable = function(name, type) {
-    ary = new Float32Array(T * T * 4);
+    var ary = new Float32Array(T * T);
     this[name] = createTexture(gl, ary, gl.R32F);
 };
 
@@ -474,7 +489,50 @@ Breed.prototype.genericSet = function(source, variable) {
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
     gl.uniform1i(prog.uniLocations["u_v_input"], 0);
-    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : value);
+    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : source);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
+    var prog = programs['genericSet2'];
+
+    setTargetBuffers(gl, framebufferR, [variable1, variable2]);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    var use_vector;
+
+    if (source1.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, source1);
+	use_vector1 = true;
+    } else {
+	use_vector1 = false;
+    }
+    if (source2.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, source2);
+	use_vector2 = true;
+    } else {
+	use_vector2 = false;
+    }
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_use_vector1"], use_vector1);
+    gl.uniform1i(prog.uniLocations["u_use_vector2"], use_vector2);
+    gl.uniform1i(prog.uniLocations["u_v_input1"], 0);
+    gl.uniform1i(prog.uniLocations["u_v_input2"], 1);
+    gl.uniform1f(prog.uniLocations["u_s_input1"], use_vector1 ? 0 : source1);
+    gl.uniform1f(prog.uniLocations["u_s_input2"], use_vector2 ? 0 : source2);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -622,10 +680,11 @@ Breed.prototype.getPatch = function(patch, dest) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-Breed.prototype.testIfElse = function(condition, t, f) {
-    var tex = this.findAvailableTexture();
-}
-    
+Patch.prototype.addOwnVariable = function(name) {
+    var ary = new Float32Array(FW * FH * 4);
+    this[name] = createTexture(gl, ary, gl.R32F);
+};
+  
 Patch.prototype.clear = function() {
     var prog = programs['clearPatch'];
     setTargetBuffer(gl, framebufferF, this.values);
@@ -783,6 +842,7 @@ onload = function() {
     programs['getPatch'] = getPatchProgram(gl);
     programs['genericGet'] = genericGetProgram(gl);
     programs['genericSet'] = genericSetProgram(gl);
+    programs['genericSet2'] = genericSet2Program(gl);
     programs['drawPatch'] = drawPatchProgram(gl);
     programs['diffusePatch'] = diffusePatchProgram(gl);
     programs['debugBreed'] = debugBreedProgram(gl);
@@ -793,6 +853,12 @@ onload = function() {
     myBreed.addOwnVariable('buf2');
 
     myPatch = new Patch('Number');
+
+    myPatch.addOwnVariable('buf1');
+    myPatch.addOwnVariable('buf2');
+    myPatch.addOwnVariable('buf3');
+    myPatch.addOwnVariable('buf4');
+
 
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
     debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
@@ -1089,7 +1155,7 @@ function step() {
     myBreed.forwardEdgeBounce(0.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
     myBreed.setPatch(myPatch, [200.0, 0.0, 0.0, 255.0]);
-//    myBreed.genericSet(myPatch, [1.0, 0.0, 0.0, 1.0]);
+    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
     myPatch.diffuse();
     myPatch.draw();
     myBreed.draw();
