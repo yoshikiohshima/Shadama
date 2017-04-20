@@ -1000,11 +1000,6 @@ function grammarUnitTests() {
 		}
 		return result;
 	    },
-//	    Statement: function(s) {return s.propInput();},
-//	    VariableStatement: function(_, s, _) {return {};},
-//	    VariableDeclaration: function(_, s) {return s.propInput();},
-//	    Initialiser: function(_, s) {return s.propInput();},
-//	    ExpressionStatement: function(s, _) {return s.propInput();},
 	    IfStatement: function(_, _, c, _, t, _, optF) {
 		var result = {};
 		var c = t.propInput();
@@ -1014,52 +1009,10 @@ function grammarUnitTests() {
 		addAsSet(result, f);
 		return result;
 	    },
-//	    AssignmentStatement: function(l, _, s, _) {return s.propInput();},
 
 	    LeftHandSideExpression: function(n) {return {};},
 	    LeftHandSideExpression_field: function(n, _, f) {return {};},
 
-//	    Expression: function(s) {return s.propInput();},
-//	    EqualityExpression: function(s) {return s.propInput();},
-//	    EqualityExpression_equal: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    EqualityExpression_notEqual: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    RelationalExpression: function(s) {return s.propInput();},
-//	    RelationalExpression_lt: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    RelationalExpression_gt: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    RelationalExpression_le: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    RelationalExpression_ge: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    AddExpression: function(s) {
-//		return s.propInput();
-//	    },
-//	    AddExpression_plus: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    AddExpression_minus: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    MulExpression: function(s) {
-//		return s.propInput();
-//	    },
-//	    MulExpression_times: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    MulExpression_divide: function(s, _, t) {
-//		return addAsSet(s.propInput(), t.propInput());
-//	    },
-//	    PrimExpression: function(s) {return s.propInput();},
-//	    PrimExpression_paren: function(_, s, _) {return s.propInput();},
 	    PrimExpression_field: function(n, _, f) {
 		var result = {};
 		result[n.sourceString + "." + f.sourceString] = [n.sourceString, f.sourceString];
