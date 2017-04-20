@@ -1,3 +1,5 @@
+'use strict';
+
 var TEXTURE_SIZE = 512;
 var FIELD_WIDTH = 400;
 var FIELD_HEIGHT = 300;
@@ -30,6 +32,7 @@ var times = [];
 
 var framebufferT;
 var framebufferF;
+var framebufferR;
 
 var debugTexture1;
 var debugTexture2;
@@ -507,7 +510,8 @@ Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
-    var use_vector;
+    var use_vector1;
+    var use_vector2;
 
     if (source1.constructor == WebGLTexture) {
 	gl.activeTexture(gl.TEXTURE0);
@@ -980,33 +984,25 @@ function grammarUnitTests() {
     s.addOperation(
         'propOutput', 
         {
-	    Breed:  function(_, _, _, _, _) {return {};},
-	    Patch:  function(_, _, _, _, _) {return {};},
-	    Script: function(_, _, _, _, _, _, _, b) {return b.propOutput();},
+	    Script: function(_d, _b, _p, _n, _o, _ns, _c, b) {return b.propOutput();},
 
-	    StatementList: function(nn) {
+	    StatementList: function(ss) { // an iter
 		var result = {};
-		for (var i = 0; i< nn.children.length; i++) {
-		    var c = nn.children[i].propOutput();
-		    addAsSet(result, c);
+		for (var i = 0; i< ss.children.length; i++) {
+		    var s = ss.children[i].propOutput();
+		    addAsSet(result, s);
 		}
 		return result;
 	    },
-	    IfStatement: function(_, _, c, _, t, _, optF) {
-		var result = {};
+	    IfStatement: function(_if, _o, c, _c, t, _e, optF) {
 		var c = t.propOutput();
-		addAsSet(result, c);
-		var f = optF.propOutput()[0];
-		if (!f) { return result;}
-		addAsSet(result, f);
-		return result;
+		addAsSet(c, optF.propOutput()[0]);
+		return c;
 	    },
-	    LeftHandSideExpression_field: function(n, _, f) {
-		var v = {};
-		v[n.sourceString + "." + f.sourceString] = [n.sourceString, f.sourceString];
-		return v;
+	    LeftHandSideExpression_field: function(n, _a, f) {
+		return {[n.sourceString + "." + f.sourceString]: [n.sourceString, f.sourceString]};
 	    },
-	    PrimitiveCall: function(n, _, l, _) {
+	    PrimitiveCall: function(n, _o, l, _c) {
 		if (n.sourceString == "forward") {
 		    return {
 			"this.x": ["this", "x"],
@@ -1017,7 +1013,7 @@ function grammarUnitTests() {
 		    return {};
 		}
 	    },
-	    ident: function(_, _) {return {};},
+	    ident: function(_h, _r) {return {};},
 	    number: function(s) {return {};},
 	    _terminal: function() {return {};},
 	    _nonterminal: function(children) {
@@ -1053,38 +1049,29 @@ function grammarUnitTests() {
     s.addOperation(
         'propInput', 
         {
-	    Breed:  function(_, _, _, _, _) {return {};},
-	    Patch:  function(_, _, _, _, _) {return {};},
-	    Script: function(_, _, _, _, _, _, _, b) {return b.propInput();},
+	    Script: function(_d, _b, _p, _n, _o, _ns, _c, b) {return b.propInput();},
 
-	    Block: function(_, s, _) {return s.propInput();},
-	    StatementList: function(nn) {
+	    StatementList: function(ss) { // an iter
 		var result = {};
-		for (var i = 0; i< nn.children.length; i++) {
-		    var c = nn.children[i].propInput();
-		    addAsSet(result, c);
+		for (var i = 0; i< ss.children.length; i++) {
+		    var s = ss.children[i].propInput();
+		    addAsSet(result, s);
 		}
 		return result;
 	    },
-	    IfStatement: function(_, _, c, _, t, _, optF) {
-		var result = {};
+	    IfStatement: function(_i, _o, c, _c, t, _e, optF) {
 		var c = t.propInput();
-		addAsSet(result, c);
-		var f = optF.propInput()[0];
-		if (!f) { return result;}
-		addAsSet(result, f);
-		return result;
+		addAsSet(c, optF.propInput()[0]);
+		return c;
 	    },
 
 	    LeftHandSideExpression: function(n) {return {};},
-	    LeftHandSideExpression_field: function(n, _, f) {return {};},
+	    LeftHandSideExpression_field: function(n, _a, f) {return {};},
 
-	    PrimExpression_field: function(n, _, f) {
-		var result = {};
-		result[n.sourceString + "." + f.sourceString] = [n.sourceString, f.sourceString];
-		return result;
+	    PrimExpression_field: function(n, _p, f) {
+		return {[n.sourceString + "." + f.sourceString]: [n.sourceString, f.sourceString]};
 	    },
-	    PrimitiveCall: function(n, _, l, _) {
+	    PrimitiveCall: function(n, _o, l, _c) {
 		if (n.sourceString == "forward") {
 		    return {
 			"this.x": ["this", "x"],
@@ -1096,7 +1083,7 @@ function grammarUnitTests() {
 		    return {};
 		}
 	    },
-	    ident: function(_, _) {return {};},
+	    ident: function(_h, _r) {return {};},
 	    number: function(s) {return {};},
 
 	    _terminal: function() {return {};},
