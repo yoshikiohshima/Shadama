@@ -8,18 +8,20 @@
         <script src="ohm/ohm.min.js"></script>
 
 	<script type="text/ohm-js">
-// An Ohm grammar for arithmetic expressions.
-
 Shadama {
   TopLevel
     = Breed
     | Patch
     | Script
 
-  Breed = breed ident "(" ListOf<ident, ","> ")"
-  Patch = patch ident "(" ListOf<ident, ","> ")"
+  Breed = breed ident "(" Formals ")"
+  Patch = patch ident "(" Formals ")"
   Script
-    = def ident "." ident "(" ListOf<ident, ","> ")" Block
+    = def ident "." ident "(" Formals ")" Block
+
+  Formals
+    = ident ("," ident)* -- list
+    | empty
 
   Block = "{" StatementList "}"
 
@@ -78,7 +80,11 @@ Shadama {
     | number
 
   PrimitiveCall
-    = ident "(" ListOf<Expression, ","> ")"
+    = ident "(" Actuals ")"
+
+  Actuals
+    = Expression ("," Expression)* -- list
+    | empty
 
   ident
     = letter alnum*
@@ -98,6 +104,8 @@ Shadama {
   def = "def" ~identifierPart
   this = "this" ~identifierPart
   self = "self" ~identifierPart
+
+  empty =
 }
     </script>
 

@@ -852,7 +852,7 @@ onload = function() {
     programs['debugBreed'] = debugBreedProgram(gl);
     programs['debugPatch'] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 25000);
+    myBreed = new Breed(gl, 250000);
     myBreed.addOwnVariable('buf');
     myBreed.addOwnVariable('buf2');
 
@@ -982,140 +982,117 @@ function grammarUnitTests() {
     s = g.createSemantics();
 
     s.addOperation(
-        'propOutput', 
+        'symTable', 
         {
-	    Script: function(_d, _b, _p, _n, _o, _ns, _c, b) {return b.propOutput();},
+	    Script: function(_d, _b, _p, _n, _o, ns, _c, b) {
+		debugArray = ns;
+		var c = b.symTable();
+		addAsSet(c, ns.symTable());
+		return c;
+},
+
+	    Formals_list: function(h, _c, r) {
+		var c = {["param." + h.sourceString]: ["param", null, h.sourceString]};
+		for (var i = 0; i < r.children.length; i++) {
+		    var n = r.children[i].sourceString;
+		    c["param." + n] = ["param", null, n];
+		}
+		return c;
+	    },
 
 	    StatementList: function(ss) { // an iter
 		var result = {};
 		for (var i = 0; i< ss.children.length; i++) {
-		    var s = ss.children[i].propOutput();
+		    var s = ss.children[i].symTable();
 		    addAsSet(result, s);
 		}
 		return result;
 	    },
+
+	    VariableDeclaration: function(n, _optI) {
+		return {["var." + n.sourceString]: ["var", null, n.sourceString]};
+	    },
+		
 	    IfStatement: function(_if, _o, c, _c, t, _e, optF) {
-		var c = t.propOutput();
-		addAsSet(c, optF.propOutput()[0]);
+		var c = t.symTable();
+		addAsSet(c, optF.symTable()[0]);
 		return c;
 	    },
 	    LeftHandSideExpression_field: function(n, _a, f) {
-		return {[n.sourceString + "." + f.sourceString]: [n.sourceString, f.sourceString]};
+		return {["out." + n.sourceString + "." + f.sourceString]: ["propOut", n.sourceString, f.sourceString]};
 	    },
-	    PrimitiveCall: function(n, _o, l, _c) {
-		if (n.sourceString == "forward") {
-		    return {
-			"this.x": ["this", "x"],
-			"this.y": ["this", "y"],
-			"this.dx": ["this", "dx"],
-			"this.dy": ["this", "dy"]};
-		} else {
-		    return {};
-		}
-	    },
-	    ident: function(_h, _r) {return {};},
-	    number: function(s) {return {};},
-	    _terminal: function() {return {};},
-	    _nonterminal: function(children) {
-		var result = {};
-		for (var i = 0; i < children.length; i++) {
-		    addAsSet(result, children[i].propOutput());
-		}
-		return result;
-	    },
-	 });
-
-    semantics("this.x = 3;", "Statement", s, "propOutput", {"this.x": ["this","x"]});
-    semantics("{this.x = 3; other.y = 4;}", "Statement", s, "propOutput", {"this.x": ["this", "x"], "other.y": ["other", "y"]});
-    semantics("{this.x = 3; this.x = 4;}", "Statement", s, "propOutput", {"this.x": ["this", "x"]});
-
-    semantics(`
-       if (other.x > 0) {
-	 this.x = 3;
-         other.a = 4;
-       }
-       `, "Statement", s, "propOutput", {"this.x": ["this", "x"], "other.a": ["other", "a"]});
-
-    semantics(`
-       if (other.x > 0) {
-	 this.x = 3;
-         other.a = 4;
-       } else {
-	 this.y = 3;
-         other.a = 4;
-       }
-       `, "Statement", s, "propOutput", {"this.x": ["this", "x"], "other.a": ["other", "a"], "this.y": ["this", "y"], "other.a": ["other", "a"]});
-
-    s.addOperation(
-        'propInput', 
-        {
-	    Script: function(_d, _b, _p, _n, _o, _ns, _c, b) {return b.propInput();},
-
-	    StatementList: function(ss) { // an iter
-		var result = {};
-		for (var i = 0; i< ss.children.length; i++) {
-		    var s = ss.children[i].propInput();
-		    addAsSet(result, s);
-		}
-		return result;
-	    },
-	    IfStatement: function(_i, _o, c, _c, t, _e, optF) {
-		var c = t.propInput();
-		addAsSet(c, optF.propInput()[0]);
-		return c;
-	    },
-
-	    LeftHandSideExpression: function(n) {return {};},
-	    LeftHandSideExpression_field: function(n, _a, f) {return {};},
-
 	    PrimExpression_field: function(n, _p, f) {
-		return {[n.sourceString + "." + f.sourceString]: [n.sourceString, f.sourceString]};
+		return {["in." + n.sourceString + "." + f.sourceString]: ["propIn", n.sourceString, f.sourceString]};
 	    },
 	    PrimitiveCall: function(n, _o, l, _c) {
 		if (n.sourceString == "forward") {
 		    return {
-			"this.x": ["this", "x"],
-			"this.y": ["this", "y"],
-			"this.dx": ["this", "dx"],
-			"this.dy": ["this", "dy"]};
-
+			"out.this.x": ["propOut", "this", "x"],
+			"out.this.y": ["propOut", "this", "y"],
+			"out.this.dx": ["propOut", "this", "dx"],
+			"out.this.dy": ["propOut", "this", "dy"],
+			"in.this.x": ["propIn", "this", "x"],
+			"in.this.y": ["propIn", "this", "y"],
+			"in.this.dx": ["propIn", "this", "dx"],
+			"in.this.dy": ["propIn", "this", "dy"]};
 		} else {
 		    return {};
 		}
 	    },
 	    ident: function(_h, _r) {return {};},
 	    number: function(s) {return {};},
-
 	    _terminal: function() {return {};},
 	    _nonterminal: function(children) {
 		var result = {};
 		for (var i = 0; i < children.length; i++) {
-		    addAsSet(result, children[i].propInput());
+		    addAsSet(result, children[i].symTable());
 		}
 		return result;
 	    },
 	 });
 
-    semantics("this.x = 3;", "Statement", s, "propInput", {});
-    semantics("{this.x = this.y; other.y = 4;}", "Statement", s, "propInput", {"this.y": ["this", "y"]});
-    semantics("{this.x = this.y; other.z = this.x;}", "Statement", s, "propInput", {"this.y": ["this", "y"], "this.x": ["this", "x"]});
-    semantics("{this.x = 3; this.y = other.x;}", "Statement", s, "propInput", {"other.x": ["other", "x"]});
-    semantics(`
-       if (other.x > 0) {
-	 this.x = other.a;
-         other.a = this.y + this.x;
-       }
-       `, "Statement", s, "propInput", {"this.y": ["this", "y"], "other.a": ["other", "a"], "this.x": ["this", "x"]});
+    semantics("this.x = 3;", "Statement", s, "symTable", {"out.this.x": ["propOut", "this","x"]});
+    semantics("{this.x = 3; other.y = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.y": ["propOut", "other", "y"]});
+    semantics("{this.x = 3; this.x = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"]});
 
     semantics(`
        if (other.x > 0) {
 	 this.x = 3;
-         other.a = this.y;
+         other.a = 4;
+       }
+       `, "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.a": ["propOut", "other", "a"]});
+
+    semantics(`
+       if (other.x > 0) {
+	 this.x = 3;
+         other.a = 4;
        } else {
 	 this.y = 3;
-         other.a = this.z;
+         other.a = 4;
        }
-       `, "Statement", s, "propInput", {"this.y": ["this", "y"], "this.z": ["this", "z"]});
+       `, "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.a": ["propOut", "other", "a"], "out.this.y": ["propOut", "this", "y"]});
+
+
+    semantics("{this.x = this.y; other.z = this.x;}", "Statement", s, "symTable", {
+	"in.this.y": ["propIn", "this", "y"],
+	"out.this.x": ["propOut" ,"this", "x"],
+	"out.other.z": ["propOut" ,"other", "z"],
+	"in.this.x": ["propIn" ,"this", "x"]});
+
+    semantics("{this.x = 3; this.y = other.x;}", "Statement", s, "symTable", {
+	"out.this.x": ["propOut" ,"this", "x"],
+	"in.other.x": ["propIn", "other", "x"],
+	"out.this.y": ["propOut" ,"this", "y"]});
+
+    semantics("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "symTable", {
+	"out.this.x": ["propOut" ,"this", "x"],
+	"in.other.x": ["propIn", "other", "x"],
+	"out.this.y": ["propOut" ,"this", "y"],
+	"param.a": ["param" , null, "a"],
+	"param.b": ["param" , null, "b"],
+	"param.c": ["param" , null, "c"],
+    });
+
 };
 
 function runner() {
@@ -1139,11 +1116,11 @@ function runner() {
 function step() {
     clear();
 
-    myBreed.forwardEdgeBounce(0.5, [1, 0, 1, 1]);
+    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
-    myBreed.setPatch(myPatch, [200.0, 0.0, 0.0, 255.0]);
-    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
-    myPatch.diffuse();
+//    myBreed.setPatch(myPatch, [10.0, 0.0, 0.0, 255.0]);
+//    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
+//    myPatch.diffuse();
     myPatch.draw();
     myBreed.draw();
 }
