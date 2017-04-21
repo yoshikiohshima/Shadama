@@ -10,9 +10,7 @@
 	<script type="text/ohm-js">
 Shadama {
   TopLevel
-    = Breed
-    | Patch
-    | Script
+    = (Breed | Patch | Script)*
 
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
@@ -42,7 +40,7 @@ Shadama {
   IfStatement = if "(" Expression ")" Statement (else Statement)?
 
   AssignmentStatement
-    = LeftHandSideExpression "=" AddExpression ";"
+    = LeftHandSideExpression "=" Expression ";"
 
   LeftHandSideExpression
     = ident "." ident -- field
@@ -76,8 +74,8 @@ Shadama {
     = "(" Expression ")"  -- paren
     | ident "." ident     -- field
     | PrimitiveCall
-    | ident
-    | number
+    | ident               -- variable
+    | number              -- number
 
   PrimitiveCall
     = ident "(" Actuals ")"
