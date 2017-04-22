@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 var TEXTURE_SIZE = 512;
 var FIELD_WIDTH = 400;
@@ -91,9 +91,9 @@ function initPatchVAO(gl) {
 
 function createShader(gl, id) {
     var type;
-    if (id.endsWith('.vert')) {
+    if (id.endsWith(".vert")) {
         type = gl.VERTEX_SHADER;
-    } else if (id.endsWith('.frag')) {
+    } else if (id.endsWith(".frag")) {
         type = gl.FRAGMENT_SHADER;
     }
 
@@ -264,14 +264,14 @@ function Breed(gl, count) {
 };
 
 function Patch(type) {
-    if (!type) {type = 'Number'}
+    if (!type) {type = "Number"}
 
-    if (type == 'Number') {
+    if (type == "Number") {
         this.values = createTexture(gl, null, gl.FLOAT, FW, FH);
         this.newValues = createTexture(gl, null, gl.FLOAT, FW, FH);
         this.type = 0;
         // need to figure out how to use R32F
-    } else if (type == 'Color') {
+    } else if (type == "Color") {
         this.values = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
         this.newValues = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
         this.type = 1;
@@ -279,8 +279,8 @@ function Patch(type) {
 }
 
 function makePrimitive(gl, name, uniforms, vao) {
-    var vs = createShader(gl, name + '.vert');
-    var fs = createShader(gl, name + '.frag');
+    var vs = createShader(gl, name + ".vert");
+    var fs = createShader(gl, name + ".frag");
 
     var prog = createProgram(gl, vs, fs);
 
@@ -293,59 +293,59 @@ function makePrimitive(gl, name, uniforms, vao) {
 };
 
 function forwardProgram(gl) {
-    return makePrimitive(gl, 'forward', ['u_resolution', 'u_particleLength', 'u_position', 'u_amount'], breedVAO);
+    return makePrimitive(gl, "forward", ["u_resolution", "u_particleLength", "u_position", "u_amount"], breedVAO);
 };
 
 function forwardEdgeBounceProgram(gl) {
-    return makePrimitive(gl, 'forwardEdgeBounce', ['u_resolution', 'u_particleLength', 'u_position', 'u_amount', 'u_edgeCondition'], breedVAO);
+    return makePrimitive(gl, "forwardEdgeBounce", ["u_resolution", "u_particleLength", "u_position", "u_amount", "u_edgeCondition"], breedVAO);
 };
 
 function setPatchProgram(gl) {
-    return makePrimitive(gl, 'setPatch', ['u_resolution', 'u_particleLength', 'u_position', 'u_value', 'u_type'], breedVAO);
+    return makePrimitive(gl, "setPatch", ["u_resolution", "u_particleLength", "u_position", "u_value", "u_type"], breedVAO);
 };
 
 function getPatchProgram(gl) {
-    return makePrimitive(gl, 'getPatch', ['u_resolution', 'u_particleLength', 'u_position', 'u_type'], breedVAO);
+    return makePrimitive(gl, "getPatch", ["u_resolution", "u_particleLength", "u_position", "u_type"], breedVAO);
 };
 
 function turnProgram(gl) {
-    return makePrimitive(gl, 'turn', ['u_resolution', 'u_particleLength', 'u_position', 'u_rot'], breedVAO);
+    return makePrimitive(gl, "turn", ["u_resolution", "u_particleLength", "u_position", "u_rot"], breedVAO);
 };
 
 function bounceIfProgram(gl) {
-    return makePrimitive(gl, 'bounceIf', ['u_resolution', 'u_particleLength', 'u_position', 'u_buffer'], breedVAO);
+    return makePrimitive(gl, "bounceIf", ["u_resolution", "u_particleLength", "u_position", "u_buffer"], breedVAO);
 };
 
 function genericGetProgram(gl) {
-    return makePrimitive(gl, 'genericGet', ['u_resolution', 'u_particleLength', 'u_v_input'], breedVAO);
+    return makePrimitive(gl, "genericGet", ["u_resolution", "u_particleLength", "u_v_input"], breedVAO);
 };
 
 function genericSetProgram(gl) {
-    return makePrimitive(gl, 'genericSet', ['u_resolution', 'u_particleLength', 'u_use_vector', 'u_v_input', 'u_s_input'], breedVAO);
+    return makePrimitive(gl, "genericSet", ["u_resolution", "u_particleLength", "u_use_vector", "u_v_input", "u_s_input"], breedVAO);
 };
 
 function genericSet2Program(gl) {
-    return makePrimitive(gl, 'genericSet2', ['u_resolution', 'u_particleLength', 'u_use_vector1', 'u_v_input1', 'u_s_input1', 'u_use_vector2', 'u_v_input2', 'u_s_input2'], breedVAO);
+    return makePrimitive(gl, "genericSet2", ["u_resolution", "u_particleLength", "u_use_vector1", "u_v_input1", "u_s_input1", "u_use_vector2", "u_v_input2", "u_s_input2"], breedVAO);
 };
 
 function drawBreedProgram(gl) {
-    return makePrimitive(gl, 'drawBreed', ['u_resolution', 'u_particleLength', 'u_position', 'u_color'], breedVAO);
+    return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_position", "u_color"], breedVAO);
 };
 
 function drawPatchProgram(gl) {
-    return makePrimitive(gl, 'drawPatch', ['u_value', 'u_type'], patchVAO);
+    return makePrimitive(gl, "drawPatch", ["u_value", "u_type"], patchVAO);
 };
 
 function debugPatchProgram(gl) {
-    return makePrimitive(gl, 'debugPatch', ['u_value'], patchVAO);
+    return makePrimitive(gl, "debugPatch", ["u_value"], patchVAO);
 };
 
 function debugBreedProgram(gl) {
-    return makePrimitive(gl, 'debugBreed', ['u_particleLength', 'u_value'], breedVAO);
+    return makePrimitive(gl, "debugBreed", ["u_particleLength", "u_value"], breedVAO);
 };
 
 function diffusePatchProgram(gl) {
-    return makePrimitive(gl, 'diffusePatch', ['u_resolution', 'u_value'], patchVAO);
+    return makePrimitive(gl, "diffusePatch", ["u_resolution", "u_value"], patchVAO);
 };
 
 function clear() {
@@ -361,7 +361,7 @@ Breed.prototype.addOwnVariable = function(name, type) {
 };
 
 Breed.prototype.draw = function() {
-    var prog = programs['drawBreed'];
+    var prog = programs["drawBreed"];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
@@ -379,8 +379,8 @@ Breed.prototype.draw = function() {
 
     gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations['u_position'], 0);
-    gl.uniform1i(prog.uniLocations['u_color'], 1);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1i(prog.uniLocations["u_color"], 1);
 
     gl.drawArrays(gl.POINTS, 0, this.count);
 
@@ -389,7 +389,7 @@ Breed.prototype.draw = function() {
 };
 
 Breed.prototype.forward = function(amount) {
-    var prog = programs['forward'];
+    var prog = programs["forward"];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
@@ -418,7 +418,7 @@ Breed.prototype.forward = function(amount) {
 };
 
 Breed.prototype.forwardEdgeBounce = function(amount, condition) {
-    var prog = programs['forwardEdgeBounce'];
+    var prog = programs["forwardEdgeBounce"];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
@@ -448,7 +448,7 @@ Breed.prototype.forwardEdgeBounce = function(amount, condition) {
 };
 
 Breed.prototype.genericGet = function(destination, variable) {
-    var prog = programs['genericGet'];
+    var prog = programs["genericGet"];
     setTargetBuffer(gl, framebufferR, destination);
 
     gl.useProgram(prog.program);
@@ -471,7 +471,7 @@ Breed.prototype.genericGet = function(destination, variable) {
 };
 
 Breed.prototype.genericSet = function(source, variable) {
-    var prog = programs['genericSet'];
+    var prog = programs["genericSet"];
     setTargetBuffer(gl, framebufferR, variable);
 
     gl.useProgram(prog.program);
@@ -503,7 +503,7 @@ Breed.prototype.genericSet = function(source, variable) {
 };
 
 Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
-    var prog = programs['genericSet2'];
+    var prog = programs["genericSet2"];
 
     setTargetBuffers(gl, framebufferR, [variable1, variable2]);
 
@@ -547,7 +547,7 @@ Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
 };
 
 Breed.prototype.turn = function(amount) {
-    var prog = programs['turn'];
+    var prog = programs["turn"];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
@@ -579,7 +579,7 @@ Breed.prototype.turn = function(amount) {
 };
 
 Breed.prototype.bounceIf = function(patch) {
-    var prog = programs['bounceIf'];
+    var prog = programs["bounceIf"];
     setTargetBuffer(gl, framebufferT, this.newPos);
 
     gl.useProgram(prog.program);
@@ -611,7 +611,7 @@ Breed.prototype.bounceIf = function(patch) {
 };
 
 Breed.prototype.setPatch = function(patch, value) {
-    var prog = programs['setPatch'];
+    var prog = programs["setPatch"];
     setTargetBuffer(gl, framebufferF, patch.values);
     gl.disable(gl.BLEND);
 
@@ -635,7 +635,7 @@ Breed.prototype.setPatch = function(patch, value) {
 };
 
 Breed.prototype.increasePatch = function(patch, value) {
-    var prog = programs['setPatch'];  // the same program but with blend enabled.
+    var prog = programs["setPatch"];  // the same program but with blend enabled.
     setTargetBuffer(gl, framebufferF, patch.values);
 
     gl.useProgram(prog.program);
@@ -659,7 +659,7 @@ Breed.prototype.increasePatch = function(patch, value) {
 };
 
 Breed.prototype.getPatch = function(patch, dest) {
-    var prog = programs['getPatch'];
+    var prog = programs["getPatch"];
     setTargetBuffer(gl, framebufferT, dest);
 
     gl.useProgram(prog.program);
@@ -690,7 +690,7 @@ Patch.prototype.addOwnVariable = function(name) {
 };
   
 Patch.prototype.clear = function() {
-    var prog = programs['clearPatch'];
+    var prog = programs["clearPatch"];
     setTargetBuffer(gl, framebufferF, this.values);
 
     gl.viewport(0, 0, FW, FH);
@@ -699,7 +699,7 @@ Patch.prototype.clear = function() {
 };
 
 Patch.prototype.draw = function() {
-    var prog = programs['drawPatch'];
+    var prog = programs["drawPatch"];
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
@@ -710,8 +710,8 @@ Patch.prototype.draw = function() {
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    gl.uniform1i(prog.uniLocations['u_value'], 0);
-    gl.uniform1i(prog.uniLocations['u_type'], this.type);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+    gl.uniform1i(prog.uniLocations["u_type"], this.type);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
@@ -719,7 +719,7 @@ Patch.prototype.draw = function() {
 };
 
 Patch.prototype.diffuse = function() {
-    var prog = programs['diffusePatch'];
+    var prog = programs["diffusePatch"];
 
     setTargetBuffer(gl, framebufferF, this.newValues);
 
@@ -731,7 +731,7 @@ Patch.prototype.diffuse = function() {
 
     gl.viewport(0, 0, FW, FH);
 
-    gl.uniform1i(prog.uniLocations['u_value'], 0);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
     gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -749,11 +749,11 @@ Patch.prototype.diffuse = function() {
 
 function debugDisplay1(gl, tex) {
     if (!debugCanvas1) {
-        debugCanvas1 = document.getElementById('debugCanvas1');
+        debugCanvas1 = document.getElementById("debugCanvas1");
         debugCanvas1.width = FW;
         debugCanvas1.height = FH;
     }
-    var prog = programs['debugBreed'];
+    var prog = programs["debugBreed"];
     setTargetBuffer(gl, framebufferT, debugTexture1);
 
     gl.useProgram(prog.program);
@@ -765,7 +765,7 @@ function debugDisplay1(gl, tex) {
     gl.viewport(0, 0, T, T);
 
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations['u_value'], 0);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
 
     gl.drawArrays(gl.POINTS, 0, myBreed.count);
     gl.flush();
@@ -782,16 +782,16 @@ function debugDisplay1(gl, tex) {
     }
 
     var img = new ImageData(debugArray2, T, T);
-    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
+    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
 function debugDisplay2(gl, tex) {
     if (!debugCanvas1) {
-        debugCanvas1 = document.getElementById('debugCanvas1');
+        debugCanvas1 = document.getElementById("debugCanvas1");
         debugCanvas1.width = FW;
         debugCanvas1.height = FH;
     }
-    var prog = programs['debugPatch'];
+    var prog = programs["debugPatch"];
     setTargetBuffer(gl, framebufferF, debugTexture2);
 
     gl.useProgram(prog.program);
@@ -802,7 +802,7 @@ function debugDisplay2(gl, tex) {
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    gl.uniform1i(prog.uniLocations['u_value'], 0);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
@@ -818,50 +818,50 @@ function debugDisplay2(gl, tex) {
     }
 
     var img = new ImageData(debugArray2, FW, FH);
-    debugCanvas1.getContext('2d').putImageData(img, 0, 0);
+    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
 onload = function() {
-    readout = document.getElementById('readout');
+    readout = document.getElementById("readout");
 
-    var c = document.getElementById('canvas');
+    var c = document.getElementById("canvas");
     c.width = FW;
     c.height = FH;
     c.style.width = (FW * ENLARGE) + "px";
     c.style.height = (FH * ENLARGE) + "px";
 
-    gl = c.getContext('webgl2');
+    gl = c.getContext("webgl2");
 
-    var ext = gl.getExtension('EXT_color_buffer_float');
+    var ext = gl.getExtension("EXT_color_buffer_float");
 
     initBreedVAO(gl);
     initPatchVAO(gl);
 
-    programs['drawBreed'] = drawBreedProgram(gl);
-    programs['forward'] = forwardProgram(gl);
-    programs['forwardEdgeBounce'] = forwardEdgeBounceProgram(gl);
-    programs['turn'] = turnProgram(gl);
-    programs['bounceIf'] = bounceIfProgram(gl);
-    programs['setPatch'] = setPatchProgram(gl);
-    programs['getPatch'] = getPatchProgram(gl);
-    programs['genericGet'] = genericGetProgram(gl);
-    programs['genericSet'] = genericSetProgram(gl);
-    programs['genericSet2'] = genericSet2Program(gl);
-    programs['drawPatch'] = drawPatchProgram(gl);
-    programs['diffusePatch'] = diffusePatchProgram(gl);
-    programs['debugBreed'] = debugBreedProgram(gl);
-    programs['debugPatch'] = debugPatchProgram(gl);
+    programs["drawBreed"] = drawBreedProgram(gl);
+    programs["forward"] = forwardProgram(gl);
+    programs["forwardEdgeBounce"] = forwardEdgeBounceProgram(gl);
+    programs["turn"] = turnProgram(gl);
+    programs["bounceIf"] = bounceIfProgram(gl);
+    programs["setPatch"] = setPatchProgram(gl);
+    programs["getPatch"] = getPatchProgram(gl);
+    programs["genericGet"] = genericGetProgram(gl);
+    programs["genericSet"] = genericSetProgram(gl);
+    programs["genericSet2"] = genericSet2Program(gl);
+    programs["drawPatch"] = drawPatchProgram(gl);
+    programs["diffusePatch"] = diffusePatchProgram(gl);
+    programs["debugBreed"] = debugBreedProgram(gl);
+    programs["debugPatch"] = debugPatchProgram(gl);
 
     myBreed = new Breed(gl, 25000);
-    myBreed.addOwnVariable('buf');
-    myBreed.addOwnVariable('buf2');
+    myBreed.addOwnVariable("buf");
+    myBreed.addOwnVariable("buf2");
 
-    myPatch = new Patch('Number');
+    myPatch = new Patch("Number");
 
-    myPatch.addOwnVariable('buf1');
-    myPatch.addOwnVariable('buf2');
-    myPatch.addOwnVariable('buf3');
-    myPatch.addOwnVariable('buf4');
+    myPatch.addOwnVariable("buf1");
+    myPatch.addOwnVariable("buf2");
+    myPatch.addOwnVariable("buf3");
+    myPatch.addOwnVariable("buf4");
 
 
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
@@ -885,10 +885,10 @@ onload = function() {
 
     window.requestAnimationFrame(runner);
 
-    var code = document.getElementById('code');
-    var codeArray = step.toString().split('\n');
+    var code = document.getElementById("code");
+    var codeArray = step.toString().split("\n");
 
-    code.innerHTML = codeArray.splice(1, codeArray.length - 2).join('<br>');
+    code.innerHTML = codeArray.splice(1, codeArray.length - 2).join("<br>");
 
     grammarUnitTests();
 };
@@ -896,7 +896,6 @@ onload = function() {
 function flatten(ary) {
     return ary.reduce(function (a, b) {return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
 };
-
 
 function SymTable(table) {
     this.varyingTable = {};
@@ -908,7 +907,7 @@ function SymTable(table) {
 	if (entry[0] === "propOut" && entry[1] === "this") {
 	    this.varyingTable[entry[2]] = "v_" + varying++;
 	} else if (entry[0] === "propIn" && entry[1] === "this") {
-	    this.uniformTable[entry[2]] = "texelFetch(u_" + uniform++ + ", ivec2(a_index), 0)";
+	    this.uniformTable[entry[2]] = "u_" + uniform++;
 	}
     }
 };
@@ -919,6 +918,30 @@ SymTable.prototype.varying = function(entry) {
 
 SymTable.prototype.in = function(entry) {
     return this.uniformTable[entry[2]];
+};
+
+SymTable.prototype.uniforms = function() {
+    var result = [];
+    for (var k in this.uniformTable) {
+	result.push("uniform float " + this.uniformTable[k] + ";");
+    }
+    return flatten(result);
+};
+	    
+SymTable.prototype.vertVaryings = function() {
+    var result = [];
+    for (var k in this.varyingTable) {
+	result.push("out float " + this.varyingTable[k] + ";");
+    }
+    return flatten(result);
+};
+	    
+SymTable.prototype.fragVaryings = function() {
+    var result = [];
+    for (var k in this.varyingTable) {
+	result.push("in float " + this.varyingTable[k] + ";");
+    }
+    return flatten(result);
 };
 	    
 function grammarUnitTests() {
@@ -952,7 +975,7 @@ function grammarUnitTests() {
 	    return ret;
 	};
 	
-	if (type === '[object Object]') {
+	if (type === "[object Object]") {
 	    var pairs = [];
 	    for (var k in obj) {
 		if (!obj.hasOwnProperty(k)) continue;
@@ -960,11 +983,11 @@ function grammarUnitTests() {
 	    }
 	    pairs.sort(function(a, b) { return a[0] < b[0] ? -1 : 1 });
 	    pairs = map.call(pairs, function(v) { return '"' + v[0] + '":' + v[1] });
-	    return '{' + pairs + '}';
+	    return "{" + pairs + "}";
 	}
 	
-	if (type === '[object Array]') {
-	    return '[' + map.call(obj, function(v) { return stringify(v) }) + ']';
+	if (type === "[object Array]") {
+	    return "[" + map.call(obj, function(v) { return stringify(v) }) + "]";
 	}
 	
 	return JSON.stringify(obj);
@@ -1061,7 +1084,7 @@ function grammarUnitTests() {
     s = g.createSemantics();
 
     s.addOperation(
-        'symTable', 
+        "symTable", 
         {
 	    TopLevel: function(ds) {
 		var result = {};
@@ -1203,13 +1226,16 @@ function grammarUnitTests() {
     };
 
     s.addOperation(
-        'glsl(table, vert, frag)',
+        "glsl(table, vert, frag)",
         {
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-		vert.push("float ");
+
+		vert.push(table.uniforms());
+		vert.push(table.vertVaryings());
+		vert.push("void ");
 		vert.push(n.sourceString);
 		vert.push("() ");
 		vert.push(b.glsl(table, vert, frag));
@@ -1335,7 +1361,9 @@ function grammarUnitTests() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-		vert.push(table.in(["propIn", n.sourceString, f.sourceString]));
+		vert.push("texelFetch(" +
+			  table.in(["propIn", n.sourceString, f.sourceString]) +
+			  ", ivec2(a_index), 0)");
 	    },
 	    PrimExpression_number: function(e) {
 		var table = this.args.table;
@@ -1344,9 +1372,12 @@ function grammarUnitTests() {
 		vert.push(e.sourceString);
 	    },
 	});
-    translation("this.x = this.y + 3;", "Statement", s);
 
-    translation("if (this.x < this.y) {this.x = this.y + 3;}", "Statement", s);
+//    translation("this.x = this.y + 3;", "Statement", s);
+//    translation("if (this.x < this.y) {this.x = this.y + 3;}", "Statement", s);
+
+    translation(`def breed.foo(a) {
+                  if (this.x < this.y) {this.x = this.y + 3;}}`, "Script", s);
 };
 
 function runner() {
@@ -1361,7 +1392,7 @@ function runner() {
         while (now - times[0].start > 500) { times.shift() };
         var frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
         var stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
-        readout.innerHTML = 'compute: ' + stepTime.toFixed(3) + ' msecs/step, real time: ' + frameTime.toFixed(1) + ' msecs/frame (' + (1000 / frameTime).toFixed(1) + ' fps)';
+        readout.innerHTML = "compute: " + stepTime.toFixed(3) + " msecs/step, real time: " + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
     }
 
     window.requestAnimationFrame(runner);
