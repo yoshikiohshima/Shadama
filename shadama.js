@@ -1575,16 +1575,20 @@ onload = function() {
 
 };
 
-function SymTable(table, defaultUniforms) {
+function SymTable(table, defaultUniforms, defaultAttributes) {
+    this.rawTable = table;
     this.uniformTable = {};
     this.varyingTable = {};
     this.outTable = {};
-    this.locations = {};
 
     this.defaultUniforms = [];
+    this.defaultAttributes = [];
 
     if (defaultUniforms) {
 	this.defaultUniforms = defaultUniforms;
+    }
+    if (defaultAttributes) {
+	this.defaultAttributes = defaultAttributes;
     }
 
     for (var k in table) {
@@ -1609,10 +1613,6 @@ SymTable.prototype.in = function(entry) {
 
 SymTable.prototype.out = function(entry) {
     return this.outTable[entry[2]];
-};
-
-SymTable.prototype.location = function(entry) {
-    return this.locations[entry[2]];
 };
 
 SymTable.prototype.uniforms = function() {
@@ -1653,6 +1653,10 @@ SymTable.prototype.fragColors = function() {
 	result.push(this.outTable[keys[i]] + " = " + this.varyingTable[keys[i]] + ";");
     }
     return result;
+};
+
+SymTable.prototype.isAttribute = function(n) {
+    return this.defaultAttributes.indexOf(n) >= 0;
 };
 
 function CodeStream() {
@@ -1721,7 +1725,6 @@ function programFromTable(table, vert, frag) {
 	
 	var uniLocations = {};
 	
-    debugger;
 	table.defaultUniforms.forEach(function(n) {
 	    uniLocations[n] = gl.getUniformLocation(prog, n);
 	});
@@ -1849,7 +1852,7 @@ function grammarUnitTests() {
 	var n = sem(match);
 	var rawTable = n.symTable();
 
-	var table = new SymTable(rawTable, ["u_particleLength", "u_resolution"]);
+	var table = new SymTable(rawTable, ["u_particleLength", "u_resolution"], ["a_index"]);
 	// u_resolution only needed when the code has patches
 	var vert = new CodeStream();
 	var frag = new CodeStream();
@@ -1900,6 +1903,8 @@ function grammarUnitTests() {
     grammar("forward(this.x + 3)", "PrimitiveCall");
     grammar("turn(this.x + 3, x)", "PrimitiveCall");
 
+    grammar("mod(this.x , 2)", "PrimitiveCall");
+
     grammar("forward(this.x + 3);", "Statement");
 
     grammar("a == b", "EqualityExpression");
@@ -1939,7 +1944,7 @@ function grammarUnitTests() {
 		var c = b.symTable();
 		addAsSet(c, ns.symTable());
 		return c;
-},
+	    },
 
 	    Formals_list: function(h, _c, r) {
 		var c = {["param." + h.sourceString]: ["param", null, h.sourceString]};
@@ -1975,9 +1980,13 @@ function grammarUnitTests() {
 	    PrimExpression_field: function(n, _p, f) {
 		return {["in." + n.sourceString + "." + f.sourceString]: ["propIn", n.sourceString, f.sourceString]};
 	    },
-	    PrimitiveCall: function(n, _o, l, _c) {
+	    PrimExpression_variable: function(n) {
+		return {["var." + n.sourceString]: ["var", null, n.sourceString]};
+	    },
+
+	    PrimitiveCall: function(n, _o, as, _c) {
 		if (n.sourceString == "forward") {
-		    return {
+		    var c = {
 			"out.this.x": ["propOut", "this", "x"],
 			"out.this.y": ["propOut", "this", "y"],
 			"out.this.dx": ["propOut", "this", "dx"],
@@ -1986,10 +1995,23 @@ function grammarUnitTests() {
 			"in.this.y": ["propIn", "this", "y"],
 			"in.this.dx": ["propIn", "this", "dx"],
 			"in.this.dy": ["propIn", "this", "dy"]};
+		    
+
 		} else {
-		    return {};
+		    c = {};
 		}
+		addAsSet(c, as.symTable());
+		return c;
 	    },
+
+	    Actuals_list: function(h, _c, r) {
+		var c = h.symTable();
+		for (var i = 0; i < r.children.length; i++) {
+		    addAsSet(c, r.children[i].symTable());
+		}
+		return c;
+	    },
+
 	    ident: function(_h, _r) {return {};},
 	    number: function(s) {return {};},
 	    _terminal: function() {return {};},
@@ -2204,7 +2226,6 @@ function grammarUnitTests() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-
 		vert.push(table.varying(["propOut", n.sourceString, f.sourceString]));
 	    },
 
@@ -2272,31 +2293,67 @@ function grammarUnitTests() {
 		e.glsl(this.args.table, this.args.vert, this.args.frag);
 	    },
 
-	    PrimExpression_field: function(n, _p, f) {
-		var table = this.args.table;
-		var vert = this.args.vert;
-		var frag = this.args.frag;
-		vert.push("texelFetch(" +
-			  table.in(["propIn", n.sourceString, f.sourceString]) +
-			  ", ivec2(a_index), 0).r");
-	    },
 	    PrimExpression_number: function(e) {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
 		vert.push(e.sourceString);
 	    },
+
+	    PrimExpression_field: function(n, _p, f) {
+ 		var table = this.args.table;
+ 		var vert = this.args.vert;
+ 		var frag = this.args.frag;
+
+		if (table.isAttribute(n.sourceString)) {
+		    vert.push(n.sourceString);
+		    vert.push(".");
+		    vert.push(f.sourceString);
+		} else {
+		    vert.push("texelFetch(" +
+			      table.in(["propIn", n.sourceString, f.sourceString]) +
+			      ", ivec2(a_index), 0).r");
+		}
+ 	    },
+
+	    PrimExpression_variable: function(n) {
+ 		var table = this.args.table;
+ 		var vert = this.args.vert;
+ 		var frag = this.args.frag;
+
+		vert.push(n.sourceString);
+	    },
+
+	    PrimitiveCall: function(n, _o, as, _c) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		vert.push(n.sourceString);
+		vert.push("(");
+		as.glsl(table, vert, frag);
+		vert.push(")");
+	    },
+
+	    Actuals_list: function(h, _c, r) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		h.glsl(table, vert, frag);
+		for (var i = 0; i < r.children.length; i++) {
+		    vert.push(", ");
+		    r.children[i].glsl(table, vert, frag);
+		}
+	    },
 	});
+
 
 //    translation("this.x = this.y + 3;", "Statement", s);
 //    translation("if (this.x < this.y) {this.x = this.y + 3;}", "Statement", s);
 
-    // install(`def breed.main(a) {
-    //               if (this.x < this.y) {this.x = this.y + 4.0;}}`, "Script", s);
-
     install(`def breed.main(a) {
-                   this.x = 200.0;}`, "Script", s);
-};
+                   if (mod(a_index.x, 2.0) == 1.0) {this.x = 400.0;}}`, "Script", s);
+
+    };
 
 function runner() {
     var start = performance.now();

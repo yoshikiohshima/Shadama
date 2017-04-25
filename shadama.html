@@ -87,13 +87,13 @@ Shadama {
     | empty
 
   ident
-    = letter alnum*
+    = letter (alnum | "_")*
 
   number
     = digit* "." digit+  -- fract
     | digit+             -- whole
 
-  identifierStart = letter
+  identifierStart = letter | "_"
   identifierPart = identifierStart | digit
 
   var = "var" ~identifierPart
