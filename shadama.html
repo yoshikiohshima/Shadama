@@ -15,11 +15,13 @@ Shadama {
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Script
-    = def ident "." ident "(" Formals ")" Block
+    = def ident "." ident "(" Formals ")" ScriptBlock
 
   Formals
     = ident ("," ident)* -- list
     | empty
+
+  ScriptBlock = "{" StatementList "}"
 
   Block = "{" StatementList "}"
 
@@ -552,7 +554,6 @@ in vec4 v_color;
 out vec4 fragColor;
 
 void main(void) {
-    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
     fragColor = v_color;
 }
         </script>

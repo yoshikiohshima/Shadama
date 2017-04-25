@@ -20,6 +20,8 @@ var patchVAO;
 
 var programs = {};
 
+var scripts = {};
+
 var myBreed;
 var myPatch;
 
@@ -34,6 +36,7 @@ var framebufferT;
 var framebufferF;
 var framebufferR;
 
+var debugTexture0;
 var debugTexture1;
 var debugTexture2;
 
@@ -748,6 +751,46 @@ Patch.prototype.diffuse = function() {
     this.values = tmp;
 };
 
+function debugDisplay0(gl, tex) {
+    if (!debugCanvas1) {
+        debugCanvas1 = document.getElementById("debugCanvas1");
+        debugCanvas1.width = FW;
+        debugCanvas1.height = FH;
+    }
+    var prog = programs["debugBreed"];
+    setTargetBuffer(gl, framebufferR, debugTexture0);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+
+    gl.drawArrays(gl.POINTS, 0, myBreed.count);
+    gl.flush();
+
+    debugArray = new Float32Array(T * T * 4);
+    debugArray2 = new Uint8ClampedArray(T * T * 4);
+    gl.readPixels(0, 0, T, T, gl.R32F, gl.FLOAT, debugArray);
+
+    for (var i = 0; i < T * T; i++) {
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
+	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
+	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
+	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+    }
+
+    var img = new ImageData(debugArray2, T, T);
+    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
+};
+
+
+
 function debugDisplay1(gl, tex) {
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById("debugCanvas1");
@@ -773,7 +816,7 @@ function debugDisplay1(gl, tex) {
 
     debugArray = new Float32Array(T * T * 4);
     debugArray2 = new Uint8ClampedArray(T * T * 4);
-    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+    gl.readPixels(0, 0, T, T, gl.R32F, gl.FLOAT, debugArray);
 
     for (var i = 0; i < T * T; i++) {
 	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
@@ -894,42 +937,6 @@ onload = function() {
     grammarUnitTests();
 };
 
-function SymTable(table) {
-    this.uniformTable = {};
-    this.varyingTable = {};
-    this.outTable = {};
-    this.locations = [];
-    var varying = 0;
-    var uniform = 0;
-    for (var k in table) {
-	var entry = table[k];
-	if (entry[0] === "propOut" && entry[1] === "this") {
-	    this.varyingTable[entry[2]] = "v_" + varying;
-	    this.outTable[entry[2]] = "o_" + varying;
-	    varying++;
-	} else if (entry[0] === "propIn" && entry[1] === "this") {
-	    this.uniformTable[entry[2]] = "u_" + uniform;
-	    this.locations.push[entry[2]];
-	    uniform++;
-	}
-    }
-};
-
-SymTable.prototype.varying = function(entry) {
-    return this.varyingTable[entry[2]];
-};
-
-SymTable.prototype.in = function(entry) {
-    return this.uniformTable[entry[2]];
-};
-
-SymTable.prototype.uniforms = function() {
-    var result = [];
-    for (var k in this.uniformTable) {
-	result.push("uniform float " + this.uniformTable[k] + ";");
-    }
-    return result;
-};
 function forwardEdgeBounceProgram(gl) {
     return makePrimitive(gl, "forwardEdgeBounce", ["u_resolution", "u_particleLength", "u_position", "u_amount", "u_edgeCondition"], breedVAO);
 };
@@ -992,6 +999,7 @@ function clear() {
 Breed.prototype.addOwnVariable = function(name, type) {
     var ary = new Float32Array(T * T);
     this[name] = createTexture(gl, ary, gl.R32F);
+    this["new"+name] = createTexture(gl, ary, gl.R32F);
 };
 
 Breed.prototype.draw = function() {
@@ -1324,6 +1332,7 @@ Breed.prototype.getPatch = function(patch, dest) {
 Patch.prototype.addOwnVariable = function(name) {
     var ary = new Float32Array(FW * FH * 4);
     this[name] = createTexture(gl, ary, gl.R32F);
+    this["new"+name] = createTexture(gl, ary, gl.R32F);
 };
   
 Patch.prototype.clear = function() {
@@ -1384,11 +1393,49 @@ Patch.prototype.diffuse = function() {
     this.values = tmp;
 };
 
+function debugDisplay0(gl, tex) {
+    if (!debugCanvas1) {
+        debugCanvas1 = document.getElementById("debugCanvas1");
+        debugCanvas1.width = T;
+        debugCanvas1.height = T;
+    }
+    var prog = programs["debugBreed"];
+    setTargetBuffers(gl, framebufferR, debugTexture1);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+
+    gl.drawArrays(gl.POINTS, 0, myBreed.count);
+    gl.flush();
+
+    debugArray = new Float32Array(T * T * 4);
+    debugArray2 = new Uint8ClampedArray(T * T * 4);
+    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+
+    for (var i = 0; i < T * T; i++) {
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
+	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
+	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
+	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+    }
+
+    var img = new ImageData(debugArray2, T, T);
+    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
+};
+
 function debugDisplay1(gl, tex) {
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById("debugCanvas1");
-        debugCanvas1.width = FW;
-        debugCanvas1.height = FH;
+        debugCanvas1.width = T;
+        debugCanvas1.height = T;
     }
     var prog = programs["debugBreed"];
     setTargetBuffer(gl, framebufferT, debugTexture1);
@@ -1490,20 +1537,14 @@ onload = function() {
     programs["debugPatch"] = debugPatchProgram(gl);
 
     myBreed = new Breed(gl, 25000);
-    myBreed.addOwnVariable("buf");
-    myBreed.addOwnVariable("buf2");
+    myBreed.addOwnVariable("x");
+    myBreed.addOwnVariable("y");
 
     myPatch = new Patch("Number");
 
-    myPatch.addOwnVariable("buf1");
-    myPatch.addOwnVariable("buf2");
-    myPatch.addOwnVariable("buf3");
-    myPatch.addOwnVariable("buf4");
-
-
+    debugTexture0 = createTexture(gl, new Float32Array(T*T), gl.R32F);
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
     debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
-
 
     var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
     framebufferT = gl.createFramebuffer();
@@ -1515,12 +1556,12 @@ onload = function() {
     initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
 
-    var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
+    var tmp = createTexture(gl, new Float32Array(T*T), gl.R32F, T, T);
     framebufferR = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
+    initFramebuffer(gl, framebufferR, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
-    window.requestAnimationFrame(runner);
+//    window.requestAnimationFrame(runner);
 
     var code = document.getElementById("code");
     var codeArray = step.toString().split("\n");
@@ -1528,28 +1569,35 @@ onload = function() {
     code.innerHTML = codeArray.splice(1, codeArray.length - 2).join("<br>");
 
     grammarUnitTests();
+
+    step();
+
+
 };
 
-function SymTable(table) {
+function SymTable(table, defaultUniforms) {
     this.uniformTable = {};
     this.varyingTable = {};
     this.outTable = {};
     this.locations = {};
-    var varying = 0;
-    var uniform = 0;
+
+    this.defaultUniforms = [];
+
+    if (defaultUniforms) {
+	this.defaultUniforms = defaultUniforms;
+    }
+
     for (var k in table) {
 	var entry = table[k];
 	if (entry[0] === "propOut" && entry[1] === "this") {
-	    this.varyingTable[entry[2]] = "v_" + varying;
-	    this.outTable[entry[2]] = "o_" + varying;
-	    varying++;
+	    this.varyingTable[entry[2]] = "v_this_" + entry[2];
+	    this.outTable[entry[2]] = "o_this_" + entry[2];
 	} else if (entry[0] === "propIn" && entry[1] === "this") {
-	    this.uniformTable[entry[2]] = "u_" + uniform;
-	    this.locations[entry[2]] = uniform;
-	    uniform++;
+	    this.uniformTable[entry[2]] = "u_this_" + entry[2];
 	}
     }
 };
+
 
 SymTable.prototype.varying = function(entry) {
     return this.varyingTable[entry[2]];
@@ -1666,45 +1714,63 @@ CodeStream.prototype.contents = function() {
 };
 
 function programFromTable(table, vert, frag) {
-    var prog = createProgram(gl, createShader(gl, "main.vert", vert.contents()),
-		  createShader(gl, "main.frag", frag.contents()));
 
-    var uniLocations = {};
-
-    table.locations.forEach(function(n) {
-	uniLocations[n] = gl.getUniformLocation(prog, n);
-    });
-
-    var vao = breedVAO;
-
-    return function(args) {  // {targets: [texture], sources: {<name>: textureOrFloat}, count: n}
-	setTargetBuffers(gl, framebufferR, args.targets);
-
-	gl.useProgram(prog);
-	gl.bindVertexArray(vao);
-
-	gl.viewport(0, 0, T, T);
-	gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-	gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-
-	var sources = args.sources;
-	var index = 0;
-	for (var k in sources) {
-	    if (sources[k].constructor == WebGLTexture) {
-		gl.activeTexture(gl.TEXTURE0 + index);
-		gl.bindTexture(gl.TEXTURE_2D, sources[k]);
-	    }
-	    gl.uniform1i(uniLocations[k], index);
-	    index++;
-	}
-
-	gl.clearColor(0.0, 0.0, 0.0, 0.0);
-	gl.clear(gl.COLOR_BUFFER_BIT);
+    return (function () {
+	var prog = createProgram(gl, createShader(gl, "main.vert", vert.contents()),
+				 createShader(gl, "main.frag", frag.contents()));
 	
-	gl.drawArrays(gl.POINTS, 0, args.count);
-	gl.flush();
-	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    }
+	var uniLocations = {};
+	
+    debugger;
+	table.defaultUniforms.forEach(function(n) {
+	    uniLocations[n] = gl.getUniformLocation(prog, n);
+	});
+
+	for (var n in table.uniformTable) {
+	    var uni = table.uniformTable[n];
+	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
+	}
+	
+	var vao = breedVAO;
+	
+	return function(args) {  // {object: object, targets: [fieldName], sources: {<name>: textureOrFloat}}
+	    var object = args.object;
+	    var targets = args.targets;
+	    var realTargets = targets.map(function(n) {return object["new"+n]});
+	    setTargetBuffers(gl, framebufferR, realTargets);
+	    
+	    gl.useProgram(prog);
+	    gl.bindVertexArray(vao);
+	    
+	    gl.viewport(0, 0, T, T);
+	    gl.uniform2f(uniLocations["u_resolution"], FW, FH);
+	    gl.uniform1f(uniLocations["u_particleLength"], T);
+	    
+	    var sources = args.sources;
+	    var index = 0;
+	    for (var k in sources) {
+		if (sources[k].constructor == WebGLTexture) {
+		    gl.activeTexture(gl.TEXTURE0 + index);
+		    gl.bindTexture(gl.TEXTURE_2D, sources[k]);
+		}
+		gl.uniform1i(uniLocations[k], index);
+		index++;
+	    }
+	    
+	    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+	    gl.clear(gl.COLOR_BUFFER_BIT);
+	    
+	    gl.drawArrays(gl.POINTS, 0, args.object.count);
+	    gl.flush();
+	    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	    
+	    for (var i = 0; i < args.targets.length; i++) {
+		var tmp = object[targets[i]];
+		object[targets[i]] = object["new"+targets[i]];
+		object["new"+targets[i]] = tmp;
+	    }
+	}
+    })();
 };
 	    
 function grammarUnitTests() {
@@ -1783,7 +1849,8 @@ function grammarUnitTests() {
 	var n = sem(match);
 	var rawTable = n.symTable();
 
-	var table = new SymTable(rawTable);
+	var table = new SymTable(rawTable, ["u_particleLength", "u_resolution"]);
+	// u_resolution only needed when the code has patches
 	var vert = new CodeStream();
 	var frag = new CodeStream();
 
@@ -1792,8 +1859,12 @@ function grammarUnitTests() {
 	console.log(vert.contents());
 	console.log(frag.contents());
 
-	createProgram(gl, createShader(gl, "main.vert", vert.contents()),
-		      createShader(gl, "main.frag", frag.contents()));
+	return [table, vert, frag];
+    };
+
+    function install(str, prod, sem, expected) {
+	var result = translation(str, prod, sem, expected);
+	scripts["main"] = programFromTable(result[0], result[1], result[2]);
     };
 
     function addAsSet(to, from) {
@@ -2020,7 +2091,7 @@ function grammarUnitTests() {
 		vert.pushWithSpace("main");
 		vert.push("()");
 
-		// fragment
+		// fragment head
 
 		frag.push("#version 300 es\n");
 		frag.push("precision highp float;\n");
@@ -2041,6 +2112,9 @@ function grammarUnitTests() {
 		frag.push("()");
 
 		b.glsl(table, vert, frag);
+
+		vert.crIfNeeded();
+		vert.tab();
 
 		frag.pushWithSpace("{\n");
 
@@ -2064,6 +2138,25 @@ function grammarUnitTests() {
 		vert.pushWithSpace("{\n");
 		vert.addTab();
 		ss.glsl(table, vert, frag);
+		vert.decTab();
+		vert.tab();
+		vert.push("}");
+	    },
+
+	    ScriptBlock: function(_o, ss, _c) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		vert.pushWithSpace("{\n");
+		vert.addTab();
+		vert.tab();
+		vert.push("vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;\n");
+
+		ss.glsl(table, vert, frag);
+		vert.tab();
+		vert.push("gl_Position = vec4(oneToOne, 0, 1.0);\n");
+		vert.tab();
+		vert.push("gl_PointSize = 1.0;\n");
 		vert.decTab();
 		vert.tab();
 		vert.push("}");
@@ -2198,8 +2291,11 @@ function grammarUnitTests() {
 //    translation("this.x = this.y + 3;", "Statement", s);
 //    translation("if (this.x < this.y) {this.x = this.y + 3;}", "Statement", s);
 
-    translation(`def breed.main(a) {
-                  if (this.x < this.y) {this.x = this.y + 3.0;}}`, "Script", s);
+    // install(`def breed.main(a) {
+    //               if (this.x < this.y) {this.x = this.y + 4.0;}}`, "Script", s);
+
+    install(`def breed.main(a) {
+                   this.x = 200.0;}`, "Script", s);
 };
 
 function runner() {
@@ -2225,6 +2321,9 @@ function step() {
 
     myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
+
+    scripts["main"]({object: myBreed, targets: ["x"], sources: [myBreed.x, myBreed.y]});
+
 //    myBreed.setPatch(myPatch, [10.0, 0.0, 0.0, 255.0]);
 //    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
 //    myPatch.diffuse();
