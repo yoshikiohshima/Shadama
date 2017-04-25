@@ -89,7 +89,7 @@ function initPatchVAO(gl) {
     gl.bindVertexArray(null);
 };
 
-function createShader(gl, id) {
+function createShader(gl, id, source) {
     var type;
     if (id.endsWith(".vert")) {
         type = gl.VERTEX_SHADER;
@@ -99,10 +99,11 @@ function createShader(gl, id) {
 
     var shader = gl.createShader(type);
 
-    var scriptElement = document.getElementById(id);
-    if(!scriptElement){return;}
-
-    var source = scriptElement.text;
+    if (!source) {
+	var scriptElement = document.getElementById(id);
+	if(!scriptElement){return;}
+	source = scriptElement.text;
+    }
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
@@ -893,21 +894,23 @@ onload = function() {
     grammarUnitTests();
 };
 
-function flatten(ary) {
-    return ary.reduce(function (a, b) {return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
-};
-
 function SymTable(table) {
-    this.varyingTable = {};
     this.uniformTable = {};
+    this.varyingTable = {};
+    this.outTable = {};
+    this.locations = [];
     var varying = 0;
     var uniform = 0;
     for (var k in table) {
 	var entry = table[k];
 	if (entry[0] === "propOut" && entry[1] === "this") {
-	    this.varyingTable[entry[2]] = "v_" + varying++;
+	    this.varyingTable[entry[2]] = "v_" + varying;
+	    this.outTable[entry[2]] = "o_" + varying;
+	    varying++;
 	} else if (entry[0] === "propIn" && entry[1] === "this") {
-	    this.uniformTable[entry[2]] = "u_" + uniform++;
+	    this.uniformTable[entry[2]] = "u_" + uniform;
+	    this.locations.push[entry[2]];
+	    uniform++;
 	}
     }
 };
@@ -925,7 +928,651 @@ SymTable.prototype.uniforms = function() {
     for (var k in this.uniformTable) {
 	result.push("uniform float " + this.uniformTable[k] + ";");
     }
-    return flatten(result);
+    return result;
+};
+function forwardEdgeBounceProgram(gl) {
+    return makePrimitive(gl, "forwardEdgeBounce", ["u_resolution", "u_particleLength", "u_position", "u_amount", "u_edgeCondition"], breedVAO);
+};
+
+function setPatchProgram(gl) {
+    return makePrimitive(gl, "setPatch", ["u_resolution", "u_particleLength", "u_position", "u_value", "u_type"], breedVAO);
+};
+
+function getPatchProgram(gl) {
+    return makePrimitive(gl, "getPatch", ["u_resolution", "u_particleLength", "u_position", "u_type"], breedVAO);
+};
+
+function turnProgram(gl) {
+    return makePrimitive(gl, "turn", ["u_resolution", "u_particleLength", "u_position", "u_rot"], breedVAO);
+};
+
+function bounceIfProgram(gl) {
+    return makePrimitive(gl, "bounceIf", ["u_resolution", "u_particleLength", "u_position", "u_buffer"], breedVAO);
+};
+
+function genericGetProgram(gl) {
+    return makePrimitive(gl, "genericGet", ["u_resolution", "u_particleLength", "u_v_input"], breedVAO);
+};
+
+function genericSetProgram(gl) {
+    return makePrimitive(gl, "genericSet", ["u_resolution", "u_particleLength", "u_use_vector", "u_v_input", "u_s_input"], breedVAO);
+};
+
+function genericSet2Program(gl) {
+    return makePrimitive(gl, "genericSet2", ["u_resolution", "u_particleLength", "u_use_vector1", "u_v_input1", "u_s_input1", "u_use_vector2", "u_v_input2", "u_s_input2"], breedVAO);
+};
+
+function drawBreedProgram(gl) {
+    return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_position", "u_color"], breedVAO);
+};
+
+function drawPatchProgram(gl) {
+    return makePrimitive(gl, "drawPatch", ["u_value", "u_type"], patchVAO);
+};
+
+function debugPatchProgram(gl) {
+    return makePrimitive(gl, "debugPatch", ["u_value"], patchVAO);
+};
+
+function debugBreedProgram(gl) {
+    return makePrimitive(gl, "debugBreed", ["u_particleLength", "u_value"], breedVAO);
+};
+
+function diffusePatchProgram(gl) {
+    return makePrimitive(gl, "diffusePatch", ["u_resolution", "u_value"], patchVAO);
+};
+
+function clear() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+};
+
+Breed.prototype.addOwnVariable = function(name, type) {
+    var ary = new Float32Array(T * T);
+    this[name] = createTexture(gl, ary, gl.R32F);
+};
+
+Breed.prototype.draw = function() {
+    var prog = programs["drawBreed"];
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.color);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1i(prog.uniLocations["u_color"], 1);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+
+    gl.flush();
+    gl.disable(gl.BLEND);
+};
+
+Breed.prototype.forward = function(amount) {
+    var prog = programs["forward"];
+    setTargetBuffer(gl, framebufferT, this.newPos);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1f(prog.uniLocations["u_amount"], amount);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.pos;
+    this.pos = this.newPos;
+    this.newPos = tmp;
+};
+
+Breed.prototype.forwardEdgeBounce = function(amount, condition) {
+    var prog = programs["forwardEdgeBounce"];
+    setTargetBuffer(gl, framebufferT, this.newPos);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1f(prog.uniLocations["u_amount"], amount);
+    gl.uniform1iv(prog.uniLocations["u_edgeCondition"], new Int32Array(condition));
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.pos;
+    this.pos = this.newPos;
+    this.newPos = tmp;
+};
+
+Breed.prototype.genericGet = function(destination, variable) {
+    var prog = programs["genericGet"];
+    setTargetBuffer(gl, framebufferR, destination);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, variable);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.genericSet = function(source, variable) {
+    var prog = programs["genericSet"];
+    setTargetBuffer(gl, framebufferR, variable);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    var use_vector;
+
+    if (source.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, source);
+	use_vector = true;
+    } else {
+	use_vector = false;
+    }
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
+    gl.uniform1i(prog.uniLocations["u_v_input"], 0);
+    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : source);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
+    var prog = programs["genericSet2"];
+
+    setTargetBuffers(gl, framebufferR, [variable1, variable2]);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    var use_vector1;
+    var use_vector2;
+
+    if (source1.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, source1);
+	use_vector1 = true;
+    } else {
+	use_vector1 = false;
+    }
+    if (source2.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, source2);
+	use_vector2 = true;
+    } else {
+	use_vector2 = false;
+    }
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_use_vector1"], use_vector1);
+    gl.uniform1i(prog.uniLocations["u_use_vector2"], use_vector2);
+    gl.uniform1i(prog.uniLocations["u_v_input1"], 0);
+    gl.uniform1i(prog.uniLocations["u_v_input2"], 1);
+    gl.uniform1f(prog.uniLocations["u_s_input1"], use_vector1 ? 0 : source1);
+    gl.uniform1f(prog.uniLocations["u_s_input2"], use_vector2 ? 0 : source2);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+
+
+
+Breed.prototype.turn = function(amount) {
+    var prog = programs["turn"];
+    setTargetBuffer(gl, framebufferT, this.newPos);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    var cos = Math.cos(amount);
+    var sin = Math.sin(amount);
+
+    gl.uniformMatrix2fv(prog.uniLocations["u_rot"], false, [cos, sin, -sin, cos]);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.pos;
+    this.pos = this.newPos;
+    this.newPos = tmp;
+};
+
+Breed.prototype.bounceIf = function(patch) {
+    var prog = programs["bounceIf"];
+    setTargetBuffer(gl, framebufferT, this.newPos);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, patch.values);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1i(prog.uniLocations["u_buffer"], 1);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.pos;
+    this.pos = this.newPos;
+    this.newPos = tmp;
+};
+
+Breed.prototype.setPatch = function(patch, value) {
+    var prog = programs["setPatch"];
+    setTargetBuffer(gl, framebufferF, patch.values);
+    gl.disable(gl.BLEND);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.viewport(0, 0, FW, FH);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform4fv(prog.uniLocations["u_value"], value);
+    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.increasePatch = function(patch, value) {
+    var prog = programs["setPatch"];  // the same program but with blend enabled.
+    setTargetBuffer(gl, framebufferF, patch.values);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+
+    gl.viewport(0, 0, FW, FH);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform4fv(prog.uniLocations["u_value"], value);
+    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.disable(gl.BLEND);
+};
+
+Breed.prototype.getPatch = function(patch, dest) {
+    var prog = programs["getPatch"];
+    setTargetBuffer(gl, framebufferT, dest);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.pos);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, patch.values);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_position"], 0);
+    gl.uniform1i(prog.uniLocations["u_value"], 1);
+    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Patch.prototype.addOwnVariable = function(name) {
+    var ary = new Float32Array(FW * FH * 4);
+    this[name] = createTexture(gl, ary, gl.R32F);
+};
+  
+Patch.prototype.clear = function() {
+    var prog = programs["clearPatch"];
+    setTargetBuffer(gl, framebufferF, this.values);
+
+    gl.viewport(0, 0, FW, FH);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+};
+
+Patch.prototype.draw = function() {
+    var prog = programs["drawPatch"];
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.values);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+    gl.uniform1i(prog.uniLocations["u_type"], this.type);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Patch.prototype.diffuse = function() {
+    var prog = programs["diffusePatch"];
+
+    setTargetBuffer(gl, framebufferF, this.newValues);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.values);
+
+    gl.viewport(0, 0, FW, FH);
+
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp = this.newValues;
+    this.newValues = this.values;
+    this.values = tmp;
+};
+
+function debugDisplay1(gl, tex) {
+    if (!debugCanvas1) {
+        debugCanvas1 = document.getElementById("debugCanvas1");
+        debugCanvas1.width = FW;
+        debugCanvas1.height = FH;
+    }
+    var prog = programs["debugBreed"];
+    setTargetBuffer(gl, framebufferT, debugTexture1);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+
+    gl.drawArrays(gl.POINTS, 0, myBreed.count);
+    gl.flush();
+
+    debugArray = new Float32Array(T * T * 4);
+    debugArray2 = new Uint8ClampedArray(T * T * 4);
+    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+
+    for (var i = 0; i < T * T; i++) {
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
+	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
+	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
+	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+    }
+
+    var img = new ImageData(debugArray2, T, T);
+    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
+};
+
+function debugDisplay2(gl, tex) {
+    if (!debugCanvas1) {
+        debugCanvas1 = document.getElementById("debugCanvas1");
+        debugCanvas1.width = FW;
+        debugCanvas1.height = FH;
+    }
+    var prog = programs["debugPatch"];
+    setTargetBuffer(gl, framebufferF, debugTexture2);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(patchVAO);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.flush();
+    debugArray = new Float32Array(FW * FH * 4);
+    debugArray2 = new Uint8ClampedArray(FW * FH * 4);
+    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
+
+    for (var i = 0; i < FW * FH; i++) {
+	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
+	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
+	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
+	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
+    }
+
+    var img = new ImageData(debugArray2, FW, FH);
+    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
+};
+
+onload = function() {
+    readout = document.getElementById("readout");
+
+    var c = document.getElementById("canvas");
+    c.width = FW;
+    c.height = FH;
+    c.style.width = (FW * ENLARGE) + "px";
+    c.style.height = (FH * ENLARGE) + "px";
+
+    gl = c.getContext("webgl2");
+
+    var ext = gl.getExtension("EXT_color_buffer_float");
+
+    initBreedVAO(gl);
+    initPatchVAO(gl);
+
+    programs["drawBreed"] = drawBreedProgram(gl);
+    programs["forward"] = forwardProgram(gl);
+    programs["forwardEdgeBounce"] = forwardEdgeBounceProgram(gl);
+    programs["turn"] = turnProgram(gl);
+    programs["bounceIf"] = bounceIfProgram(gl);
+    programs["setPatch"] = setPatchProgram(gl);
+    programs["getPatch"] = getPatchProgram(gl);
+    programs["genericGet"] = genericGetProgram(gl);
+    programs["genericSet"] = genericSetProgram(gl);
+    programs["genericSet2"] = genericSet2Program(gl);
+    programs["drawPatch"] = drawPatchProgram(gl);
+    programs["diffusePatch"] = diffusePatchProgram(gl);
+    programs["debugBreed"] = debugBreedProgram(gl);
+    programs["debugPatch"] = debugPatchProgram(gl);
+
+    myBreed = new Breed(gl, 25000);
+    myBreed.addOwnVariable("buf");
+    myBreed.addOwnVariable("buf2");
+
+    myPatch = new Patch("Number");
+
+    myPatch.addOwnVariable("buf1");
+    myPatch.addOwnVariable("buf2");
+    myPatch.addOwnVariable("buf3");
+    myPatch.addOwnVariable("buf4");
+
+
+    debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+
+
+    var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
+    framebufferT = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferT, tmp, gl.FLOAT, T, T);
+    gl.deleteTexture(tmp);
+
+    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+    framebufferF = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
+    gl.deleteTexture(tmp);
+
+    var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
+    framebufferR = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
+    gl.deleteTexture(tmp);
+
+    window.requestAnimationFrame(runner);
+
+    var code = document.getElementById("code");
+    var codeArray = step.toString().split("\n");
+
+    code.innerHTML = codeArray.splice(1, codeArray.length - 2).join("<br>");
+
+    grammarUnitTests();
+};
+
+function SymTable(table) {
+    this.uniformTable = {};
+    this.varyingTable = {};
+    this.outTable = {};
+    this.locations = {};
+    var varying = 0;
+    var uniform = 0;
+    for (var k in table) {
+	var entry = table[k];
+	if (entry[0] === "propOut" && entry[1] === "this") {
+	    this.varyingTable[entry[2]] = "v_" + varying;
+	    this.outTable[entry[2]] = "o_" + varying;
+	    varying++;
+	} else if (entry[0] === "propIn" && entry[1] === "this") {
+	    this.uniformTable[entry[2]] = "u_" + uniform;
+	    this.locations[entry[2]] = uniform;
+	    uniform++;
+	}
+    }
+};
+
+SymTable.prototype.varying = function(entry) {
+    return this.varyingTable[entry[2]];
+};
+
+SymTable.prototype.in = function(entry) {
+    return this.uniformTable[entry[2]];
+};
+
+SymTable.prototype.out = function(entry) {
+    return this.outTable[entry[2]];
+};
+
+SymTable.prototype.location = function(entry) {
+    return this.locations[entry[2]];
+};
+
+SymTable.prototype.uniforms = function() {
+    var result = [];
+    for (var k in this.uniformTable) {
+	result.push("uniform sampler2D " + this.uniformTable[k] + ";");
+    }
+    return result;
 };
 	    
 SymTable.prototype.vertVaryings = function() {
@@ -933,7 +1580,7 @@ SymTable.prototype.vertVaryings = function() {
     for (var k in this.varyingTable) {
 	result.push("out float " + this.varyingTable[k] + ";");
     }
-    return flatten(result);
+    return result;
 };
 	    
 SymTable.prototype.fragVaryings = function() {
@@ -941,7 +1588,123 @@ SymTable.prototype.fragVaryings = function() {
     for (var k in this.varyingTable) {
 	result.push("in float " + this.varyingTable[k] + ";");
     }
-    return flatten(result);
+    return result;
+};
+
+SymTable.prototype.outs = function() {
+    var that = this;
+    return Object.keys(this.outTable).map(function(k) {
+	return "out float " + that.outTable[k] + ";";
+    });
+};
+
+SymTable.prototype.fragColors = function() {
+    var result = [];
+    var keys = Object.keys(this.varyingTable);
+    for (var i = 0; i < keys.length; i++) {
+	result.push(this.outTable[keys[i]] + " = " + this.varyingTable[keys[i]] + ";");
+    }
+    return result;
+};
+
+function CodeStream() {
+    this.result = [];
+    this.hadCR = true;
+    this.hadSpace = true;
+    this.tabLevel = 0;
+};
+
+CodeStream.prototype.addTab = function() {
+    this.tabLevel++;
+};
+
+CodeStream.prototype.decTab = function() {
+    this.tabLevel--;
+};
+
+CodeStream.prototype.cr = function() {
+    this.result.push("\n");
+    this.hadCR = true;
+};
+
+CodeStream.prototype.tab = function() {
+    for (var i = 0; i < this.tabLevel; i++) {
+	this.result.push("  ");
+    }
+};
+
+CodeStream.prototype.skipSpace = function() {
+    this.hadSpace = true;
+};
+
+CodeStream.prototype.crIfNeeded = function() {
+    if (!this.hadCR) {
+	this.cr();
+    }
+};
+
+CodeStream.prototype.push = function(val) {
+    this.result.push(val);
+    var last = val[val.length - 1];
+    this.hadSpace = (last === " " || last == "\n" || last == "{" || last == "(");
+    this.hadCR = last == "\n";
+};
+
+CodeStream.prototype.pushWithSpace = function(val) {
+    if (!this.hadSpace) {
+	this.push(" ");
+    }
+    this.push(val);
+};
+
+CodeStream.prototype.contents = function() {
+    function flatten(ary) {
+	return ary.reduce(function (a, b) {
+	    return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
+    };
+    return flatten(this.result);
+};
+
+function programFromTable(table, vert, frag) {
+    var prog = createProgram(gl, createShader(gl, "main.vert", vert.contents()),
+		  createShader(gl, "main.frag", frag.contents()));
+
+    var uniLocations = {};
+
+    table.locations.forEach(function(n) {
+	uniLocations[n] = gl.getUniformLocation(prog, n);
+    });
+
+    var vao = breedVAO;
+
+    return function(args) {  // {targets: [texture], sources: {<name>: textureOrFloat}, count: n}
+	setTargetBuffers(gl, framebufferR, args.targets);
+
+	gl.useProgram(prog);
+	gl.bindVertexArray(vao);
+
+	gl.viewport(0, 0, T, T);
+	gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+	gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+
+	var sources = args.sources;
+	var index = 0;
+	for (var k in sources) {
+	    if (sources[k].constructor == WebGLTexture) {
+		gl.activeTexture(gl.TEXTURE0 + index);
+		gl.bindTexture(gl.TEXTURE_2D, sources[k]);
+	    }
+	    gl.uniform1i(uniLocations[k], index);
+	    index++;
+	}
+
+	gl.clearColor(0.0, 0.0, 0.0, 0.0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	
+	gl.drawArrays(gl.POINTS, 0, args.count);
+	gl.flush();
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
 };
 	    
 function grammarUnitTests() {
@@ -1021,13 +1784,16 @@ function grammarUnitTests() {
 	var rawTable = n.symTable();
 
 	var table = new SymTable(rawTable);
-	var vert = [];
-	var frag = [];
+	var vert = new CodeStream();
+	var frag = new CodeStream();
 
 	n.glsl(table, vert, frag);
 
-	console.log(flatten(vert));
-	console.log(flatten(frag));
+	console.log(vert.contents());
+	console.log(frag.contents());
+
+	createProgram(gl, createShader(gl, "main.vert", vert.contents()),
+		      createShader(gl, "main.frag", frag.contents()));
     };
 
     function addAsSet(to, from) {
@@ -1233,20 +1999,73 @@ function grammarUnitTests() {
 		var vert = this.args.vert;
 		var frag = this.args.frag;
 
-		vert.push(table.uniforms());
-		vert.push(table.vertVaryings());
-		vert.push("void ");
-		vert.push(n.sourceString);
-		vert.push("() ");
-		vert.push(b.glsl(table, vert, frag));
+		vert.push("#version 300 es\n");
+
+		vert.push("layout (location = 0) in vec2 a_index;\n");
+		vert.push("uniform vec2 u_resolution;\n");
+		vert.push("uniform float u_particleLength;\n");
+
+		table.uniforms().forEach(function(elem) {
+		    vert.push(elem);
+		    vert.push("\n");
+		});
+		vert.crIfNeeded();
+		table.vertVaryings().forEach(function(elem) {
+		    vert.push(elem);
+		    vert.push("\n");
+		});
+		vert.crIfNeeded();
+		vert.push("void");
+		//vert.pushWithSpace(n.sourceString);
+		vert.pushWithSpace("main");
+		vert.push("()");
+
+		// fragment
+
+		frag.push("#version 300 es\n");
+		frag.push("precision highp float;\n");
+
+		table.fragVaryings().forEach(function(elem) {
+		    frag.push(elem);
+		    frag.push("\n");
+		});
+
+		table.outs().forEach(function(elem) {
+		    frag.push(elem);
+		    frag.push("\n");
+		});
+
+		frag.crIfNeeded();
+		frag.push("void");
+		frag.pushWithSpace("main");
+		frag.push("()");
+
+		b.glsl(table, vert, frag);
+
+		frag.pushWithSpace("{\n");
+
+		frag.addTab();
+		table.fragColors().forEach(function(line) {
+		    frag.tab();
+		    frag.push(line);
+		    frag.cr();
+		});
+		frag.decTab();
+		frag.crIfNeeded();
+		frag.push("}\n");
+
+
 	    },
 
 	    Block: function(_o, ss, _c) {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-		vert.push("{");
+		vert.pushWithSpace("{\n");
+		vert.addTab();
 		ss.glsl(table, vert, frag);
+		vert.decTab();
+		vert.tab();
 		vert.push("}");
 	    },
 
@@ -1255,7 +2074,9 @@ function grammarUnitTests() {
 		var vert = this.args.vert;
 		var frag = this.args.frag;
 		for (var i = 0; i < ss.children.length; i++) {
+		    vert.tab();
 		    ss.children[i].glsl(table, vert, frag);
+		    vert.cr();
 		}
 	    },
 
@@ -1268,12 +2089,13 @@ function grammarUnitTests() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-		vert.push("if (");
+		vert.push("if");
+		vert.pushWithSpace("(");
 		c.glsl(table, vert, frag);
-		vert.push(") ");
+		vert.push(")");
 		t.glsl(table, vert, frag);
 		if (optF.children.length === 0) { return;}
-		vert.push(" else ");
+		vert.pushWithSpace("else");
 		optF.glsl(table, vert, frag);
 	    },
 	    AssignmentStatement: function(l, _a, e, _) {
@@ -1363,7 +2185,7 @@ function grammarUnitTests() {
 		var frag = this.args.frag;
 		vert.push("texelFetch(" +
 			  table.in(["propIn", n.sourceString, f.sourceString]) +
-			  ", ivec2(a_index), 0)");
+			  ", ivec2(a_index), 0).r");
 	    },
 	    PrimExpression_number: function(e) {
 		var table = this.args.table;
@@ -1376,8 +2198,8 @@ function grammarUnitTests() {
 //    translation("this.x = this.y + 3;", "Statement", s);
 //    translation("if (this.x < this.y) {this.x = this.y + 3;}", "Statement", s);
 
-    translation(`def breed.foo(a) {
-                  if (this.x < this.y) {this.x = this.y + 3;}}`, "Script", s);
+    translation(`def breed.main(a) {
+                  if (this.x < this.y) {this.x = this.y + 3.0;}}`, "Script", s);
 };
 
 function runner() {
