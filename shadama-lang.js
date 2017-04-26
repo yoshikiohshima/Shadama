@@ -132,14 +132,7 @@ function initSemantics() {
 	"glsl_script_formals",
 	{
 	    Formals_list: function(h, _c, r) {
-		var c = ['"', h.sourceString, '"'];
-		for (var i = 0; i < r.children.length; i++) {
-		    c.push(", ");
-		    c.push('"');
-		    c.push(r.children[i].sourceString);
-		    c.push('"');
-		}
-		return c;
+		return [h.sourceString].concat(r.children.map(function(c) {return c.sourceString}));
 	    },
 	});
 
@@ -186,38 +179,22 @@ function initSemantics() {
 		var table = this.args.table;
 		var vert = new CodeStream();
 		var frag = new CodeStream();
-		var js = new CodeStream();
+		var js = [];
 		js.push("updateBreed");
-		js.push("(");
-		js.push('"');
 		js.push(n.sourceString);
-		js.push('"');
-		js.push(", ");
-		js.push("[");
 		js.push(fs.glsl_script_formals());
-		js.push("]");
-		js.push(")");
-		js.push(";");
-		return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js.contents()]};
+		return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
 	    },
 
 	    Patch: function(_p, n, _o, fs, _c) {
 		var table = this.args.table;
 		var vert = new CodeStream();
 		var frag = new CodeStream();
-		var js = new CodeStream();
+		var js = [];
 		js.push("updatePatch");
-		js.push("(");
-		js.push('"');
 		js.push(n.sourceString);
-		js.push('"');
-		js.push(", ");
-		js.push("[");
 		js.push(fs.glsl_script_formals());
-		js.push("]");
-		js.push(")");
-		js.push(";");
-		return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js.contents()]};
+		return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
 	    },
 
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
@@ -225,7 +202,7 @@ function initSemantics() {
 		var table = inTable[n.sourceString];
 		var vert = new CodeStream();
 		var frag = new CodeStream();
-		var js = new CodeStream();
+		var js = [];
 
 		vert.push("#version 300 es\n");
 
@@ -287,10 +264,8 @@ function initSemantics() {
 		frag.cr();
 
 		js.push("addScript");
-		js.push("(");
 		js.push(n.sourceString);
-		js.push(");");
-		return {[n.sourceString]: [table, vert.contents(), frag.contents(), js.contents()]};
+		return {[n.sourceString]: [table, vert.contents(), frag.contents(), js]};
 	    },
 
 	    Block: function(_o, ss, _c) {
@@ -479,6 +454,7 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
     this.uniformTable = {};
     this.varyingTable = {};
     this.outTable = {};
+    this.outIndex = [];
 
     this.defaultUniforms = [];
     this.defaultAttributes = [];
@@ -495,6 +471,7 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 	if (entry[0] === "propOut" && entry[1] === "this") {
 	    this.varyingTable[entry[2]] = "v_this_" + entry[2];
 	    this.outTable[entry[2]] = "o_this_" + entry[2];
+	    this.outIndex.push(entry[2]);
 	} else if (entry[0] === "propIn" && entry[1] === "this") {
 	    this.uniformTable[entry[2]] = "u_this_" + entry[2];
 	}
@@ -539,10 +516,12 @@ SymTable.prototype.fragVaryings = function() {
 };
 
 SymTable.prototype.outs = function() {
-    var that = this;
-    return Object.keys(this.outTable).map(function(k) {
-	return "out float " + that.outTable[k] + ";";
-    });
+    var result = [];
+    for (var i = 0; i < this.outIndex.length; i++) {
+	var k = this.outIndex[i];
+	result.push("layout (location = " + i + ") out float " + this.outTable[k]);
+    }
+    return result;
 };
 
 SymTable.prototype.fragColors = function() {

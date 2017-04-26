@@ -142,6 +142,8 @@ function loadShadama(id, source) {
 	if(!scriptElement){return;}
 	source = scriptElement.text;
     }
+    var result = translate(source, "TopLevel");
+    console.log(result);
 }
 
 function createTexture(gl, data, format, width, height) {
@@ -991,8 +993,7 @@ onload = function() {
 
     grammarUnitTests();
 
-    install(`def breed.main(a) {
-        if (mod(a_index.x, 2.0) == 1.0) {this.x = 400.0;}}`, "Script", s, "main");
+    loadShadama("forward.shadama");
 
     step();
 };
