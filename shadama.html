@@ -15,13 +15,11 @@ Shadama {
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Script
-    = def ident "." ident "(" Formals ")" ScriptBlock
+    = def ident "." ident "(" Formals ")" Block
 
   Formals
     = ident ("," ident)* -- list
     | empty
-
-  ScriptBlock = "{" StatementList "}"
 
   Block = "{" StatementList "}"
 
@@ -683,6 +681,11 @@ void main(void) {
     fragData2 = v_value2;
 }
         </script>
+
+	<script id="forward.shadama" type="x-shadama">
+        breed Turtle (x y dirX dirY)
+	</script>
+
 
 	</head>
 	<body>

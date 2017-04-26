@@ -25,6 +25,8 @@ var scripts = {};
 var myBreed;
 var myPatch;
 
+var breeds;
+
 var debugCanvas1;
 
 var debugArray;
@@ -134,6 +136,14 @@ function createProgram(gl, vertexShader, fragmentShader) {
     gl.deleteProgram(program);
 };
 
+function loadShadama(id, source) {
+    if (!source) {
+	var scriptElement = document.getElementById(id);
+	if(!scriptElement){return;}
+	source = scriptElement.text;
+    }
+}
+
 function createTexture(gl, data, format, width, height) {
     if (!format) {
         format = gl.UNSIGNED_BYTE;
@@ -218,6 +228,13 @@ function createIBO (gl, data) {
     return ibo;
 };
 
+function clear() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+};
+
 function randomDirection() {
     var r = Math.random();
     var r = r * Math.PI * 2.0;
@@ -229,58 +246,25 @@ function randomPosition() {
 };
 
 function Breed(gl, count) {
-    var imageData;
-
-    var a = 0;
-
-    var ary = new Float32Array(T * T * 4);
-    for (var j = 0; j < T; j++) {
-        for (var i = 0; i < T; i++) {
-            var ind = (j * T + i) * 4;
-            var p = randomPosition();
-            var r = randomDirection();
-
-            ary[ind + 0] = p[0];
-            ary[ind + 1] = p[1];
-            ary[ind + 2] = r[0];
-            ary[ind + 3] = r[1];
-        }
-    }
-    this.pos = createTexture(gl, ary, gl.FLOAT);
-
-    ary = new Float32Array(T * T * 4);
-    this.newPos = createTexture(gl, ary, gl.FLOAT);
-
-    ary = new Uint8ClampedArray(T * T * 4);
-    for (var j = 0; j < T; j++) {
-        for (var i = 0; i < T; i++) {
-            var ind = (j * T + i) * 4;
-            var c = [0, 0, 255, 255];
-            ary[ind + 0] = c[0];
-            ary[ind + 1] = c[1];
-            ary[ind + 2] = c[2];
-            ary[ind + 3] = c[3];
-        }
-    }
-
-    this.color = createTexture(gl, new ImageData(ary, T, T));
+    this.own = {};
     this.count = count;
+
 };
 
-function Patch(type) {
-    if (!type) {type = "Number"}
+Breed.prototype.addOwnVariable = function(name) {
+    var ary = new Float32Array(T * T);
+    this[name] = createTexture(gl, ary, gl.R32F);
+    this["new"+name] = createTexture(gl, ary, gl.R32F);
+};
 
-    if (type == "Number") {
-        this.values = createTexture(gl, null, gl.FLOAT, FW, FH);
-        this.newValues = createTexture(gl, null, gl.FLOAT, FW, FH);
-        this.type = 0;
-        // need to figure out how to use R32F
-    } else if (type == "Color") {
-        this.values = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
-        this.newValues = createTexture(gl, new ImageData(FW, FH), gl.UNSIGNED_BYTE, FW, FH);
-        this.type = 1;
-    }
-}
+function Patch() {
+};
+
+Patch.prototype.addOwnVariable = function(name) {
+    var ary = new Float32Array(FW * FH);
+    this[name] = createTexture(gl, ary, gl.R32F);
+    this["new"+name] = createTexture(gl, ary, gl.R32F);
+};
 
 function makePrimitive(gl, name, uniforms, vao) {
     var vs = createShader(gl, name + ".vert");
@@ -352,519 +336,6 @@ function diffusePatchProgram(gl) {
     return makePrimitive(gl, "diffusePatch", ["u_resolution", "u_value"], patchVAO);
 };
 
-function clear() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-};
-
-Breed.prototype.addOwnVariable = function(name, type) {
-    var ary = new Float32Array(T * T);
-    this[name] = createTexture(gl, ary, gl.R32F);
-};
-
-Breed.prototype.draw = function() {
-    var prog = programs["drawBreed"];
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.color);
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1i(prog.uniLocations["u_color"], 1);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-
-    gl.flush();
-    gl.disable(gl.BLEND);
-};
-
-Breed.prototype.forward = function(amount) {
-    var prog = programs["forward"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1f(prog.uniLocations["u_amount"], amount);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.forwardEdgeBounce = function(amount, condition) {
-    var prog = programs["forwardEdgeBounce"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1f(prog.uniLocations["u_amount"], amount);
-    gl.uniform1iv(prog.uniLocations["u_edgeCondition"], new Int32Array(condition));
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.genericGet = function(destination, variable) {
-    var prog = programs["genericGet"];
-    setTargetBuffer(gl, framebufferR, destination);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, variable);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericSet = function(source, variable) {
-    var prog = programs["genericSet"];
-    setTargetBuffer(gl, framebufferR, variable);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    var use_vector;
-
-    if (source.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, source);
-	use_vector = true;
-    } else {
-	use_vector = false;
-    }
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
-    gl.uniform1i(prog.uniLocations["u_v_input"], 0);
-    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : source);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
-    var prog = programs["genericSet2"];
-
-    setTargetBuffers(gl, framebufferR, [variable1, variable2]);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    var use_vector1;
-    var use_vector2;
-
-    if (source1.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, source1);
-	use_vector1 = true;
-    } else {
-	use_vector1 = false;
-    }
-    if (source2.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, source2);
-	use_vector2 = true;
-    } else {
-	use_vector2 = false;
-    }
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_use_vector1"], use_vector1);
-    gl.uniform1i(prog.uniLocations["u_use_vector2"], use_vector2);
-    gl.uniform1i(prog.uniLocations["u_v_input1"], 0);
-    gl.uniform1i(prog.uniLocations["u_v_input2"], 1);
-    gl.uniform1f(prog.uniLocations["u_s_input1"], use_vector1 ? 0 : source1);
-    gl.uniform1f(prog.uniLocations["u_s_input2"], use_vector2 ? 0 : source2);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.turn = function(amount) {
-    var prog = programs["turn"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    var cos = Math.cos(amount);
-    var sin = Math.sin(amount);
-
-    gl.uniformMatrix2fv(prog.uniLocations["u_rot"], false, [cos, sin, -sin, cos]);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.bounceIf = function(patch) {
-    var prog = programs["bounceIf"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, patch.values);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1i(prog.uniLocations["u_buffer"], 1);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.setPatch = function(patch, value) {
-    var prog = programs["setPatch"];
-    setTargetBuffer(gl, framebufferF, patch.values);
-    gl.disable(gl.BLEND);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, FW, FH);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform4fv(prog.uniLocations["u_value"], value);
-    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.increasePatch = function(patch, value) {
-    var prog = programs["setPatch"];  // the same program but with blend enabled.
-    setTargetBuffer(gl, framebufferF, patch.values);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
-
-    gl.viewport(0, 0, FW, FH);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform4fv(prog.uniLocations["u_value"], value);
-    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.disable(gl.BLEND);
-};
-
-Breed.prototype.getPatch = function(patch, dest) {
-    var prog = programs["getPatch"];
-    setTargetBuffer(gl, framebufferT, dest);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, patch.values);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1i(prog.uniLocations["u_value"], 1);
-    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Patch.prototype.addOwnVariable = function(name) {
-    var ary = new Float32Array(FW * FH * 4);
-    this[name] = createTexture(gl, ary, gl.R32F);
-};
-  
-Patch.prototype.clear = function() {
-    var prog = programs["clearPatch"];
-    setTargetBuffer(gl, framebufferF, this.values);
-
-    gl.viewport(0, 0, FW, FH);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-};
-
-Patch.prototype.draw = function() {
-    var prog = programs["drawPatch"];
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.values);
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
-    gl.uniform1i(prog.uniLocations["u_type"], this.type);
-
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Patch.prototype.diffuse = function() {
-    var prog = programs["diffusePatch"];
-
-    setTargetBuffer(gl, framebufferF, this.newValues);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.values);
-
-    gl.viewport(0, 0, FW, FH);
-
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.newValues;
-    this.newValues = this.values;
-    this.values = tmp;
-};
-
-function debugDisplay0(gl, tex) {
-    if (!debugCanvas1) {
-        debugCanvas1 = document.getElementById("debugCanvas1");
-        debugCanvas1.width = FW;
-        debugCanvas1.height = FH;
-    }
-    var prog = programs["debugBreed"];
-    setTargetBuffer(gl, framebufferR, debugTexture0);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
-
-    gl.drawArrays(gl.POINTS, 0, myBreed.count);
-    gl.flush();
-
-    debugArray = new Float32Array(T * T * 4);
-    debugArray2 = new Uint8ClampedArray(T * T * 4);
-    gl.readPixels(0, 0, T, T, gl.R32F, gl.FLOAT, debugArray);
-
-    for (var i = 0; i < T * T; i++) {
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
-	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
-	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
-	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
-    }
-
-    var img = new ImageData(debugArray2, T, T);
-    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-};
-
-
-
-function debugDisplay1(gl, tex) {
-    if (!debugCanvas1) {
-        debugCanvas1 = document.getElementById("debugCanvas1");
-        debugCanvas1.width = FW;
-        debugCanvas1.height = FH;
-    }
-    var prog = programs["debugBreed"];
-    setTargetBuffer(gl, framebufferT, debugTexture1);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
-
-    gl.drawArrays(gl.POINTS, 0, myBreed.count);
-    gl.flush();
-
-    debugArray = new Float32Array(T * T * 4);
-    debugArray2 = new Uint8ClampedArray(T * T * 4);
-    gl.readPixels(0, 0, T, T, gl.R32F, gl.FLOAT, debugArray);
-
-    for (var i = 0; i < T * T; i++) {
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
-	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
-	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
-	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
-    }
-
-    var img = new ImageData(debugArray2, T, T);
-    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-};
-
-function debugDisplay2(gl, tex) {
-    if (!debugCanvas1) {
-        debugCanvas1 = document.getElementById("debugCanvas1");
-        debugCanvas1.width = FW;
-        debugCanvas1.height = FH;
-    }
-    var prog = programs["debugPatch"];
-    setTargetBuffer(gl, framebufferF, debugTexture2);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(patchVAO);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
-
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-    gl.flush();
-    debugArray = new Float32Array(FW * FH * 4);
-    debugArray2 = new Uint8ClampedArray(FW * FH * 4);
-    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
-
-    for (var i = 0; i < FW * FH; i++) {
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
-	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
-	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
-	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
-    }
-
-    var img = new ImageData(debugArray2, FW, FH);
-    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-};
-
 function forwardEdgeBounceProgram(gl) {
     return makePrimitive(gl, "forwardEdgeBounce", ["u_resolution", "u_particleLength", "u_position", "u_amount", "u_edgeCondition"], breedVAO);
 };
@@ -917,19 +388,6 @@ function diffusePatchProgram(gl) {
     return makePrimitive(gl, "diffusePatch", ["u_resolution", "u_value"], patchVAO);
 };
 
-function clear() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-};
-
-Breed.prototype.addOwnVariable = function(name, type) {
-    var ary = new Float32Array(T * T);
-    this[name] = createTexture(gl, ary, gl.R32F);
-    this["new"+name] = createTexture(gl, ary, gl.R32F);
-};
-
 Breed.prototype.draw = function() {
     var prog = programs["drawBreed"];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -1016,108 +474,6 @@ Breed.prototype.forwardEdgeBounce = function(amount, condition) {
     this.pos = this.newPos;
     this.newPos = tmp;
 };
-
-Breed.prototype.genericGet = function(destination, variable) {
-    var prog = programs["genericGet"];
-    setTargetBuffer(gl, framebufferR, destination);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, variable);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericSet = function(source, variable) {
-    var prog = programs["genericSet"];
-    setTargetBuffer(gl, framebufferR, variable);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    var use_vector;
-
-    if (source.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, source);
-	use_vector = true;
-    } else {
-	use_vector = false;
-    }
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
-    gl.uniform1i(prog.uniLocations["u_v_input"], 0);
-    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : source);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
-    var prog = programs["genericSet2"];
-
-    setTargetBuffers(gl, framebufferR, [variable1, variable2]);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    var use_vector1;
-    var use_vector2;
-
-    if (source1.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, source1);
-	use_vector1 = true;
-    } else {
-	use_vector1 = false;
-    }
-    if (source2.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, source2);
-	use_vector2 = true;
-    } else {
-	use_vector2 = false;
-    }
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_use_vector1"], use_vector1);
-    gl.uniform1i(prog.uniLocations["u_use_vector2"], use_vector2);
-    gl.uniform1i(prog.uniLocations["u_v_input1"], 0);
-    gl.uniform1i(prog.uniLocations["u_v_input2"], 1);
-    gl.uniform1f(prog.uniLocations["u_s_input1"], use_vector1 ? 0 : source1);
-    gl.uniform1f(prog.uniLocations["u_s_input2"], use_vector2 ? 0 : source2);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-
-
 
 Breed.prototype.turn = function(amount) {
     var prog = programs["turn"];
@@ -1257,12 +613,105 @@ Breed.prototype.getPatch = function(patch, dest) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-Patch.prototype.addOwnVariable = function(name) {
-    var ary = new Float32Array(FW * FH * 4);
-    this[name] = createTexture(gl, ary, gl.R32F);
-    this["new"+name] = createTexture(gl, ary, gl.R32F);
+Breed.prototype.genericGet = function(destination, variable) {
+    var prog = programs["genericGet"];
+    setTargetBuffer(gl, framebufferR, destination);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, variable);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
-  
+
+Breed.prototype.genericSet = function(source, variable) {
+    var prog = programs["genericSet"];
+    setTargetBuffer(gl, framebufferR, variable);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    var use_vector;
+
+    if (source.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, source);
+	use_vector = true;
+    } else {
+	use_vector = false;
+    }
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
+    gl.uniform1i(prog.uniLocations["u_v_input"], 0);
+    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : source);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
+Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
+    var prog = programs["genericSet2"];
+
+    setTargetBuffers(gl, framebufferR, [variable1, variable2]);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    var use_vector1;
+    var use_vector2;
+
+    if (source1.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, source1);
+	use_vector1 = true;
+    } else {
+	use_vector1 = false;
+    }
+    if (source2.constructor == WebGLTexture) {
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, source2);
+	use_vector2 = true;
+    } else {
+	use_vector2 = false;
+    }
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_use_vector1"], use_vector1);
+    gl.uniform1i(prog.uniLocations["u_use_vector2"], use_vector2);
+    gl.uniform1i(prog.uniLocations["u_v_input1"], 0);
+    gl.uniform1i(prog.uniLocations["u_v_input2"], 1);
+    gl.uniform1f(prog.uniLocations["u_s_input1"], use_vector1 ? 0 : source1);
+    gl.uniform1f(prog.uniLocations["u_s_input2"], use_vector2 ? 0 : source2);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
 Patch.prototype.clear = function() {
     var prog = programs["clearPatch"];
     setTargetBuffer(gl, framebufferF, this.values);
@@ -1433,6 +882,46 @@ function debugDisplay2(gl, tex) {
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
+function updateBreed(name, fields) {
+    var breed = breeds[name];
+    if (!breed) {
+	breed = new Breed();
+	for (var i = 0; i < fields.length; i++) {
+	    breed.addOwnVariable(fields[i]);
+	}
+	return breed;
+    }
+
+    oldOwn = breed.own;
+    var toBeDeleted = [];
+    var toBeCreated = [];
+    var newOwn = {};
+
+    for (var k in oldOwn) {
+	if (fields.indexOf(k) < 0) {
+	    toBeDeleted.push(k)
+
+	}
+    }
+
+    for (var i = 0; i < fields.length; i++) {
+	var n = fields[i];
+	if (oldOwn[fields[i]]) {
+	    newOwn[fields[i]] = oldOwn[fields[i]];
+	} else {
+	    toBeCreated.push(fields[i]);
+	}
+    }
+
+    breed.own = newOwn;
+    for (var i = 0; i < toBeCreated.length; i++) {
+	breed.addOwnVariable(toBeCreated[i]);
+    }
+    for (var i = 0; i < toBeDeleted.length; i++) {
+	// gl.destroyTexture(oldOwn[toBeDeleted[i]]);
+    }
+};
+
 onload = function() {
     readout = document.getElementById("readout");
 
@@ -1469,8 +958,10 @@ onload = function() {
     myBreed = new Breed(gl, 25000);
     myBreed.addOwnVariable("x");
     myBreed.addOwnVariable("y");
+    myBreed.addOwnVariable("dirX");
+    myBreed.addOwnVariable("dirY");
 
-    myPatch = new Patch("Number");
+    myPatch = new Patch();
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T), gl.R32F);
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
@@ -1570,109 +1061,6 @@ function install(str, prod, sem, name) {
     scripts[name] = programFromTable(result[0], result[1], result[2]);
 };
 	    
-function grammarUnitTests() {
-    grammarTest("abc", "ident");
-    grammarTest("if", "if");
-    grammarTest("breed", "breed");
-    grammarTest("patch", "patch");
-    grammarTest("else", "else");
-    grammarTest("def", "def");
-    grammarTest("3.4", "number");
-
-    grammarTest("abc", "PrimExpression");
-    grammarTest("3.5", "PrimExpression");
-    grammarTest("(3.5 + abc)", "PrimExpression");
-    grammarTest("3.5 + abc", "AddExpression");
-    grammarTest("abc - 3", "AddExpression_minus");
-    grammarTest("abc * 3", "AddExpression");
-    grammarTest("abc * 3", "MulExpression");
-    grammarTest("abc * 3 * 3.0", "Expression");
-
-    grammarTest("this.x", "LeftHandSideExpression");
-    grammarTest("patch.x", "LeftHandSideExpression");
-
-    grammarTest("forward(this.x)", "PrimitiveCall");
-    grammarTest("forward(this.x + 3)", "PrimitiveCall");
-    grammarTest("turn(this.x + 3, x)", "PrimitiveCall");
-
-    grammarTest("mod(this.x , 2)", "PrimitiveCall");
-
-    grammarTest("forward(this.x + 3);", "Statement");
-
-    grammarTest("a == b", "EqualityExpression");
-    grammarTest("a > 3", "RelationalExpression");
-    grammarTest("a > 3 + 4", "RelationalExpression");
-
-    grammarTest("this.x = 3 + 4;", "AssignmentStatement");
-
-    grammarTest("if (this.x > 3) {this.x = 3;} else {this.x = 4;}", "IfStatement");
-    grammarTest("if (this.x > 3) {this.x = 3;}", "IfStatement");
-    grammarTest("this.x + 3;", "ExpressionStatement");
-    grammarTest("var x = 3;", "VariableStatement");
-    grammarTest("{var x = 3; x = x + 3;}", "Block");
-
-    grammarTest("breed Turtle (x, y)", "Breed");
-    grammarTest("patch Patch (x, y)", "Patch");
-    grammarTest("def Turtle.foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
-
-
-    semanticsTest("this.x = 3;", "Statement", s, "symTable", {"out.this.x": ["propOut", "this","x"]});
-    semanticsTest("{this.x = 3; other.y = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.y": ["propOut", "other", "y"]});
-    semanticsTest("{this.x = 3; this.x = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"]});
-
-    semanticsTest(`
-       if (other.x > 0) {
-	 this.x = 3;
-         other.a = 4;
-       }
-       `, "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.a": ["propOut", "other", "a"], "in.other.x": ["propIn", "other", "x"]});
-
-    semanticsTest(`
-       if (other.x > 0) {
-	 this.x = 3;
-         other.a = 4;
-       } else {
-	 this.y = 3;
-         other.a = 4;
-       }
-       `, "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.a": ["propOut", "other", "a"], "out.this.y": ["propOut", "this", "y"], "in.other.x": ["propIn", "other", "x"]});
-
-
-    semanticsTest("{this.x = this.y; other.z = this.x;}", "Statement", s, "symTable", {
-	"in.this.y": ["propIn", "this", "y"],
-	"out.this.x": ["propOut" ,"this", "x"],
-	"out.other.z": ["propOut" ,"other", "z"],
-	"in.this.x": ["propIn" ,"this", "x"]});
-
-    semanticsTest("{this.x = 3; this.y = other.x;}", "Statement", s, "symTable", {
-	"out.this.x": ["propOut" ,"this", "x"],
-	"in.other.x": ["propIn", "other", "x"],
-	"out.this.y": ["propOut" ,"this", "y"]});
-
-    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "symTable", {
-	"out.this.x": ["propOut" ,"this", "x"],
-	"in.other.x": ["propIn", "other", "x"],
-	"out.this.y": ["propOut" ,"this", "y"],
-	"param.a": ["param" , null, "a"],
-	"param.b": ["param" , null, "b"],
-	"param.c": ["param" , null, "c"],
-    });
-
-    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "TopLevel", s, "symTable", {"foo": {
-	"out.this.x": ["propOut" ,"this", "x"],
-	"in.other.x": ["propIn", "other", "x"],
-	"out.this.y": ["propOut" ,"this", "y"],
-	"param.a": ["param" , null, "a"],
-	"param.b": ["param" , null, "b"],
-	"param.c": ["param" , null, "c"],
-    }});
-    
-
-//    translate("this.x = this.y + 3;", "Statement", s);
-//    translate("if (this.x < this.y) {this.x = this.y + 3;}", "Statement", s);
-
-    };
-
 function runner() {
     var start = performance.now();
 
@@ -1697,7 +1085,7 @@ function step() {
     myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
     myBreed.turn(0.05);
 
-    scripts["main"]({object: myBreed, targets: ["x"], sources: [myBreed.x, myBreed.y]});
+//    scripts["main"]({object: myBreed, targets: ["x"], sources: [myBreed.x, myBreed.y]});
 
 //    myBreed.setPatch(myPatch, [10.0, 0.0, 0.0, 255.0]);
 //    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);

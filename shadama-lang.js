@@ -17,7 +17,6 @@ function initSemantics() {
 		var result = {};
 		for (var i = 0; i< ds.children.length; i++) {
 		    var d = ds.children[i].symTable();
-		    debugArray = (ds.children[i]);
 		    var n = ds.children[i].children[3].sourceString;
 		    result[n] = d;
 		}
@@ -25,7 +24,6 @@ function initSemantics() {
 	    },
 	    
 	    Script: function(_d, _b, _p, _n, _o, ns, _c, b) {
-		debugArray = ns;
 		var c = b.symTable();
 		addAsSet(c, ns.symTable());
 		return c;
@@ -113,18 +111,75 @@ function initSemantics() {
 	var table = args.table;
 	var vert = args.vert;
 	var frag = args.frag;
-	l.glsl(table, vert, frag);
+	var js = args.frag;
+	l.glsl(table, vert, frag, js);
 	vert.push(op);
-	r.glsl(table, vert, frag);
+	r.glsl(table, vert, frag, js);
     };
 
     s.addOperation(
-        "glsl(table, vert, frag)",
+	"glsl_script_formals",
+	{
+	    Formals_list: function(h, _c, r) {
+		var c = ['"', h.sourceString, '"'];
+		for (var i = 0; i < r.children.length; i++) {
+		    c.push(", ");
+		    c.push('"');
+		    c.push(r.children[i].sourceString);
+		    c.push('"');
+		}
+		return c;
+	    },
+	});
+
+    s.addOperation(
+	"glsl_script_block(table, vert, frag, js)",
+	{
+	    Block: function(_o, ss, _c) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		var js = this.args.js;
+		vert.pushWithSpace("{\n");
+		vert.addTab();
+		vert.tab();
+		vert.push("vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;\n");
+
+		ss.glsl(table, vert, frag, js);
+		vert.tab();
+		vert.push("gl_Position = vec4(oneToOne, 0, 1.0);\n");
+		vert.tab();
+		vert.push("gl_PointSize = 1.0;\n");
+		vert.decTab();
+		vert.tab();
+		vert.push("}");
+	    },
+
+	});
+
+    s.addOperation(
+        "glsl(table, vert, frag, js)",
         {
+	    Breed: function(_b, n, _o, fs, _c) {
+		var js = this.args.js;
+		js.push("updateBreed");
+		js.push("(");
+		js.push('"');
+		js.push(n.sourceString);
+		js.push('"');
+		js.push(", ");
+		js.push("[");
+		js.push(fs.glsl_script_formals());
+		js.push("]");
+		js.push(")");
+		js.push(";");
+	    },
+
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
+		var js = this.args.js;
 
 		vert.push("#version 300 es\n");
 
@@ -167,7 +222,7 @@ function initSemantics() {
 		frag.pushWithSpace("main");
 		frag.push("()");
 
-		b.glsl(table, vert, frag);
+		b.glsl_script_block(table, vert, frag, js);
 
 		vert.crIfNeeded();
 		vert.tab();
@@ -184,34 +239,21 @@ function initSemantics() {
 		frag.crIfNeeded();
 		frag.push("}");
 		frag.cr();
+
+		js.push("addScript");
+		js.push("(");
+		js.push(n.sourceString);
+		js.push(");");
 	    },
 
 	    Block: function(_o, ss, _c) {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
+		var js = this.args.js;
 		vert.pushWithSpace("{\n");
 		vert.addTab();
-		ss.glsl(table, vert, frag);
-		vert.decTab();
-		vert.tab();
-		vert.push("}");
-	    },
-
-	    ScriptBlock: function(_o, ss, _c) {
-		var table = this.args.table;
-		var vert = this.args.vert;
-		var frag = this.args.frag;
-		vert.pushWithSpace("{\n");
-		vert.addTab();
-		vert.tab();
-		vert.push("vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;\n");
-
-		ss.glsl(table, vert, frag);
-		vert.tab();
-		vert.push("gl_Position = vec4(oneToOne, 0, 1.0);\n");
-		vert.tab();
-		vert.push("gl_PointSize = 1.0;\n");
+		ss.glsl(table, vert, frag, js);
 		vert.decTab();
 		vert.tab();
 		vert.push("}");
@@ -221,15 +263,16 @@ function initSemantics() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
+		var js = this.args.js;
 		for (var i = 0; i < ss.children.length; i++) {
 		    vert.tab();
-		    ss.children[i].glsl(table, vert, frag);
+		    ss.children[i].glsl(table, vert, frag, js);
 		    vert.cr();
 		}
 	    },
 
 	    Statement: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 		this.args.vert.push(";");
 	    },
 
@@ -237,22 +280,24 @@ function initSemantics() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
+		var js = this.args.js;
 		vert.push("if");
 		vert.pushWithSpace("(");
-		c.glsl(table, vert, frag);
+		c.glsl(table, vert, frag, js);
 		vert.push(")");
-		t.glsl(table, vert, frag);
+		t.glsl(table, vert, frag, js);
 		if (optF.children.length === 0) { return;}
 		vert.pushWithSpace("else");
-		optF.glsl(table, vert, frag);
+		optF.glsl(table, vert, frag, js);
 	    },
 	    AssignmentStatement: function(l, _a, e, _) {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-		l.glsl(table, vert, frag);
+		var js = this.args.js;
+		l.glsl(table, vert, frag, js);
 		vert.push(" = ");
-		e.glsl(table, vert, frag);
+		e.glsl(table, vert, frag, js);
 	    },
 	    
 	    LeftHandSideExpression_field: function(n, _p, f) {
@@ -263,11 +308,11 @@ function initSemantics() {
 	    },
 
 	    Expression: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 
 	    EqualityExpression: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 
 	    EqualityExpression_equal: function(l, _, r) {
@@ -278,7 +323,7 @@ function initSemantics() {
 	    },
 
 	    RelationalExpression: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 	    RelationalExpression_lt: function(l, _, r) {
 		transBinOp(l, r, " < ", this.args);
@@ -295,7 +340,7 @@ function initSemantics() {
 	    },
 
 	    AddExpression: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 
 	    AddExpression_plus: function(l, _, r) {
@@ -307,7 +352,7 @@ function initSemantics() {
 	    },
 
 	    MulExpression: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 
 	    MulExpression_times: function(l, _, r) {
@@ -319,11 +364,11 @@ function initSemantics() {
 	    },
 
 	    PrimExpression: function(e) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 
 	    PrimExpression_paren: function(_o, e, _c) {
-		e.glsl(this.args.table, this.args.vert, this.args.frag);
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
 	    },
 
 	    PrimExpression_number: function(e) {
@@ -361,9 +406,10 @@ function initSemantics() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
+		var js = this.args.js;
 		vert.push(n.sourceString);
 		vert.push("(");
-		as.glsl(table, vert, frag);
+		as.glsl(table, vert, frag, js);
 		vert.push(")");
 	    },
 
@@ -371,10 +417,11 @@ function initSemantics() {
 		var table = this.args.table;
 		var vert = this.args.vert;
 		var frag = this.args.frag;
-		h.glsl(table, vert, frag);
+		var js = this.args.js;
+		h.glsl(table, vert, frag, js);
 		for (var i = 0; i < r.children.length; i++) {
 		    vert.push(", ");
-		    r.children[i].glsl(table, vert, frag);
+		    r.children[i].glsl(table, vert, frag, js);
 		}
 	    },
 	});
@@ -620,11 +667,115 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
     var table = new SymTable(rawTable, d, a);
     var vert = new CodeStream();
     var frag = new CodeStream();
+    var js = new CodeStream();
     
-    n.glsl(table, vert, frag);
+    n.glsl(table, vert, frag, js);
     
     console.log(vert.contents());
     console.log(frag.contents());
+    console.log(js.contents());
     
-    return [table, vert, frag];
+    return [table, vert, frag, js];
+};
+
+function grammarUnitTests() {
+    grammarTest("abc", "ident");
+    grammarTest("if", "if");
+    grammarTest("breed", "breed");
+    grammarTest("patch", "patch");
+    grammarTest("else", "else");
+    grammarTest("def", "def");
+    grammarTest("3.4", "number");
+
+    grammarTest("abc", "PrimExpression");
+    grammarTest("3.5", "PrimExpression");
+    grammarTest("(3.5 + abc)", "PrimExpression");
+    grammarTest("3.5 + abc", "AddExpression");
+    grammarTest("abc - 3", "AddExpression_minus");
+    grammarTest("abc * 3", "AddExpression");
+    grammarTest("abc * 3", "MulExpression");
+    grammarTest("abc * 3 * 3.0", "Expression");
+
+    grammarTest("this.x", "LeftHandSideExpression");
+    grammarTest("patch.x", "LeftHandSideExpression");
+
+    grammarTest("forward(this.x)", "PrimitiveCall");
+    grammarTest("forward(this.x + 3)", "PrimitiveCall");
+    grammarTest("turn(this.x + 3, x)", "PrimitiveCall");
+
+    grammarTest("mod(this.x , 2)", "PrimitiveCall");
+
+    grammarTest("forward(this.x + 3);", "Statement");
+
+    grammarTest("a == b", "EqualityExpression");
+    grammarTest("a > 3", "RelationalExpression");
+    grammarTest("a > 3 + 4", "RelationalExpression");
+
+    grammarTest("this.x = 3 + 4;", "AssignmentStatement");
+
+    grammarTest("if (this.x > 3) {this.x = 3;} else {this.x = 4;}", "IfStatement");
+    grammarTest("if (this.x > 3) {this.x = 3;}", "IfStatement");
+    grammarTest("this.x + 3;", "ExpressionStatement");
+    grammarTest("var x = 3;", "VariableStatement");
+    grammarTest("{var x = 3; x = x + 3;}", "Block");
+
+    grammarTest("breed Turtle (x, y)", "Breed");
+    grammarTest("patch Patch (x, y)", "Patch");
+    grammarTest("def Turtle.foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+
+
+    semanticsTest("this.x = 3;", "Statement", s, "symTable", {"out.this.x": ["propOut", "this","x"]});
+    semanticsTest("{this.x = 3; other.y = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.y": ["propOut", "other", "y"]});
+    semanticsTest("{this.x = 3; this.x = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"]});
+
+    semanticsTest(`
+       if (other.x > 0) {
+	 this.x = 3;
+         other.a = 4;
+       }
+       `, "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.a": ["propOut", "other", "a"], "in.other.x": ["propIn", "other", "x"]});
+
+    semanticsTest(`
+       if (other.x > 0) {
+	 this.x = 3;
+         other.a = 4;
+       } else {
+	 this.y = 3;
+         other.a = 4;
+       }
+       `, "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.a": ["propOut", "other", "a"], "out.this.y": ["propOut", "this", "y"], "in.other.x": ["propIn", "other", "x"]});
+
+
+    semanticsTest("{this.x = this.y; other.z = this.x;}", "Statement", s, "symTable", {
+	"in.this.y": ["propIn", "this", "y"],
+	"out.this.x": ["propOut" ,"this", "x"],
+	"out.other.z": ["propOut" ,"other", "z"],
+	"in.this.x": ["propIn" ,"this", "x"]});
+
+    semanticsTest("{this.x = 3; this.y = other.x;}", "Statement", s, "symTable", {
+	"out.this.x": ["propOut" ,"this", "x"],
+	"in.other.x": ["propIn", "other", "x"],
+	"out.this.y": ["propOut" ,"this", "y"]});
+
+    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "symTable", {
+	"out.this.x": ["propOut" ,"this", "x"],
+	"in.other.x": ["propIn", "other", "x"],
+	"out.this.y": ["propOut" ,"this", "y"],
+	"param.a": ["param" , null, "a"],
+	"param.b": ["param" , null, "b"],
+	"param.c": ["param" , null, "c"],
+    });
+
+    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "TopLevel", s, "symTable", {"foo": {
+	"out.this.x": ["propOut" ,"this", "x"],
+	"in.other.x": ["propIn", "other", "x"],
+	"out.this.y": ["propOut" ,"this", "y"],
+	"param.a": ["param" , null, "a"],
+	"param.b": ["param" , null, "b"],
+	"param.c": ["param" , null, "c"],
+    }});
+    
+
+//    translate("this.x = this.y + 3;", "Statement", s);
+    translate("breed foo (x, y)", "Breed", s); 
 };
