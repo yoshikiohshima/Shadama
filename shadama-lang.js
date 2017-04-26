@@ -17,7 +17,7 @@ function initSemantics() {
 		var result = {};
 		for (var i = 0; i< ds.children.length; i++) {
 		    var d = ds.children[i].symTable();
-		    if (d.ctorName == "Script") {
+		    if (ds.children[i]._node.ctorName == "Script") {
 			addAsSet(result, d);
 		    }
 		}
@@ -29,10 +29,14 @@ function initSemantics() {
 		return {[n.sourceString]: c};
 	    },
 	    
+	    Patch: function(_p, n, _o, fs, _c) {
+		var c = fs.symTable();
+		return {[n.sourceString]: c};
+	    },
+	    
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
 		var c = b.symTable();
 		addAsSet(c, ns.symTable());
-		console.log("c", c);
 		return {[n.sourceString]: c};
 	    },
 	    
@@ -161,21 +165,28 @@ function initSemantics() {
 		vert.tab();
 		vert.push("}");
 	    },
-
 	});
 
     s.addOperation(
         "glsl(table, vert, frag, js)",
         {
 	    TopLevel: function(ds) {
+		var table = this.args.table;
+		var result = {};
+		//expected to return a list of triples
 		for (var i = 0; i < ds.children.length; i++) {
 		    var d = ds.children[i];
-		    d.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+		    var val = d.glsl(table, null, null, null);
+		    addAsSet(result, val);
 		};
+		return result;
 	    },
 
 	    Breed: function(_b, n, _o, fs, _c) {
-		var js = this.args.js;
+		var table = this.args.table;
+		var vert = new CodeStream();
+		var frag = new CodeStream();
+		var js = new CodeStream();
 		js.push("updateBreed");
 		js.push("(");
 		js.push('"');
@@ -187,14 +198,34 @@ function initSemantics() {
 		js.push("]");
 		js.push(")");
 		js.push(";");
+		return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js.contents()]};
+	    },
+
+	    Patch: function(_p, n, _o, fs, _c) {
+		var table = this.args.table;
+		var vert = new CodeStream();
+		var frag = new CodeStream();
+		var js = new CodeStream();
+		js.push("updatePatch");
+		js.push("(");
+		js.push('"');
+		js.push(n.sourceString);
+		js.push('"');
+		js.push(", ");
+		js.push("[");
+		js.push(fs.glsl_script_formals());
+		js.push("]");
+		js.push(")");
+		js.push(";");
+		return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js.contents()]};
 	    },
 
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
 		var inTable = this.args.table;
 		var table = inTable[n.sourceString];
-		var vert = this.args.vert;
-		var frag = this.args.frag;
-		var js = this.args.js;
+		var vert = new CodeStream();
+		var frag = new CodeStream();
+		var js = new CodeStream();
 
 		vert.push("#version 300 es\n");
 
@@ -259,6 +290,7 @@ function initSemantics() {
 		js.push("(");
 		js.push(n.sourceString);
 		js.push(");");
+		return {[n.sourceString]: [table, vert.contents(), frag.contents(), js.contents()]};
 	    },
 
 	    Block: function(_o, ss, _c) {
@@ -676,25 +708,16 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
     var rawTable = n.symTable();
     var newTable = {};
 
-    debugger;
+    var isTopLevel = prod === "TopLevel";
+
     for (var k in rawTable) {
 	var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
 	var a = defaultAttributes ? defaultAttributes : ["a_index"];
 	// u_resolution only needed when the code has patches.  And for patches, they'd be something else
 	newTable[k] = new SymTable(rawTable[k], d, a);
     }
-
-    var vert = new CodeStream();
-    var frag = new CodeStream();
-    var js = new CodeStream();
     
-    n.glsl(newTable, vert, frag, js);
-    
-    console.log(vert.contents());
-    console.log(frag.contents());
-    console.log(js.contents());
-    
-    return [newTable, vert, frag, js];
+    return n.glsl(newTable, null, null, null);
 };
 
 function grammarUnitTests() {
@@ -785,7 +808,7 @@ function grammarUnitTests() {
 	"param.c": ["param" , null, "c"],
     }});
 
-    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "TopLevel", s, "symTable", {"foo": {
+    semanticsTest("def breed.foo(a, b, c) {this.x = 4; this.y = other.x;}", "TopLevel", s, "symTable", {"foo": {
 	"out.this.x": ["propOut" ,"this", "x"],
 	"in.other.x": ["propIn", "other", "x"],
 	"out.this.y": ["propOut" ,"this", "y"],

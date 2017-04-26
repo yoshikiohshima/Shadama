@@ -998,10 +998,9 @@ onload = function() {
 };
 
 function programFromTable(table, vert, frag) {
-
     return (function () {
-	var prog = createProgram(gl, createShader(gl, "main.vert", vert.contents()),
-				 createShader(gl, "main.frag", frag.contents()));
+	var prog = createProgram(gl, createShader(gl, "main.vert", vert),
+				 createShader(gl, "main.frag", frag));
 	
 	var uniLocations = {};
 	
@@ -1056,9 +1055,15 @@ function programFromTable(table, vert, frag) {
     })();
 };
 
-function install(str, prod, sem, name) {
+function install(str, prod, sem) {
     var result = translate(str, prod);
-    scripts[name] = programFromTable(result[0], result[1], result[2]);
+
+    for (var k in result) {
+	var code = result[k];
+	if (code[1] !== "" && code[2] !== "") {
+	    scripts[k] = programFromTable(code[0], code[1], code[2]);
+	}
+    }
 };
 	    
 function runner() {
