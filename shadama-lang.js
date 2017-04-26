@@ -17,16 +17,23 @@ function initSemantics() {
 		var result = {};
 		for (var i = 0; i< ds.children.length; i++) {
 		    var d = ds.children[i].symTable();
-		    var n = ds.children[i].children[3].sourceString;
-		    result[n] = d;
+		    if (d.ctorName == "Script") {
+			addAsSet(result, d);
+		    }
 		}
 		return result;
 	    },
+
+	    Breed: function(_b, n, _o, fs, _c) {
+		var c = fs.symTable();
+		return {[n.sourceString]: c};
+	    },
 	    
-	    Script: function(_d, _b, _p, _n, _o, ns, _c, b) {
+	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
 		var c = b.symTable();
 		addAsSet(c, ns.symTable());
-		return c;
+		console.log("c", c);
+		return {[n.sourceString]: c};
 	    },
 	    
 	    Formals_list: function(h, _c, r) {
@@ -160,6 +167,13 @@ function initSemantics() {
     s.addOperation(
         "glsl(table, vert, frag, js)",
         {
+	    TopLevel: function(ds) {
+		for (var i = 0; i < ds.children.length; i++) {
+		    var d = ds.children[i];
+		    d.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+		};
+	    },
+
 	    Breed: function(_b, n, _o, fs, _c) {
 		var js = this.args.js;
 		js.push("updateBreed");
@@ -176,7 +190,8 @@ function initSemantics() {
 	    },
 
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
-		var table = this.args.table;
+		var inTable = this.args.table;
+		var table = inTable[n.sourceString];
 		var vert = this.args.vert;
 		var frag = this.args.frag;
 		var js = this.args.js;
@@ -659,23 +674,27 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
 
     var n = s(match);
     var rawTable = n.symTable();
+    var newTable = {};
 
-    var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
-    var a = defaultAttributes ? defaultAttributes : ["a_index"];
-    // u_resolution only needed when the code has patches.  And for patches, they'd be something else
+    debugger;
+    for (var k in rawTable) {
+	var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
+	var a = defaultAttributes ? defaultAttributes : ["a_index"];
+	// u_resolution only needed when the code has patches.  And for patches, they'd be something else
+	newTable[k] = new SymTable(rawTable[k], d, a);
+    }
 
-    var table = new SymTable(rawTable, d, a);
     var vert = new CodeStream();
     var frag = new CodeStream();
     var js = new CodeStream();
     
-    n.glsl(table, vert, frag, js);
+    n.glsl(newTable, vert, frag, js);
     
     console.log(vert.contents());
     console.log(frag.contents());
     console.log(js.contents());
     
-    return [table, vert, frag, js];
+    return [newTable, vert, frag, js];
 };
 
 function grammarUnitTests() {
@@ -757,14 +776,14 @@ function grammarUnitTests() {
 	"in.other.x": ["propIn", "other", "x"],
 	"out.this.y": ["propOut" ,"this", "y"]});
 
-    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "symTable", {
+    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "symTable", {"foo": {
 	"out.this.x": ["propOut" ,"this", "x"],
 	"in.other.x": ["propIn", "other", "x"],
 	"out.this.y": ["propOut" ,"this", "y"],
 	"param.a": ["param" , null, "a"],
 	"param.b": ["param" , null, "b"],
 	"param.c": ["param" , null, "c"],
-    });
+    }});
 
     semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "TopLevel", s, "symTable", {"foo": {
 	"out.this.x": ["propOut" ,"this", "x"],
@@ -777,5 +796,5 @@ function grammarUnitTests() {
     
 
 //    translate("this.x = this.y + 3;", "Statement", s);
-    translate("breed foo (x, y)", "Breed", s); 
+    translate("breed foo (x, y)", "Breed", s);
 };
