@@ -19,13 +19,13 @@ var breedVAO;
 var patchVAO;
 
 var programs = {};
-
 var scripts = {};
+var breeds = {};
+var patches = {};
 
 var myBreed;
 var myPatch;
 
-var breeds;
 
 var debugCanvas1;
 
@@ -144,7 +144,19 @@ function loadShadama(id, source) {
     }
     var result = translate(source, "TopLevel");
     console.log(result);
-}
+
+    for (var k in result) {
+	var entry = result[k];
+	var js = entry[3];
+	if (js[0] === "updateBreed") {
+	    updateBreed(js[1], js[2]);
+	} else if (js[0] === "updatePatch") {
+	    updatePatch(js[1], js[2]);
+	} else if (js[0] === "updateScript") {
+	    scripts[js[1]] = programFromTable(entry[0], entry[1], entry[2]);
+	}
+    }
+};
 
 function createTexture(gl, data, format, width, height) {
     if (!format) {
@@ -942,28 +954,28 @@ onload = function() {
 
     initCompiler();
 
-    programs["drawBreed"] = drawBreedProgram(gl);
-    programs["forward"] = forwardProgram(gl);
-    programs["forwardEdgeBounce"] = forwardEdgeBounceProgram(gl);
-    programs["turn"] = turnProgram(gl);
-    programs["bounceIf"] = bounceIfProgram(gl);
-    programs["setPatch"] = setPatchProgram(gl);
-    programs["getPatch"] = getPatchProgram(gl);
-    programs["genericGet"] = genericGetProgram(gl);
-    programs["genericSet"] = genericSetProgram(gl);
-    programs["genericSet2"] = genericSet2Program(gl);
-    programs["drawPatch"] = drawPatchProgram(gl);
-    programs["diffusePatch"] = diffusePatchProgram(gl);
-    programs["debugBreed"] = debugBreedProgram(gl);
-    programs["debugPatch"] = debugPatchProgram(gl);
+    // programs["drawBreed"] = drawBreedProgram(gl);
+    // programs["forward"] = forwardProgram(gl);
+    // programs["forwardEdgeBounce"] = forwardEdgeBounceProgram(gl);
+    // programs["turn"] = turnProgram(gl);
+    // programs["bounceIf"] = bounceIfProgram(gl);
+    // programs["setPatch"] = setPatchProgram(gl);
+    // programs["getPatch"] = getPatchProgram(gl);
+    // programs["genericGet"] = genericGetProgram(gl);
+    // programs["genericSet"] = genericSetProgram(gl);
+    // programs["genericSet2"] = genericSet2Program(gl);
+    // programs["drawPatch"] = drawPatchProgram(gl);
+    // programs["diffusePatch"] = diffusePatchProgram(gl);
+    // programs["debugBreed"] = debugBreedProgram(gl);
+    // programs["debugPatch"] = debugPatchProgram(gl);
 
-    myBreed = new Breed(gl, 25000);
-    myBreed.addOwnVariable("x");
-    myBreed.addOwnVariable("y");
-    myBreed.addOwnVariable("dirX");
-    myBreed.addOwnVariable("dirY");
+    // myBreed = new Breed(gl, 25000);
+    // myBreed.addOwnVariable("x");
+    // myBreed.addOwnVariable("y");
+    // myBreed.addOwnVariable("dirX");
+    // myBreed.addOwnVariable("dirY");
 
-    myPatch = new Patch();
+    // myPatch = new Patch();
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T), gl.R32F);
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
@@ -1013,10 +1025,19 @@ function programFromTable(table, vert, frag) {
 	    var uni = table.uniformTable[n];
 	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
 	}
+
+	for (var i = 0; i < table.paramIndex.length; i++) {
+	    var uni = "u_use_vector_" + table.paramIndex[i];
+	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
+	    uni = "u_vector_" + table.paramIndex[i];
+	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
+	    uni = "u_scalar_" + table.paramIndex[i];
+	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
+	}
 	
 	var vao = breedVAO;
 	
-	return function(args) {  // {object: object, targets: [fieldName], sources: {<name>: textureOrFloat}}
+	return function(args) {  // {object: object, targets: [fieldName], sources: [[<name>: textureOrFloat]]
 	    var object = args.object;
 	    var targets = args.targets;
 	    var realTargets = targets.map(function(n) {return object["new"+n]});
@@ -1030,14 +1051,20 @@ function programFromTable(table, vert, frag) {
 	    gl.uniform1f(uniLocations["u_particleLength"], T);
 	    
 	    var sources = args.sources;
-	    var index = 0;
-	    for (var k in sources) {
-		if (sources[k].constructor == WebGLTexture) {
-		    gl.activeTexture(gl.TEXTURE0 + index);
-		    gl.bindTexture(gl.TEXTURE_2D, sources[k]);
+	    for (var i = 0; i < sources.length; i++) {
+		var k = sources[i][0];
+		var val = sources[i][1];
+		if (val.constructor == WebGLTexture) {
+		    gl.activeTexture(gl.TEXTURE0 + i);
+		    gl.bindTexture(gl.TEXTURE_2D, val);
+		    gl.uniform1i(uniLocations["u_vector_" + k], i);
+		    gl.uniform1i(uniLocations["u_scalar_" + k], 0);
+		    gl.uniform1i(uniLocations["u_use_vector_" + k], 1);
+		} else {
+		    gl.uniform1i(uniLocations["u_vector_" + k], 0);
+		    gl.uniform1i(uniLocations["u_scalar_" + k], val);
+		    gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
 		}
-		gl.uniform1i(uniLocations[k], index);
-		index++;
 	    }
 	    
 	    gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -1088,14 +1115,14 @@ function runner() {
 function step() {
     clear();
 
-    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
-    myBreed.turn(0.05);
+//    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
+//    myBreed.turn(0.05);
 
 //    scripts["main"]({object: myBreed, targets: ["x"], sources: [myBreed.x, myBreed.y]});
 
 //    myBreed.setPatch(myPatch, [10.0, 0.0, 0.0, 255.0]);
 //    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
 //    myPatch.diffuse();
-    myPatch.draw();
-    myBreed.draw();
+//    myPatch.draw();
+//    myBreed.draw();
 }

@@ -685,8 +685,8 @@ void main(void) {
 	<script id="forward.shadama" type="x-shadama">
         breed Turtle (x, y, dirX, dirY)
 	def breed.forward(n) {
-	   this.x = this.x + dirX * n;
-	   this.y = this.y + dirY * n;
+	   this.x = this.x + this.dirX * n;
+	   this.y = this.y + this.dirY * n;
         }
 	</script>
 

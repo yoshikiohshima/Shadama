@@ -25,13 +25,11 @@ function initSemantics() {
 	    },
 
 	    Breed: function(_b, n, _o, fs, _c) {
-		var c = fs.symTable();
-		return {[n.sourceString]: c};
+		return {[n.sourceString]: fs.symTable()};
 	    },
 	    
 	    Patch: function(_p, n, _o, fs, _c) {
-		var c = fs.symTable();
-		return {[n.sourceString]: c};
+		return {[n.sourceString]: fs.symTable()};
 	    },
 	    
 	    Script: function(_d, _b, _p, n, _o, ns, _c, b) {
@@ -149,9 +147,21 @@ function initSemantics() {
 		vert.tab();
 		vert.push("vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;\n");
 
+		for (var i = 0; i < table.paramIndex.length; i++) {
+		    var k = table.paramIndex[i];
+		    var template1 = "float @@ = u_use_vector_@@ ? texelFetch(";
+		    var template2 = ", ivec2(a_index), 0).r : u_scalar_@@;";
+		    vert.tab();
+		    vert.push(template1.replace(/@@/g, k));
+		    vert.push(table.paramIn(["param", null, k]));
+		    vert.push(template2.replace(/@@/g, k));
+		    vert.cr();
+		}
+
 		ss.glsl(table, vert, frag, js);
 		vert.tab();
-		vert.push("gl_Position = vec4(oneToOne, 0, 1.0);\n");
+		vert.push("gl_Position = vec4(oneToOne, 0, 1.0);");
+		vert.cr();
 		vert.tab();
 		vert.push("gl_PointSize = 1.0;\n");
 		vert.decTab();
@@ -205,7 +215,6 @@ function initSemantics() {
 		var js = [];
 
 		vert.push("#version 300 es\n");
-
 		vert.push("layout (location = 0) in vec2 a_index;\n");
 		vert.push("uniform vec2 u_resolution;\n");
 		vert.push("uniform float u_particleLength;\n");
@@ -214,11 +223,18 @@ function initSemantics() {
 		    vert.push(elem);
 		    vert.push("\n");
 		});
+
+		table.paramUniforms().forEach(function(elem) {
+		    vert.push(elem);
+		    vert.push("\n");
+		});
+
 		vert.crIfNeeded();
 		table.vertVaryings().forEach(function(elem) {
 		    vert.push(elem);
 		    vert.push("\n");
 		});
+
 		vert.crIfNeeded();
 		vert.push("void");
 		//vert.pushWithSpace(n.sourceString);
@@ -263,7 +279,7 @@ function initSemantics() {
 		frag.push("}");
 		frag.cr();
 
-		js.push("addScript");
+		js.push("updateScript");
 		js.push(n.sourceString);
 		return {[n.sourceString]: [table, vert.contents(), frag.contents(), js]};
 	    },
@@ -456,6 +472,9 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
     this.outTable = {};
     this.outIndex = [];
 
+    this.paramTable = {};
+    this.paramIndex = [];
+
     this.defaultUniforms = [];
     this.defaultAttributes = [];
 
@@ -474,6 +493,9 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 	    this.outIndex.push(entry[2]);
 	} else if (entry[0] === "propIn" && entry[1] === "this") {
 	    this.uniformTable[entry[2]] = "u_this_" + entry[2];
+	} else if (entry[0] === "param") {
+	    this.paramTable[entry[2]] = "u_vector_" + entry[2];
+	    this.paramIndex.push(entry[2]);
 	}
     }
 };
@@ -498,7 +520,24 @@ SymTable.prototype.uniforms = function() {
     }
     return result;
 };
-	    
+
+SymTable.prototype.paramUniforms = function() {
+    var result = [];
+    var that = this;
+    this.paramIndex.forEach(function(k) {
+	result.push("uniform bool u_use_vector_" + k + ";");
+	result.push("uniform sampler2D u_vector_" + k + ";");
+	result.push("uniform float u_scalar_" + k + ";");
+    });
+    return result;
+};
+
+SymTable.prototype.paramIn = function(entry) {
+    return this.paramTable[entry[2]];
+};
+
+
+
 SymTable.prototype.vertVaryings = function() {
     var result = [];
     for (var k in this.varyingTable) {
@@ -519,7 +558,7 @@ SymTable.prototype.outs = function() {
     var result = [];
     for (var i = 0; i < this.outIndex.length; i++) {
 	var k = this.outIndex[i];
-	result.push("layout (location = " + i + ") out float " + this.outTable[k]);
+	result.push("layout (location = " + i + ") out float " + this.outTable[k] + ";");
     }
     return result;
 };
@@ -631,7 +670,6 @@ function addAsSet(to, from) {
 function semanticsTest(str, prod, sem, attr, expected) {
     function stringify(obj) {
 	var type = Object.prototype.toString.call(obj);
-	
 	// IE8 <= 8 does not have array map
 	var map = Array.prototype.map || function map(callback) {
 	    var ret = [];
@@ -640,7 +678,6 @@ function semanticsTest(str, prod, sem, attr, expected) {
 	    }
 	    return ret;
 	};
-	
 	if (type === "[object Object]") {
 	    var pairs = [];
 	    for (var k in obj) {
@@ -651,28 +688,25 @@ function semanticsTest(str, prod, sem, attr, expected) {
 	    pairs = map.call(pairs, function(v) { return '"' + v[0] + '":' + v[1] });
 	    return "{" + pairs + "}";
 	}
-	
 	if (type === "[object Array]") {
 	    return "[" + map.call(obj, function(v) { return stringify(v) }) + "]";
 	}
-	
 	return JSON.stringify(obj);
     };
-
 
     var match = parse(str, prod);
     if (!match.succeeded()) {
 	console.log(str);
         console.log("did not parse: " + str);
-    }
+    };
     
     var n = sem(match);
     var result = n[attr].call(n);
-    var ja = stringify(result);
-    var jb = stringify(expected);
-    if (ja != jb) {
+    var a = stringify(result);
+    var b = stringify(expected);
+    if (a != b) {
 	console.log(str);
-        console.log("rule: " + attr + " expected: " + jb + " got: " + ja);
+        console.log("rule: " + attr + " expected: " + b + " got: " + a);
     }
 };
 
@@ -686,8 +720,6 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
     var n = s(match);
     var rawTable = n.symTable();
     var newTable = {};
-
-    var isTopLevel = prod === "TopLevel";
 
     for (var k in rawTable) {
 	var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
