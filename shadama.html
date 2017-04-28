@@ -34,7 +34,7 @@ Shadama {
 
   VariableStatement = var VariableDeclaration ";"
   VariableDeclaration = ident Initialiser?
-  Initialiser = "=" AddExpression
+  Initialiser = "=" Expression
 
   ExpressionStatement = AddExpression ";"
   IfStatement = if "(" Expression ")" Statement (else Statement)?
@@ -684,10 +684,19 @@ void main(void) {
 
 	<script id="forward.shadama" type="x-shadama">
         breed Turtle (x, y, dirX, dirY)
+
 	def breed.forward(n) {
 	   this.x = this.x + this.dirX * n;
 	   this.y = this.y + this.dirY * n;
         }
+
+	def breed.turn(d) {
+           var c = cos(d);
+           var s = sin(d);
+	   this.dirX = c * this.dirX + s * this.dirY;
+	   this.dirY = (0.0 - s) * this.dirX + c * this.dirY;
+        }
+
 	</script>
 
 

@@ -337,11 +337,39 @@ function initSemantics() {
 		vert.push(" = ");
 		e.glsl(table, vert, frag, js);
 	    },
+
+	    VariableStatement: function(_v, d, _s) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		var js = this.args.js;
+
+		d.glsl(table, vert, frag, js);
+	    },
+
+	    VariableDeclaration: function(n, i) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		var js = this.args.js;
+		vert.tab();
+		vert.push("float");
+		vert.pushWithSpace(n.sourceString);
+		if (i.children.length !== 0) {
+		    vert.push(" = ");
+		    i.glsl(table, vert, frag, js);
+		}
+		vert.push(";");
+		vert.cr();
+	    },
+
+	    Initialiser: function(_a, e) {
+		e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+	    },
 	    
 	    LeftHandSideExpression_field: function(n, _p, f) {
 		var table = this.args.table;
 		var vert = this.args.vert;
-		var frag = this.args.frag;
 		vert.push(table.varying(["propOut", n.sourceString, f.sourceString]));
 	    },
 
@@ -474,6 +502,7 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 
     this.paramTable = {};
     this.paramIndex = [];
+    this.varTable = {};
 
     this.defaultUniforms = [];
     this.defaultAttributes = [];
@@ -496,6 +525,8 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 	} else if (entry[0] === "param") {
 	    this.paramTable[entry[2]] = "u_vector_" + entry[2];
 	    this.paramIndex.push(entry[2]);
+	} else if (entry[0] === "var") {
+	    this.varTable[entry[2]] = entry[2];
 	}
     }
 };
@@ -749,6 +780,8 @@ function grammarUnitTests() {
     grammarTest("abc * 3", "MulExpression");
     grammarTest("abc * 3 * 3.0", "Expression");
 
+    grammarTest("var c = 3;", "VariableStatement");
+
     grammarTest("this.x", "LeftHandSideExpression");
     grammarTest("patch.x", "LeftHandSideExpression");
 
@@ -780,6 +813,8 @@ function grammarUnitTests() {
     semanticsTest("this.x = 3;", "Statement", s, "symTable", {"out.this.x": ["propOut", "this","x"]});
     semanticsTest("{this.x = 3; other.y = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"], "out.other.y": ["propOut", "other", "y"]});
     semanticsTest("{this.x = 3; this.x = 4;}", "Statement", s, "symTable", {"out.this.x": ["propOut", "this", "x"]});
+
+    semanticsTest("{var x = 3; x = x + 3;}", "Block", s, "symTable", {"var.x": ["var", null, "x"]});
 
     semanticsTest(`
        if (other.x > 0) {
