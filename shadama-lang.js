@@ -495,14 +495,21 @@ function initSemantics() {
 
 function SymTable(table, defaultUniforms, defaultAttributes) {
     this.rawTable = table;
+
     this.uniformTable = {};
+    this.uniformIndex = [];
+
     this.varyingTable = {};
+    this.varyingIndex = [];
+
     this.outTable = {};
     this.outIndex = [];
 
     this.paramTable = {};
     this.paramIndex = [];
+
     this.varTable = {};
+    this.varIndex = [];
 
     this.defaultUniforms = [];
     this.defaultAttributes = [];
@@ -518,19 +525,21 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 	var entry = table[k];
 	if (entry[0] === "propOut" && entry[1] === "this") {
 	    this.varyingTable[entry[2]] = "v_this_" + entry[2];
+	    this.varyingIndex.push(entry[2]);
 	    this.outTable[entry[2]] = "o_this_" + entry[2];
 	    this.outIndex.push(entry[2]);
 	} else if (entry[0] === "propIn" && entry[1] === "this") {
 	    this.uniformTable[entry[2]] = "u_this_" + entry[2];
+	    this.uniformIndex.push(entry[2]);
 	} else if (entry[0] === "param") {
 	    this.paramTable[entry[2]] = "u_vector_" + entry[2];
 	    this.paramIndex.push(entry[2]);
 	} else if (entry[0] === "var") {
 	    this.varTable[entry[2]] = entry[2];
+	    this.varIndex.push(entry[2]);
 	}
     }
 };
-
 
 SymTable.prototype.varying = function(entry) {
     return this.varyingTable[entry[2]];
@@ -566,8 +575,6 @@ SymTable.prototype.paramUniforms = function() {
 SymTable.prototype.paramIn = function(entry) {
     return this.paramTable[entry[2]];
 };
-
-
 
 SymTable.prototype.vertVaryings = function() {
     var result = [];
@@ -605,6 +612,10 @@ SymTable.prototype.fragColors = function() {
 
 SymTable.prototype.isAttribute = function(n) {
     return this.defaultAttributes.indexOf(n) >= 0;
+};
+
+SymTable.prototype.insAndParams = function() {
+    return [this.uniformIndex, this.paramIndex];
 };
 
 function CodeStream() {

@@ -280,23 +280,20 @@ layout (location = 0) in vec2 a_index;
 
 uniform vec2 u_resolution;
 uniform float u_particleLength;
-uniform sampler2D u_position;
+uniform sampler2D u_x;
+uniform sampler2D u_y;
 
-out vec2 v_coord;
-
-vec2 decodePos(vec4 c) {
-    return c.rg;
-}
+//out vec2 v_coord;
 
 void main(void) {
     vec2 zeroToOne = a_index / u_particleLength;
-
-    vec4 val = texelFetch(u_position, ivec2(a_index), 0);
-    vec2 dPos = decodePos(val);   // (0-resolution, 0-resolution)
+    float x = texelFetch(u_x, ivec2(a_index), 0).r;
+    float y = texelFetch(u_y, ivec2(a_index), 0).r;
+    vec2 dPos = vec2(x, y);   // (0-resolution, 0-resolution)
     vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
     vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
 
-    v_coord = a_index;
+//    v_coord = a_index;
 
     gl_Position = vec4(clipPos, 0, 1.0);
     gl_PointSize = 1.0;
@@ -308,12 +305,12 @@ precision highp float;
 
 uniform sampler2D u_color;
 
-in vec2 v_coord;
+//in vec2 v_coord;
 
 out vec4 fragColor;
 
 void main(void) {
-  fragColor = texelFetch(u_color, ivec2(v_coord), 0);
+  fragColor = vec4(0.0, 1.0, 1.0, 0.2);
 }
         </script>
         <script id="setPatch.vert" type="x-shader/x-vertex">#version 300 es
@@ -696,7 +693,6 @@ void main(void) {
 	   this.dirX = c * this.dirX + s * this.dirY;
 	   this.dirY = (0.0 - s) * this.dirX + c * this.dirY;
         }
-
 	</script>
 
 
