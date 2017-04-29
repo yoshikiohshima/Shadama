@@ -335,6 +335,10 @@ function forwardProgram(gl) {
     return makePrimitive(gl, "forward", ["u_resolution", "u_particleLength", "u_position", "u_amount"], breedVAO);
 };
 
+function genForwardProgram(gl) {
+    return makePrimitive(gl, "genForward", ["u_resolution", "u_particleLength", "u_this_x", "u_this_dirX", "u_this_y", "u_this_dirY", "u_use_vector_n", "u_vector_n", "u_scalar_n"], breedVAO);
+};
+
 function forwardEdgeBounceProgram(gl) {
     return makePrimitive(gl, "forwardEdgeBounce", ["u_resolution", "u_particleLength", "u_position", "u_amount", "u_edgeCondition"], breedVAO);
 };
@@ -441,6 +445,64 @@ Breed.prototype.forward = function(amount) {
     var tmp = this.pos;
     this.pos = this.newPos;
     this.newPos = tmp;
+};
+
+Breed.prototype.genForward = function(amount) {
+    var prog = programs["genForward"];
+    setTargetBuffers(gl, framebufferR, [this.newx, this.newy]);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.x);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.dirX);
+
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.y);
+
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, this.dirY);
+
+    gl.viewport(0, 0, T, T);
+
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+    gl.uniform1i(prog.uniLocations["u_this_x"], 0);
+    gl.uniform1i(prog.uniLocations["u_this_dirX"], 1);
+    gl.uniform1i(prog.uniLocations["u_this_y"], 2);
+    gl.uniform1i(prog.uniLocations["u_this_dirY"], 3);
+
+    gl.uniform1i(prog.uniLocations["u_use_vector_n"], 0);
+    gl.uniform1i(prog.uniLocations["u_vector_n"], 0);
+    gl.uniform1f(prog.uniLocations["u_scalar_n"], amount);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var tmp;
+
+    tmp = this.x;
+    this.x = this.newx;
+    this.newx = tmp;
+
+    tmp = this.y;
+    this.y = this.newy;
+    this.newy = tmp;
+
+    tmp = this.dirX;
+    this.dirX = this.newdirX;
+    this.newdirX = tmp;
+
+    tmp = this.dirY;
+    this.dirY = this.newdirY;
+    this.newdirY = tmp;
 };
 
 Breed.prototype.forwardEdgeBounce = function(amount, condition) {
@@ -953,6 +1015,7 @@ onload = function() {
     // programs["drawPatch"] = drawPatchProgram(gl);
     // programs["diffusePatch"] = diffusePatchProgram(gl);
     programs["debugBreed"] = debugBreedProgram(gl);
+    programs["genForward"] = genForwardProgram(gl);
     // programs["debugPatch"] = debugPatchProgram(gl);
 
     // myBreed = new Breed(gl, 25000);
@@ -997,7 +1060,7 @@ onload = function() {
     breeds["Turtle"].fillRandom("y", 0, 300);
     breeds["Turtle"].fillRandomDir("dirX", "dirY");
 
-    step();
+    runner();
 };
 
 function programFromTable(table, vert, frag, name) {
@@ -1027,6 +1090,7 @@ function programFromTable(table, vert, frag, name) {
 	var vao = breedVAO;
 
 	return function(args) {  // {object: object, targets: [fieldName], sources: [[<name>: textureOrFloat]]
+
 	    var object = args.object;
 	    var targets = args.targets;
 	    var realTargets = targets.map(function(n) {return object["new"+n]});
@@ -1044,11 +1108,10 @@ function programFromTable(table, vert, frag, name) {
 		var k = sources[ind][0];
 		var val = sources[ind][1];
 		if (val.constructor == WebGLTexture) {
-		    gl.activeTexture(gl.TEXTURE0 + ind);
+		    var glIndex = gl.TEXTURE0 + ind;
+		    gl.activeTexture(glIndex);
 		    gl.bindTexture(gl.TEXTURE_2D, val);
-		    gl.uniform1i(uniLocations["u_vector_" + k], ind);
-		    gl.uniform1i(uniLocations["u_scalar_" + k], 0);
-		    gl.uniform1i(uniLocations["u_use_vector_" + k], 1);
+		    gl.uniform1i(uniLocations["u_this_" + k], ind);
 		} else {
 		    gl.uniform1i(uniLocations["u_vector_" + k], 0);
 		    gl.uniform1f(uniLocations["u_scalar_" + k], val);
@@ -1092,16 +1155,16 @@ function runner() {
 
 function step() {
     clear();
-//    scripts["forward"][0]({object: breeds["Turtle"], targets: ["x", "y"], sources: [["x", breeds["Turtle"].x], ["dirX", breeds["Turtle"].dirX], ["y", breeds["Turtle"].y], ["dirY", breeds["Turtle"].dirY], ["n", 0.01]]});
+
+    scripts["forward"][0]({object: breeds["Turtle"], targets: ["x", "y"], sources: [["x", breeds["Turtle"].x], ["dirX", breeds["Turtle"].dirX], ["y", breeds["Turtle"].y], ["dirY", breeds["Turtle"].dirY], ["n", 0.01]]});
 
 //    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
 //    myBreed.turn(0.05);
-
-//    scripts["main"]({object: myBreed, targets: ["x"], sources: [myBreed.x, myBreed.y]});
 
 //    myBreed.setPatch(myPatch, [10.0, 0.0, 0.0, 255.0]);
 //    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
 //    myPatch.diffuse();
 //    myPatch.draw();
+    breeds["Turtle"].genForward(1.5);
     breeds["Turtle"].draw();
 }

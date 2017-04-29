@@ -679,6 +679,43 @@ void main(void) {
 }
         </script>
 
+        <script id="genForward.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_index;
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+uniform sampler2D u_this_x;
+uniform sampler2D u_this_dirX;
+uniform sampler2D u_this_y;
+uniform sampler2D u_this_dirY;
+uniform bool u_use_vector_n;
+uniform sampler2D u_vector_n;
+uniform float u_scalar_n;
+out float v_this_x;
+out float v_this_y;
+void main() {
+  vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;
+  float n = u_use_vector_n ? texelFetch(u_vector_n, ivec2(a_index), 0).r : u_scalar_n;
+  v_this_x = texelFetch(u_this_x, ivec2(a_index), 0).r + texelFetch(u_this_dirX, ivec2(a_index), 0).r + n;
+  v_this_y = texelFetch(u_this_y, ivec2(a_index), 0).r + texelFetch(u_this_dirY, ivec2(a_index), 0).r + n;
+  gl_Position = vec4(oneToOne, 0, 1.0);
+  gl_PointSize = 1.0;
+}
+        </script>
+        <script id="genForward.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+in float v_this_x;
+in float v_this_y;
+layout (location = 0) out float o_this_x;
+layout (location = 1) out float o_this_y;
+void main() {
+  o_this_x = v_this_x;
+  o_this_y = v_this_y;
+}
+        </script>
+
+
+
+
 	<script id="forward.shadama" type="x-shadama">
         breed Turtle (x, y, dirX, dirY)
 
@@ -686,7 +723,9 @@ void main(void) {
 	   this.x = this.x + this.dirX * n;
 	   this.y = this.y + this.dirY * n;
         }
+	</script>
 
+	<script id="turn.shadama" type="x-shadama">
 	def breed.turn(d) {
            var c = cos(d);
            var s = sin(d);
