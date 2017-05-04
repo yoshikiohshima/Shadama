@@ -105,9 +105,9 @@ function createShader(gl, id, source) {
     var shader = gl.createShader(type);
 
     if (!source) {
-	var scriptElement = document.getElementById(id);
-	if(!scriptElement){return;}
-	source = scriptElement.text;
+        var scriptElement = document.getElementById(id);
+        if(!scriptElement){return;}
+        source = scriptElement.text;
     }
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
@@ -128,9 +128,9 @@ function createProgram(gl, vertexShader, fragmentShader) {
     gl.linkProgram(program);
     var success = gl.getProgramParameter(program, gl.LINK_STATUS);
     if (success) {
-	return program;
+        return program;
     }
-    
+
     console.log(gl.getProgramInfoLog(program));
     alert(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
@@ -138,25 +138,25 @@ function createProgram(gl, vertexShader, fragmentShader) {
 
 function loadShadama(id, source) {
     if (!source) {
-	var scriptElement = document.getElementById(id);
-	if(!scriptElement){return;}
-	source = scriptElement.text;
+        var scriptElement = document.getElementById(id);
+        if(!scriptElement){return;}
+        source = scriptElement.text;
     }
     var result = translate(source, "TopLevel");
     console.log(result);
 
     for (var k in result) {
-	var entry = result[k];
-	var js = entry[3];
-	if (js[0] === "updateBreed") {
-	    updateBreed(js[1], js[2]);
-	} else if (js[0] === "updatePatch") {
-	    updatePatch(js[1], js[2]);
-	} else if (js[0] === "updateScript") {
-	    var table = entry[0];
-	    scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
-			      table.insAndParams()];
-	}
+        var entry = result[k];
+        var js = entry[3];
+        if (js[0] === "updateBreed") {
+            updateBreed(js[1], js[2]);
+        } else if (js[0] === "updatePatch") {
+            updatePatch(js[1], js[2]);
+        } else if (js[0] === "updateScript") {
+            var table = entry[0];
+            scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
+                              table.insAndParams()];
+        }
     }
 };
 
@@ -203,9 +203,9 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
     if (format == gl.R32F) {
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
     } else {
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
     }
     gl.bindTexture(gl.TEXTURE_2D, null);
 };
@@ -219,9 +219,9 @@ function setTargetBuffers(gl, buffer, tex) {
     var list = [];
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     for (var i = 0; i < tex.length; i++) {
-	var val = gl.COLOR_ATTACHMENT0 + i;
-	gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, val, gl.TEXTURE_2D, tex[i], 0);
-	list.push(val);
+        var val = gl.COLOR_ATTACHMENT0 + i;
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, val, gl.TEXTURE_2D, tex[i], 0);
+        list.push(val);
     }
     gl.drawBuffers(list);
 };
@@ -264,7 +264,7 @@ function randomPosition() {
 function Breed(count) {
     this.own = {};
     if (count === undefined) {
-	count = 10000;
+        count = 10000;
     }
     this.count = count;
 
@@ -278,12 +278,12 @@ Breed.prototype.addOwnVariable = function(name) {
 
 Breed.prototype.fillRandom = function(name, min, max) {
     if (this[name]) {
-	gl.deleteTexture(this[name]);
+        gl.deleteTexture(this[name]);
     }
     var ary = new Float32Array(T * T * 4);
     var range = max - min;
     for (var i = 0; i < ary.length; i++) {
-	ary[i] = Math.random() * range + min;
+        ary[i] = Math.random() * range + min;
     }
     this[name] = createTexture(gl, ary, gl.R32F);
 };
@@ -291,18 +291,18 @@ Breed.prototype.fillRandom = function(name, min, max) {
 
 Breed.prototype.fillRandomDir = function(xName, yName) {
     if (this[xName]) {
-	gl.deleteTexture(this[xName]);
+        gl.deleteTexture(this[xName]);
     }
     if (this[yName]) {
-	gl.deleteTexture(this[yName]);
+        gl.deleteTexture(this[yName]);
     }
 
     var x = new Float32Array(T * T * 4);
     var y = new Float32Array(T * T * 4);
     for (var i = 0; i < x.length; i++) {
-	var dir = Math.random() * Math.PI * 2.0;
-	x[i] = Math.cos(dir);
-	y[i] = Math.sin(dir);
+        var dir = Math.random() * Math.PI * 2.0;
+        x[i] = Math.cos(dir);
+        y[i] = Math.sin(dir);
     }
     this[xName] = createTexture(gl, x, gl.R32F);
     this[yName] = createTexture(gl, y, gl.R32F);
@@ -325,7 +325,7 @@ function makePrimitive(gl, name, uniforms, vao) {
 
     var uniLocations = {};
     uniforms.forEach(function (n) {
-	uniLocations[n] = gl.getUniformLocation(prog, n);
+        uniLocations[n] = gl.getUniformLocation(prog, n);
     });
 
     return {program: prog, uniLocations: uniLocations, vao: vao};
@@ -706,11 +706,11 @@ Breed.prototype.genericSet = function(source, variable) {
     var use_vector;
 
     if (source.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, source);
-	use_vector = true;
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, source);
+        use_vector = true;
     } else {
-	use_vector = false;
+        use_vector = false;
     }
     gl.viewport(0, 0, T, T);
 
@@ -740,18 +740,18 @@ Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
     var use_vector2;
 
     if (source1.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, source1);
-	use_vector1 = true;
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, source1);
+        use_vector1 = true;
     } else {
-	use_vector1 = false;
+        use_vector1 = false;
     }
     if (source2.constructor == WebGLTexture) {
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, source2);
-	use_vector2 = true;
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, source2);
+        use_vector2 = true;
     } else {
-	use_vector2 = false;
+        use_vector2 = false;
     }
     gl.viewport(0, 0, T, T);
 
@@ -858,10 +858,10 @@ function debugDisplay0(gl, breed, name) {
     gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
 
     for (var i = 0; i < T * T; i++) {
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
-	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
-	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
-	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
+        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
+        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
+        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
     }
 
     var img = new ImageData(debugArray2, T, T);
@@ -896,10 +896,10 @@ function debugDisplay1(gl, tex) {
     gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
 
     for (var i = 0; i < T * T; i++) {
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
-	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
-	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
-	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
+        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
+        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
+        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
     }
 
     var img = new ImageData(debugArray2, T, T);
@@ -932,10 +932,10 @@ function debugDisplay2(gl, tex) {
     gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
 
     for (var i = 0; i < FW * FH; i++) {
-	debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
-	debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
-	debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
-	debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
+        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
+        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
+        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
+        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
     }
 
     var img = new ImageData(debugArray2, FW, FH);
@@ -945,12 +945,12 @@ function debugDisplay2(gl, tex) {
 function updateBreed(name, fields) {
     var breed = breeds[name];
     if (!breed) {
-	breed = new Breed();
-	for (var i = 0; i < fields.length; i++) {
-	    breed.addOwnVariable(fields[i]);
-	}
-	breeds[name] = breed;
-	return breed;
+        breed = new Breed();
+        for (var i = 0; i < fields.length; i++) {
+            breed.addOwnVariable(fields[i]);
+        }
+        breeds[name] = breed;
+        return breed;
     }
 
 
@@ -960,27 +960,27 @@ function updateBreed(name, fields) {
     var newOwn = {};
 
     for (var k in oldOwn) {
-	if (fields.indexOf(k) < 0) {
-	    toBeDeleted.push(k)
+        if (fields.indexOf(k) < 0) {
+            toBeDeleted.push(k)
 
-	}
+        }
     }
 
     for (var i = 0; i < fields.length; i++) {
-	var n = fields[i];
-	if (oldOwn[fields[i]]) {
-	    newOwn[fields[i]] = oldOwn[fields[i]];
-	} else {
-	    toBeCreated.push(fields[i]);
-	}
+        var n = fields[i];
+        if (oldOwn[fields[i]]) {
+            newOwn[fields[i]] = oldOwn[fields[i]];
+        } else {
+            toBeCreated.push(fields[i]);
+        }
     }
 
     breed.own = newOwn;
     for (var i = 0; i < toBeCreated.length; i++) {
-	breed.addOwnVariable(toBeCreated[i]);
+        breed.addOwnVariable(toBeCreated[i]);
     }
     for (var i = 0; i < toBeDeleted.length; i++) {
-	// gl.destroyTexture(oldOwn[toBeDeleted[i]]);
+        // gl.destroyTexture(oldOwn[toBeDeleted[i]]);
     }
 };
 
@@ -1065,73 +1065,71 @@ onload = function() {
 
 function programFromTable(table, vert, frag, name) {
     return (function () {
-	var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
-				 createShader(gl, name + ".frag", frag));
-	var uniLocations = {};
+        var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
+                                 createShader(gl, name + ".frag", frag));
+        var uniLocations = {};
 
-	table.defaultUniforms.forEach(function(n) {
-	    uniLocations[n] = gl.getUniformLocation(prog, n);
-	});
+        table.defaultUniforms.forEach(function(n) {
+            uniLocations[n] = gl.getUniformLocation(prog, n);
+        });
 
-	for (var n in table.uniformTable) {
-	    var uni = table.uniformTable[n];
-	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
-	}
+        for (var n in table.uniformTable) {
+            var uni = table.uniformTable[n];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+        }
 
-	for (var i = 0; i < table.paramIndex.length; i++) {
-	    uni = "u_use_vector_" + table.paramIndex[i];
-	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
-	    uni = "u_vector_" + table.paramIndex[i];
-	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
-	    uni = "u_scalar_" + table.paramIndex[i];
-	    uniLocations[uni] = gl.getUniformLocation(prog, uni);
-	}
+        for (var i = 0; i < table.paramIndex.length; i++) {
+            uni = "u_use_vector_" + table.paramIndex[i];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+            uni = "u_vector_" + table.paramIndex[i];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+            uni = "u_scalar_" + table.paramIndex[i];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+        }
 
-	var vao = breedVAO;
+        var vao = breedVAO;
 
-	return function(args) {  // {object: object, targets: [fieldName], sources: [[<name>: textureOrFloat]]
+        return function(args) {  // {object: object, targets: [fieldName], sources: [[<name>: textureOrFloat]]
 
-	    var object = args.object;
-	    var targets = args.targets;
-	    var realTargets = targets.map(function(n) {return object["new"+n]});
-	    setTargetBuffers(gl, framebufferR, realTargets);
-	    
-	    gl.useProgram(prog);
-	    gl.bindVertexArray(vao);
-	    
-	    gl.viewport(0, 0, T, T);
-	    gl.uniform2f(uniLocations["u_resolution"], FW, FH);
-	    gl.uniform1f(uniLocations["u_particleLength"], T);
-	    
-	    var sources = args.sources;
-	    for (var ind = 0; ind < sources.length; ind++) {
-		var k = sources[ind][0];
-		var val = sources[ind][1];
-		if (val.constructor == WebGLTexture) {
-		    var glIndex = gl.TEXTURE0 + ind;
-		    gl.activeTexture(glIndex);
-		    gl.bindTexture(gl.TEXTURE_2D, val);
-		    gl.uniform1i(uniLocations["u_this_" + k], ind);
-		} else {
-		    gl.uniform1i(uniLocations["u_vector_" + k], 0);
-		    gl.uniform1f(uniLocations["u_scalar_" + k], val);
-		    gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
-		}
-	    }
-	    
-	    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-	    gl.clear(gl.COLOR_BUFFER_BIT);
-	    
-	    gl.drawArrays(gl.POINTS, 0, object.count);
-	    gl.flush();
-	    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-	    
-	    for (var i = 0; i < targets.length; i++) {
-		var tmp = object[targets[i]];
-		object[targets[i]] = object["new"+targets[i]];
-		object["new"+targets[i]] = tmp;
-	    }
-	}
+            var object = args.object;
+            var targets = args.targets;
+            var realTargets = targets.map(function(n) {return object["new"+n]});
+            setTargetBuffers(gl, framebufferR, realTargets);
+
+            gl.useProgram(prog);
+            gl.bindVertexArray(vao);
+
+            gl.viewport(0, 0, T, T);
+            gl.uniform2f(uniLocations["u_resolution"], FW, FH);
+            gl.uniform1f(uniLocations["u_particleLength"], T);
+
+            var sources = args.sources;
+            for (var ind = 0; ind < sources.length; ind++) {
+                var k = sources[ind][0];
+                var val = sources[ind][1];
+                if (val.constructor == WebGLTexture) {
+                    var glIndex = gl.TEXTURE0 + ind;
+                    gl.activeTexture(glIndex);
+                    gl.bindTexture(gl.TEXTURE_2D, val);
+                    gl.uniform1i(uniLocations["u_this_" + k], ind);
+                } else {
+                    gl.uniform1i(uniLocations["u_vector_" + k], 0);
+                    gl.uniform1f(uniLocations["u_scalar_" + k], val);
+                    gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
+                }
+            }
+
+            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.POINTS, 0, object.count);
+            gl.flush();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            for (var i = 0; i < targets.length; i++) {
+                var tmp = object[targets[i]];
+                object[targets[i]] = object["new"+targets[i]];
+                object["new"+targets[i]] = tmp;
+            }
+        }
     })();
 };
 
@@ -1156,15 +1154,6 @@ function runner() {
 function step() {
     clear();
 
-    scripts["forward"][0]({object: breeds["Turtle"], targets: ["x", "y"], sources: [["x", breeds["Turtle"].x], ["dirX", breeds["Turtle"].dirX], ["y", breeds["Turtle"].y], ["dirY", breeds["Turtle"].dirY], ["n", 0.01]]});
-
-//    myBreed.forwardEdgeBounce(1.5, [1, 0, 1, 1]);
-//    myBreed.turn(0.05);
-
-//    myBreed.setPatch(myPatch, [10.0, 0.0, 0.0, 255.0]);
-//    myBreed.genericSet2(myPatch.buf1, myPatch.buf2, myPatch.buf3, myPatch.buf4);
-//    myPatch.diffuse();
-//    myPatch.draw();
     breeds["Turtle"].genForward(1.5);
     breeds["Turtle"].draw();
 }

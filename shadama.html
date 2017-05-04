@@ -6,8 +6,7 @@
         <script src="ohm/ohm.min.js"></script>
         <script src="shadama-lang.js"></script>
         <script src="shadama.js" type="text/javascript"></script>
-  
-	<script type="text/ohm-js">
+        <script type="text/ohm-js">
 Shadama {
   TopLevel
     = (Breed | Patch | Script)*
@@ -176,47 +175,47 @@ void main(void) {
     if (px < 0.0) {
         if (u_edgeCondition[0] == 1) {
              px = - px;
-	     dx = -dx;
+             dx = -dx;
         } else if (u_edgeCondition[0] == 2) {
              px = 0.0;
         } else {
              // u_edgeCondition[0] == 0
-	     px = mod(px, u_resolution.x);
-	}
+             px = mod(px, u_resolution.x);
+        }
     }
     if (px > u_resolution.x) {
         if (u_edgeCondition[1] == 1) {
              px = u_resolution.x - (px - u_resolution.x);
-	     dx = -dx;
+             dx = -dx;
         } else if (u_edgeCondition[1] == 2) {
              px = u_resolution.x;
         } else {
              // u_edgeCondition[1] == 0
-	     px = mod(px, u_resolution.x);
-	}
+             px = mod(px, u_resolution.x);
+        }
     }
 
     if (py < 0.0) {
         if (u_edgeCondition[2] == 1) {
              py = -py;
-	     dy = -dy;
+             dy = -dy;
         } else if (u_edgeCondition[2] == 2) {
              py = 0.0;
         } else {
              // u_edgeCondition[2] == 0
-	     py = mod(py, u_resolution.y);
-	}
+             py = mod(py, u_resolution.y);
+        }
     }
     if (py > u_resolution.y) {
         if (u_edgeCondition[3] == 1) {
              py = u_resolution.y - (py - u_resolution.y);
-	     dy = -dy;
+             dy = -dy;
         } else if (u_edgeCondition[3] == 2) {
              py = u_resolution.y;
         } else {
              // u_edgeCondition[3] == 0
-	     py = mod(py, u_resolution.y);
-	}
+             py = mod(py, u_resolution.y);
+        }
     }
     vColor = vec4(px, py, dx, dy);
     gl_PointSize = 1.0;
@@ -310,7 +309,7 @@ uniform sampler2D u_color;
 out vec4 fragColor;
 
 void main(void) {
-  fragColor = vec4(0.0, 1.0, 1.0, 0.2);
+  fragColor = vec4(0.0, 1.0, 1.0, 0.9);
 }
         </script>
         <script id="setPatch.vert" type="x-shader/x-vertex">#version 300 es
@@ -695,8 +694,8 @@ out float v_this_y;
 void main() {
   vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;
   float n = u_use_vector_n ? texelFetch(u_vector_n, ivec2(a_index), 0).r : u_scalar_n;
-  v_this_x = texelFetch(u_this_x, ivec2(a_index), 0).r + texelFetch(u_this_dirX, ivec2(a_index), 0).r + n;
-  v_this_y = texelFetch(u_this_y, ivec2(a_index), 0).r + texelFetch(u_this_dirY, ivec2(a_index), 0).r + n;
+  v_this_x = texelFetch(u_this_x, ivec2(a_index), 0).r + texelFetch(u_this_dirX, ivec2(a_index), 0).r * n;
+  v_this_y = texelFetch(u_this_y, ivec2(a_index), 0).r + texelFetch(u_this_dirY, ivec2(a_index), 0).r * n;
   gl_Position = vec4(oneToOne, 0, 1.0);
   gl_PointSize = 1.0;
 }
@@ -713,38 +712,35 @@ void main() {
 }
         </script>
 
-
-
-
-	<script id="forward.shadama" type="x-shadama">
+        <script id="forward.shadama" type="x-shadama">
         breed Turtle (x, y, dirX, dirY)
 
-	def breed.forward(n) {
-	   this.x = this.x + this.dirX * n;
-	   this.y = this.y + this.dirY * n;
+        def breed.forward(n) {
+           this.x = this.x + this.dirX * n;
+           this.y = this.y + this.dirY * n;
         }
-	</script>
+        </script>
 
-	<script id="turn.shadama" type="x-shadama">
-	def breed.turn(d) {
+        <script id="turn.shadama" type="x-shadama">
+        def breed.turn(d) {
            var c = cos(d);
            var s = sin(d);
-	   this.dirX = c * this.dirX + s * this.dirY;
-	   this.dirY = (0.0 - s) * this.dirX + c * this.dirY;
+           this.dirX = c * this.dirX + s * this.dirY;
+           this.dirY = (0.0 - s) * this.dirX + c * this.dirY;
         }
-	</script>
+        </script>
 
 
-	</head>
-	<body>
-		<div>
+        </head>
+        <body>
+                <div>
                    <div style="float: left">
                      <canvas id="canvas"></canvas>
                    </div>
-		   <div id="code"></div>
+                   <div id="code"></div>
                 </div>
                 <br>
-		<div style="clear: left" id="readout"></div>
-		<canvas id="debugCanvas1"></canvas>
-	</body>
+                <div style="clear: left" id="readout"></div>
+                <canvas id="debugCanvas1"></canvas>
+        </body>
 </html>
