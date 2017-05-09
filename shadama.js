@@ -155,7 +155,7 @@ function loadShadama(id, source) {
         } else if (js[0] === "updateScript") {
             var table = entry[0];
             scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
-                              table.insAndParams()];
+                              table.insAndParamsAndOuts()];
         }
     }
 };
@@ -1089,10 +1089,8 @@ function programFromTable(table, vert, frag, name) {
 
         var vao = breedVAO;
 
-        return function(args) {  // {object: object, targets: [fieldName], sources: [[<name>: textureOrFloat]]
+        return function(object, targets, sources, params) {  // {object: object, targets: [fieldName], sources: [[<name>, valueOrtexture]], params: [[<name>, valueOrTexture]]
 
-            var object = args.object;
-            var targets = args.targets;
             var realTargets = targets.map(function(n) {return object["new"+n]});
             setTargetBuffers(gl, framebufferR, realTargets);
 
@@ -1103,10 +1101,10 @@ function programFromTable(table, vert, frag, name) {
             gl.uniform2f(uniLocations["u_resolution"], FW, FH);
             gl.uniform1f(uniLocations["u_particleLength"], T);
 
-            var sources = args.sources;
-            for (var ind = 0; ind < sources.length; ind++) {
-                var k = sources[ind][0];
-                var val = sources[ind][1];
+            for (var ind = 0; ind < sources.length + params.length; ind++) {
+		var elem = ind < sources.length ? sources[ind] : params[ind - sources.length];
+                var k = elem[0];
+                var val = elem[1];
                 if (val.constructor == WebGLTexture) {
                     var glIndex = gl.TEXTURE0 + ind;
                     gl.activeTexture(glIndex);
@@ -1133,6 +1131,19 @@ function programFromTable(table, vert, frag, name) {
     })();
 };
 
+function callProgram(name, object, realParams) {
+    var data = scripts[name];
+    if (!data) {throw name + " cannot be found"; return};
+    var func = data[0];
+    var ins = data[1][0];
+    var params = data[1][1];
+    var targets = data[1][2];
+
+    var nn = params.map(function(n) {return [n, realParams[n]]});
+
+    func(object, targets, ins.map(function(n) {return [n, object[n]]}), nn);
+}
+
 function runner() {
     var start = performance.now();
 
@@ -1153,7 +1164,7 @@ function runner() {
 
 function step() {
     clear();
-
-    breeds["Turtle"].genForward(1.5);
+    callProgram("forward", breeds["Turtle"], {"n":  1.5});
+    callProgram("turn", breeds["Turtle"], {"d":  0.05});
     breeds["Turtle"].draw();
 }

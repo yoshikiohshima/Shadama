@@ -611,8 +611,8 @@ SymTable.prototype.isAttribute = function(n) {
     return this.defaultAttributes.indexOf(n) >= 0;
 };
 
-SymTable.prototype.insAndParams = function() {
-    return [this.uniformIndex, this.paramIndex];
+SymTable.prototype.insAndParamsAndOuts = function() {
+    return [this.uniformIndex, this.paramIndex, this.outIndex];
 };
 
 function CodeStream() {
