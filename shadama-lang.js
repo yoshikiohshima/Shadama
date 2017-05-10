@@ -56,9 +56,12 @@ function initSemantics() {
                 return result;
             },
 
-            VariableDeclaration: function(n, _optI) {
-                return {["var." + n.sourceString]: ["var", null, n.sourceString]};
-            },
+
+            VariableDeclaration: function(n, optI) {
+		var r = {["var." + n.sourceString]: ["var", null, n.sourceString]};
+		addAsSet(r, optI.children[0].symTable());
+		return r;
+	    },
 
             IfStatement: function(_if, _o, c, _c, t, _e, optF) {
                 var r = c.symTable();
@@ -119,9 +122,11 @@ function initSemantics() {
         var vert = args.vert;
         var frag = args.frag;
         var js = args.frag;
+	vert.push("(");
         l.glsl(table, vert, frag, js);
         vert.push(op);
         r.glsl(table, vert, frag, js);
+	vert.push(")");
     };
 
     s.addOperation(
@@ -194,7 +199,7 @@ function initSemantics() {
                 return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
             },
 
-            Patch: function(_p, n, _o, fs, _c) {
+            Patch: (_p, n, _o, fs, _c) => {
                 var table = this.args.table;
                 var vert = new CodeStream();
                 var frag = new CodeStream();
@@ -303,13 +308,13 @@ function initSemantics() {
                 for (var i = 0; i < ss.children.length; i++) {
                     vert.tab();
                     ss.children[i].glsl(table, vert, frag, js);
+                    vert.push(";");
                     vert.cr();
                 }
             },
 
             Statement: function(e) {
                 e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
-                this.args.vert.push(";");
             },
 
             IfStatement: function(_i, _o, c, _c, t, _e, optF) {
@@ -446,7 +451,7 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
 
-                if (table.isAttribute(n.sourceString)) {
+                if (table.isBuiltin(n.sourceString)) {
                     vert.push(n.sourceString);
                     vert.push(".");
                     vert.push(f.sourceString);
@@ -487,6 +492,13 @@ function initSemantics() {
                     r.children[i].glsl(table, vert, frag, js);
                 }
             },
+	    ident: function(n, rest) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                var js = this.args.js;
+		vert.push(this.sourceString);
+	    }
         });
 };
 
@@ -607,8 +619,8 @@ SymTable.prototype.fragColors = function() {
     return result;
 };
 
-SymTable.prototype.isAttribute = function(n) {
-    return this.defaultAttributes.indexOf(n) >= 0;
+SymTable.prototype.isBuiltin = function(n) {
+    return this.defaultAttributes.indexOf(n) >= 0 || this.defaultUniforms.indexOf(n) >= 0 ;
 };
 
 SymTable.prototype.insAndParamsAndOuts = function() {

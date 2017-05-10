@@ -263,11 +263,7 @@ function randomPosition() {
 
 function Breed(count) {
     this.own = {};
-    if (count === undefined) {
-        count = 10000;
-    }
     this.count = count;
-
 };
 
 Breed.prototype.addOwnVariable = function(name) {
@@ -333,10 +329,6 @@ function makePrimitive(gl, name, uniforms, vao) {
 
 function forwardProgram(gl) {
     return makePrimitive(gl, "forward", ["u_resolution", "u_particleLength", "u_position", "u_amount"], breedVAO);
-};
-
-function genForwardProgram(gl) {
-    return makePrimitive(gl, "genForward", ["u_resolution", "u_particleLength", "u_this_x", "u_this_dirX", "u_this_y", "u_this_dirY", "u_use_vector_n", "u_vector_n", "u_scalar_n"], breedVAO);
 };
 
 function forwardEdgeBounceProgram(gl) {
@@ -445,64 +437,6 @@ Breed.prototype.forward = function(amount) {
     var tmp = this.pos;
     this.pos = this.newPos;
     this.newPos = tmp;
-};
-
-Breed.prototype.genForward = function(amount) {
-    var prog = programs["genForward"];
-    setTargetBuffers(gl, framebufferR, [this.newx, this.newy]);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.x);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.dirX);
-
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, this.y);
-
-    gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, this.dirY);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_this_x"], 0);
-    gl.uniform1i(prog.uniLocations["u_this_dirX"], 1);
-    gl.uniform1i(prog.uniLocations["u_this_y"], 2);
-    gl.uniform1i(prog.uniLocations["u_this_dirY"], 3);
-
-    gl.uniform1i(prog.uniLocations["u_use_vector_n"], 0);
-    gl.uniform1i(prog.uniLocations["u_vector_n"], 0);
-    gl.uniform1f(prog.uniLocations["u_scalar_n"], amount);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp;
-
-    tmp = this.x;
-    this.x = this.newx;
-    this.newx = tmp;
-
-    tmp = this.y;
-    this.y = this.newy;
-    this.newy = tmp;
-
-    tmp = this.dirX;
-    this.dirX = this.newdirX;
-    this.newdirX = tmp;
-
-    tmp = this.dirY;
-    this.dirY = this.newdirY;
-    this.newdirY = tmp;
 };
 
 Breed.prototype.forwardEdgeBounce = function(amount, condition) {
@@ -942,10 +876,18 @@ function debugDisplay2(gl, tex) {
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
+Breed.prototype.setCount = function(n) {
+    if (n < 0 || !n) {
+	n = 0;
+    }
+    this.count = n;
+    //
+};
+
 function updateBreed(name, fields) {
     var breed = breeds[name];
     if (!breed) {
-        breed = new Breed();
+        breed = new Breed(0);
         for (var i = 0; i < fields.length; i++) {
             breed.addOwnVariable(fields[i]);
         }
@@ -1003,28 +945,7 @@ onload = function() {
     initCompiler();
 
     programs["drawBreed"] = drawBreedProgram(gl);
-    // programs["forward"] = forwardProgram(gl);
-    // programs["forwardEdgeBounce"] = forwardEdgeBounceProgram(gl);
-    // programs["turn"] = turnProgram(gl);
-    // programs["bounceIf"] = bounceIfProgram(gl);
-    // programs["setPatch"] = setPatchProgram(gl);
-    // programs["getPatch"] = getPatchProgram(gl);
-    // programs["genericGet"] = genericGetProgram(gl);
-    // programs["genericSet"] = genericSetProgram(gl);
-    // programs["genericSet2"] = genericSet2Program(gl);
-    // programs["drawPatch"] = drawPatchProgram(gl);
-    // programs["diffusePatch"] = diffusePatchProgram(gl);
     programs["debugBreed"] = debugBreedProgram(gl);
-    programs["genForward"] = genForwardProgram(gl);
-    // programs["debugPatch"] = debugPatchProgram(gl);
-
-    // myBreed = new Breed(gl, 25000);
-    // myBreed.addOwnVariable("x");
-    // myBreed.addOwnVariable("y");
-    // myBreed.addOwnVariable("dirX");
-    // myBreed.addOwnVariable("dirY");
-
-    // myPatch = new Patch();
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T), gl.R32F);
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
@@ -1045,8 +966,6 @@ onload = function() {
     initFramebuffer(gl, framebufferR, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
-//    window.requestAnimationFrame(runner);
-
     var code = document.getElementById("code");
     var codeArray = step.toString().split("\n");
 
@@ -1055,6 +974,8 @@ onload = function() {
     grammarUnitTests();
 
     loadShadama("forward.shadama");
+
+    breeds["Turtle"].setCount(250000);
 
     breeds["Turtle"].fillRandom("x", 0, 400);
     breeds["Turtle"].fillRandom("y", 0, 300);
@@ -1102,7 +1023,7 @@ function programFromTable(table, vert, frag, name) {
             gl.uniform1f(uniLocations["u_particleLength"], T);
 
             for (var ind = 0; ind < sources.length + params.length; ind++) {
-		var elem = ind < sources.length ? sources[ind] : params[ind - sources.length];
+                var elem = ind < sources.length ? sources[ind] : params[ind - sources.length];
                 var k = elem[0];
                 var val = elem[1];
                 if (val.constructor == WebGLTexture) {
@@ -1142,7 +1063,7 @@ function callProgram(name, object, realParams) {
     var nn = params.map(function(n) {return [n, realParams[n]]});
 
     func(object, targets, ins.map(function(n) {return [n, object[n]]}), nn);
-}
+};
 
 function runner() {
     var start = performance.now();
@@ -1164,7 +1085,7 @@ function runner() {
 
 function step() {
     clear();
-    callProgram("forward", breeds["Turtle"], {"n":  1.5});
+    callProgram("forward", breeds["Turtle"], {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
     callProgram("turn", breeds["Turtle"], {"d":  0.05});
     breeds["Turtle"].draw();
 }
