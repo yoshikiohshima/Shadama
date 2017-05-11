@@ -70,7 +70,8 @@ function initSemantics() {
                 return r;
             },
             LeftHandSideExpression_field(n, _a, f) {
-                return {["propOut." + n.sourceString + "." + f.sourceString]: ["propOut", n.sourceString, f.sourceString]};
+		var entry = ["propOut", n.sourceString, f.sourceString];
+                return {[entry.join(".")]: entry};
             },
             PrimExpression_field(n, _p, f) {
 		var name = n.sourceString;
@@ -81,26 +82,15 @@ function initSemantics() {
 //                if (table.isBuiltin(n.sourceString)) {
 //		    return {};
 //		}
-                return {["propIn." + n.sourceString + "." + f.sourceString]: ["propIn", n.sourceString, f.sourceString]};
+		var entry = ["propIn", n.sourceString, f.sourceString];
+                return {[entry.join(".")]: entry};
             },
             PrimExpression_variable(n) {
                 return {};//["var." + n.sourceString]: ["var", null, n.sourceString]};
             },
 
             PrimitiveCall(n, _o, as, _c) {
-                if (n.sourceString == "forward") {
-                    var c = {
-                        "propOut.this.x": ["propOut", "this", "x"],
-                        "propOut.this.y": ["propOut", "this", "y"],
-                        "propOut.this.dx": ["propOut", "this", "dx"],
-                        "propOut.this.dy": ["propOut", "this", "dy"],
-                        "propIn.this.x": ["propIn", "this", "x"],
-                        "propIn.this.y": ["propIn", "this", "y"],
-                        "propIn.this.dx": ["propIn", "this", "dx"],
-                        "propIn.this.dy": ["propIn", "this", "dy"]};
-                } else {
-                    c = {};
-                }
+                var c = {};
                 addAsSet(c, as.symTable());
                 return c;
             },
@@ -146,7 +136,7 @@ function initSemantics() {
         });
 
     s.addOperation(
-        "glsl_script_block(table, vert, frag, js)",
+        "glsl_toplevel_block(table, vert, frag, js)",
         {
             Block(_o, ss, _c) {
                 var table = this.args.table;
@@ -161,12 +151,10 @@ function initSemantics() {
                 for (var i = 0; i < table.scalarParamIndex.length; i++) {
                     var k = table.scalarParamIndex[i];
 		    var entry = table.scalarParamTable[k];
-                    var template1 = "float @@ = u_use_vector_@@ ? texelFetch(";
-                    var template2 = ", ivec2(a_index), 0).r : u_scalar_@@;";
+		    var e = entry[2];
+                    var template1 = `float ${e} = u_use_vector_${e} ? texelFetch(u_vector_${e}, ivec2(a_index), 0).r : u_scalar_${e};`;
                     vert.tab();
-                    vert.push(template1.replace(/@@/g, entry[2]));
-                    vert.push("u_vector_" + entry[2]);
-                    vert.push(template2.replace(/@@/g, entry[2]));
+                    vert.push(template1);
                     vert.cr();
                 }
 
@@ -232,22 +220,21 @@ function initSemantics() {
 
                 table.uniforms().forEach(elem => {
                     vert.push(elem);
-                    vert.push("\n");
+                    vert.cr();
                 });
 
                 table.paramUniforms().forEach(elem => {
                     vert.push(elem);
-                    vert.push("\n");
+                    vert.cr();
                 });
 
                 table.vertVaryings().forEach(elem => {
                     vert.push(elem);
-                    vert.push("\n");
+                    vert.cr();
                 });
 
                 vert.crIfNeeded();
                 vert.push("void");
-                //vert.pushWithSpace(n.sourceString);
                 vert.pushWithSpace("main");
                 vert.push("()");
 
@@ -258,12 +245,12 @@ function initSemantics() {
 
                 table.fragVaryings().forEach((elem) =>{
                     frag.push(elem);
-                    frag.push("\n");
+                    frag.cr();
                 });
 
                 table.outs().forEach((elem) => {
                     frag.push(elem);
-                    frag.push("\n");
+                    frag.cr();
                 });
 
                 frag.crIfNeeded();
@@ -271,12 +258,13 @@ function initSemantics() {
                 frag.pushWithSpace("main");
                 frag.push("()");
 
-                b.glsl_script_block(table, vert, frag, js);
+                b.glsl_toplevel_block(table, vert, frag, js);
 
                 vert.crIfNeeded();
                 vert.tab();
 
-                frag.pushWithSpace("{\n");
+                frag.pushWithSpace("{");
+		frag.cr();
 
                 frag.addTab();
                 table.fragColors().forEach((line) => {
@@ -299,7 +287,8 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
                 var js = this.args.js;
-                vert.pushWithSpace("{\n");
+                vert.pushWithSpace("{");
+		vert.cr();
                 vert.addTab();
                 ss.glsl(table, vert, frag, js);
                 vert.decTab();
@@ -463,9 +452,7 @@ function initSemantics() {
                 var frag = this.args.frag;
 
                 if (table.isBuiltin(n.sourceString)) {
-                    vert.push(n.sourceString);
-                    vert.push(".");
-                    vert.push(f.sourceString);
+                    vert.push(n.sourceString + "." + f.sourceString);
                 } else {
                     vert.push("texelFetch(" +
                               table.uniform(["propIn", n.sourceString, f.sourceString]) +
@@ -477,7 +464,6 @@ function initSemantics() {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-
                 vert.push(n.sourceString);
             },
 
@@ -726,64 +712,66 @@ SymTable.prototype.insAndParamsAndOuts = function() {
     return [ins, shortParams, outs];
 };
 
-function CodeStream() {
-    this.result = [];
-    this.hadCR = true;
-    this.hadSpace = true;
-    this.tabLevel = 0;
-};
+class CodeStream {
+    constructor() {
+	this.result = [];
+	this.hadCR = true;
+	this.hadSpace = true;
+	this.tabLevel = 0;
+    }
 
-CodeStream.prototype.addTab = function() {
-    this.tabLevel++;
-};
+    addTab() {
+	this.tabLevel++;
+    }
 
-CodeStream.prototype.decTab = function() {
-    this.tabLevel--;
-};
+    decTab() {
+	this.tabLevel--;
+    }
 
-CodeStream.prototype.cr = function() {
-    this.result.push("\n");
-    this.hadCR = true;
-};
+    cr() {
+	this.result.push("\n");
+	this.hadCR = true;
+    }
 
-CodeStream.prototype.tab = function() {
-    for (var i = 0; i < this.tabLevel; i++) {
-        this.result.push("  ");
+    tab() {
+	for (var i = 0; i < this.tabLevel; i++) {
+            this.result.push("  ");
+	}
+    }
+
+    skipSpace() {
+	this.hadSpace = true;
+    }
+
+    crIfNeeded() {
+	if (!this.hadCR) {
+            this.cr();
+	}
+    }
+ 
+   push(val) {
+	this.result.push(val);
+	var last = val[val.length - 1];
+	this.hadSpace = (last === " " || last == "\n" || last == "{" || last == "(");
+	this.hadCR = last == "\n";
+    }
+
+    pushWithSpace(val) {
+	if (!this.hadSpace) {
+            this.push(" ");
+	}
+	this.push(val);
+    }
+
+    contents() {
+	function flatten(ary) {
+            return ary.reduce(function (a, b) {
+		return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
+	};
+	return flatten(this.result);
     }
 };
-
-CodeStream.prototype.skipSpace = function() {
-    this.hadSpace = true;
-};
-
-CodeStream.prototype.crIfNeeded = function() {
-    if (!this.hadCR) {
-        this.cr();
-    }
-};
-
-CodeStream.prototype.push = function(val) {
-    this.result.push(val);
-    var last = val[val.length - 1];
-    this.hadSpace = (last === " " || last == "\n" || last == "{" || last == "(");
-    this.hadCR = last == "\n";
-};
-
-CodeStream.prototype.pushWithSpace = function(val) {
-    if (!this.hadSpace) {
-        this.push(" ");
-    }
-    this.push(val);
-};
-
-CodeStream.prototype.contents = function() {
-    function flatten(ary) {
-        return ary.reduce(function (a, b) {
-            return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
-    };
-    return flatten(this.result);
-};
-
+    
 function parse(aString, optRule) {
     var rule = optRule;
     if (!rule) {

@@ -144,8 +144,6 @@ function loadShadama(id, source) {
     }
     var result = translate(source, "TopLevel");
     console.log(result);
-    console.log(result["forward"][1]);
-
     for (var k in result) {
         var entry = result[k];
         var js = entry[3];
