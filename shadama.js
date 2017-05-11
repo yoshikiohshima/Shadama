@@ -878,7 +878,7 @@ function debugDisplay2(gl, tex) {
 
 Breed.prototype.setCount = function(n) {
     if (n < 0 || !n) {
-	n = 0;
+        n = 0;
     }
     this.count = n;
     //
@@ -924,6 +924,121 @@ function updateBreed(name, fields) {
     for (var i = 0; i < toBeDeleted.length; i++) {
         // gl.destroyTexture(oldOwn[toBeDeleted[i]]);
     }
+};
+
+function programFromTable(table, vert, frag, name) {
+    return (function () {
+        var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
+                                 createShader(gl, name + ".frag", frag));
+        var uniLocations = {};
+
+        table.defaultUniforms.forEach(function(n) {
+            uniLocations[n] = gl.getUniformLocation(prog, n);
+        });
+
+        for (var n in table.uniformTable) {
+            var uni = table.uniform(table.uniformTable[n]);
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+        }
+
+        for (var i = 0; i < table.scalarParamIndex.length; i++) {
+            var n = table.scalarParamIndex[i];
+            var entry = table.scalarParamTable[n];
+            uni = "u_use_vector_" + entry[2];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+            uni = "u_vector_" + entry[2];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+            uni = "u_scalar_" + entry[2];
+            uniLocations[uni] = gl.getUniformLocation(prog, uni);
+        }
+
+        var vao = breedVAO;
+
+        return function(objects, outs, ins, params) {
+            // objects: {varName: object}
+            // outs: [[object, fieldName]]
+            // ins: [[object, fieldName]]
+            // params: {shortName: value}
+
+            var targets = outs.map(function(pair) {return pair[0]["new" + pair[1]]});
+            setTargetBuffers(gl, framebufferR, targets);
+
+            gl.useProgram(prog);
+            gl.bindVertexArray(vao);
+
+            gl.viewport(0, 0, T, T);
+            gl.uniform2f(uniLocations["u_resolution"], FW, FH);
+            gl.uniform1f(uniLocations["u_particleLength"], T);
+
+            for (var ind = 0; ind < ins.length; ind++) {
+                var pair = ins[ind];
+                var glIndex = gl.TEXTURE0 + ind;
+                var k = pair[1]
+                var val = pair[0][k];
+                gl.activeTexture(glIndex);
+                gl.bindTexture(gl.TEXTURE_2D, val);
+                gl.uniform1i(uniLocations["u_this_" + k], ind);
+            }
+
+	    var ind = 0;
+            for (var k in params) {
+                var val = params[k];
+                var glIndex = gl.TEXTURE0 + ins.length + ind;
+		ind++;
+                if (val.constructor == WebGLTexture) {
+                    gl.activeTexture(glIndex);
+                    gl.bindTexture(gl.TEXTURE_2D, val);
+                    gl.uniform1i(uniLocations["u_this_" + k], ind);
+                } else {
+                    gl.uniform1i(uniLocations["u_vector_" + k], 0);
+                    gl.uniform1f(uniLocations["u_scalar_" + k], val);
+                    gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
+                }
+            }
+
+            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.POINTS, 0, objects["this"].count);
+            gl.flush();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+            for (var i = 0; i < outs.length; i++) {
+                var pair = outs[i];
+                var object = pair[0];
+                var name = pair[1];
+                var tmp = object[name];
+                object[name] = object["new"+name];
+                object["new"+name] = tmp;
+            }
+        }
+    })();
+};
+
+function callProgram(name, objects, params) {
+    var data = scripts[name];
+    if (!data) {throw name + " cannot be found"; return};
+    var func = data[0];
+    var ins = data[1][0];
+    var formals = data[1][1];
+    var outs = data[1][2];
+
+    var realOuts = [];  // [[object, <fieldName>]]
+    var realIns = [];  // [[object, <fieldName>]]
+    var realParams = [] // [[shortName, value]]
+
+    for (var i = 0; i < outs.length; i++) {
+        var entry = outs[i];
+        var target = objects[entry[1]];
+        realOuts.push([target, entry[2]]);
+    }
+
+    for (var i = 0; i < ins.length; i++) {
+        var entry = ins[i];
+        var target = objects[entry[1]];
+        realIns.push([target, entry[2]]);
+    }
+
+    func(objects, realOuts, realIns, params);
 };
 
 onload = function() {
@@ -984,87 +1099,6 @@ onload = function() {
     runner();
 };
 
-function programFromTable(table, vert, frag, name) {
-    return (function () {
-        var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
-                                 createShader(gl, name + ".frag", frag));
-        var uniLocations = {};
-
-        table.defaultUniforms.forEach(function(n) {
-            uniLocations[n] = gl.getUniformLocation(prog, n);
-        });
-
-        for (var n in table.uniformTable) {
-            var uni = table.uniformTable[n];
-            uniLocations[uni] = gl.getUniformLocation(prog, uni);
-        }
-
-        for (var i = 0; i < table.paramIndex.length; i++) {
-            uni = "u_use_vector_" + table.paramIndex[i];
-            uniLocations[uni] = gl.getUniformLocation(prog, uni);
-            uni = "u_vector_" + table.paramIndex[i];
-            uniLocations[uni] = gl.getUniformLocation(prog, uni);
-            uni = "u_scalar_" + table.paramIndex[i];
-            uniLocations[uni] = gl.getUniformLocation(prog, uni);
-        }
-
-        var vao = breedVAO;
-
-        return function(object, targets, sources, params) {  // {object: object, targets: [fieldName], sources: [[<name>, valueOrtexture]], params: [[<name>, valueOrTexture]]
-
-            var realTargets = targets.map(function(n) {return object["new"+n]});
-            setTargetBuffers(gl, framebufferR, realTargets);
-
-            gl.useProgram(prog);
-            gl.bindVertexArray(vao);
-
-            gl.viewport(0, 0, T, T);
-            gl.uniform2f(uniLocations["u_resolution"], FW, FH);
-            gl.uniform1f(uniLocations["u_particleLength"], T);
-
-            for (var ind = 0; ind < sources.length + params.length; ind++) {
-                var elem = ind < sources.length ? sources[ind] : params[ind - sources.length];
-                var k = elem[0];
-                var val = elem[1];
-                if (val.constructor == WebGLTexture) {
-                    var glIndex = gl.TEXTURE0 + ind;
-                    gl.activeTexture(glIndex);
-                    gl.bindTexture(gl.TEXTURE_2D, val);
-                    gl.uniform1i(uniLocations["u_this_" + k], ind);
-                } else {
-                    gl.uniform1i(uniLocations["u_vector_" + k], 0);
-                    gl.uniform1f(uniLocations["u_scalar_" + k], val);
-                    gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
-                }
-            }
-
-            gl.clearColor(0.0, 0.0, 0.0, 0.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.drawArrays(gl.POINTS, 0, object.count);
-            gl.flush();
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            for (var i = 0; i < targets.length; i++) {
-                var tmp = object[targets[i]];
-                object[targets[i]] = object["new"+targets[i]];
-                object["new"+targets[i]] = tmp;
-            }
-        }
-    })();
-};
-
-function callProgram(name, object, realParams) {
-    var data = scripts[name];
-    if (!data) {throw name + " cannot be found"; return};
-    var func = data[0];
-    var ins = data[1][0];
-    var params = data[1][1];
-    var targets = data[1][2];
-
-    var nn = params.map(function(n) {return [n, realParams[n]]});
-
-    func(object, targets, ins.map(function(n) {return [n, object[n]]}), nn);
-};
-
 function runner() {
     var start = performance.now();
 
@@ -1085,7 +1119,7 @@ function runner() {
 
 function step() {
     clear();
-    callProgram("forward", breeds["Turtle"], {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
-    callProgram("turn", breeds["Turtle"], {"d":  0.05});
+    callProgram("forward", {this: breeds["Turtle"]}, {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
+    callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
     breeds["Turtle"].draw();
 }

@@ -70,26 +70,34 @@ function initSemantics() {
                 return r;
             },
             LeftHandSideExpression_field: function(n, _a, f) {
-                return {["out." + n.sourceString + "." + f.sourceString]: ["propOut", n.sourceString, f.sourceString]};
+                return {["propOut." + n.sourceString + "." + f.sourceString]: ["propOut", n.sourceString, f.sourceString]};
             },
             PrimExpression_field: function(n, _p, f) {
-                return {["in." + n.sourceString + "." + f.sourceString]: ["propIn", n.sourceString, f.sourceString]};
+		var name = n.sourceString;
+		if (["u_particleLength", "u_resolution"].indexOf(name) >= 0 ||
+		    ["a_index"].indexOf(name) >= 0) {
+		    return {};
+		}
+//                if (table.isBuiltin(n.sourceString)) {
+//		    return {};
+//		}
+                return {["propIn." + n.sourceString + "." + f.sourceString]: ["propIn", n.sourceString, f.sourceString]};
             },
             PrimExpression_variable: function(n) {
-                return {["var." + n.sourceString]: ["var", null, n.sourceString]};
+                return {};//["var." + n.sourceString]: ["var", null, n.sourceString]};
             },
 
             PrimitiveCall: function(n, _o, as, _c) {
                 if (n.sourceString == "forward") {
                     var c = {
-                        "out.this.x": ["propOut", "this", "x"],
-                        "out.this.y": ["propOut", "this", "y"],
-                        "out.this.dx": ["propOut", "this", "dx"],
-                        "out.this.dy": ["propOut", "this", "dy"],
-                        "in.this.x": ["propIn", "this", "x"],
-                        "in.this.y": ["propIn", "this", "y"],
-                        "in.this.dx": ["propIn", "this", "dx"],
-                        "in.this.dy": ["propIn", "this", "dy"]};
+                        "propOut.this.x": ["propOut", "this", "x"],
+                        "propOut.this.y": ["propOut", "this", "y"],
+                        "propOut.this.dx": ["propOut", "this", "dx"],
+                        "propOut.this.dy": ["propOut", "this", "dy"],
+                        "propIn.this.x": ["propIn", "this", "x"],
+                        "propIn.this.y": ["propIn", "this", "y"],
+                        "propIn.this.dx": ["propIn", "this", "dx"],
+                        "propIn.this.dy": ["propIn", "this", "dy"]};
                 } else {
                     c = {};
                 }
@@ -150,14 +158,15 @@ function initSemantics() {
                 vert.tab();
                 vert.push("vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;\n");
 
-                for (var i = 0; i < table.paramIndex.length; i++) {
-                    var k = table.paramIndex[i];
+                for (var i = 0; i < table.scalarParamIndex.length; i++) {
+                    var k = table.scalarParamIndex[i];
+		    var entry = table.scalarParamTable[k];
                     var template1 = "float @@ = u_use_vector_@@ ? texelFetch(";
                     var template2 = ", ivec2(a_index), 0).r : u_scalar_@@;";
                     vert.tab();
-                    vert.push(template1.replace(/@@/g, k));
-                    vert.push(table.paramIn(["param", null, k]));
-                    vert.push(template2.replace(/@@/g, k));
+                    vert.push(template1.replace(/@@/g, entry[2]));
+                    vert.push("u_vector_" + entry[2]);
+                    vert.push(template2.replace(/@@/g, entry[2]));
                     vert.cr();
                 }
 
@@ -457,7 +466,7 @@ function initSemantics() {
                     vert.push(f.sourceString);
                 } else {
                     vert.push("texelFetch(" +
-                              table.in(["propIn", n.sourceString, f.sourceString]) +
+                              table.uniform(["propIn", n.sourceString, f.sourceString]) +
                               ", ivec2(a_index), 0).r");
                 }
             },
@@ -505,23 +514,37 @@ function initSemantics() {
 function SymTable(table, defaultUniforms, defaultAttributes) {
     this.rawTable = table;
 
-    this.uniformTable = {};
-    this.uniformIndex = [];
-
-    this.varyingTable = {};
-    this.varyingIndex = [];
-
-    this.outTable = {};
-    this.outIndex = [];
-
-    this.paramTable = {};
-    this.paramIndex = [];
-
-    this.varTable = {};
-    this.varIndex = [];
-
     this.defaultUniforms = [];
     this.defaultAttributes = [];
+
+    this.thisOutTable = {};   // this.x = ... -> ["propOut", "this", "x"]
+    this.thisOutIndex = [];
+
+    this.otherOutTable = {};  // other.x = ... -> ["propOut", "other", "x"]
+    this.otherOutIndex = [];
+
+    this.thisInTable = {};    // v = this.x    -> ["propIn", "this", "x"]
+    this.thisInIndex = [];    
+
+    this.otherInTable = {};   // v = other.x   -> ["propIn", "other", "x"]
+    this.otherInIndex = [];
+
+    this.paramTable = {};     // def foo(a, b, c) -> [["param", null, "a"], ...]
+    this.paramIndex = [];
+
+    this.varTable = {};       // var x = ... -> ["var", null, "x"]
+    this.varIndex = [];
+
+// ----------------------------
+
+    this.varyingTable = {};   // from prop out
+    this.varyingIndex = [];
+
+    this.uniformTable = {};   // from in
+    this.uniformIndex = [];
+
+    this.scalarParamTable = {};  // params - other object
+    this.scalarParamIndex = [];
 
     if (defaultUniforms) {
         this.defaultUniforms = defaultUniforms;
@@ -533,39 +556,104 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
     for (var k in table) {
         var entry = table[k];
         if (entry[0] === "propOut" && entry[1] === "this") {
-            this.varyingTable[entry[2]] = "v_this_" + entry[2];
-            this.varyingIndex.push(entry[2]);
-            this.outTable[entry[2]] = "o_this_" + entry[2];
-            this.outIndex.push(entry[2]);
-        } else if (entry[0] === "propIn" && entry[1] === "this") {
-            this.uniformTable[entry[2]] = "u_this_" + entry[2];
-            this.uniformIndex.push(entry[2]);
-        } else if (entry[0] === "param") {
-            this.paramTable[entry[2]] = "u_vector_" + entry[2];
-            this.paramIndex.push(entry[2]);
-        } else if (entry[0] === "var") {
-            this.varTable[entry[2]] = entry[2];
-            this.varIndex.push(entry[2]);
-        }
+	    this.thisOutTable[k] = entry;
+	    this.thisOutIndex.push(k);
+	} else if (entry[0] === "propOut" && entry[1] !== "this") {
+	    this.otherOutTable[k] = entry;
+	    this.otherOutIndex.push(k);
+	} else if (entry[0] === "propIn" && entry[1] === "this") {
+	    this.thisInTable[k] = entry;
+	    this.thisInIndex.push(k);
+	} else if (entry[0] === "propIn" && entry[1] !== "this") {
+	    this.otherInTable[k] = entry;
+	    this.otherInIndex.push(k);
+	} else if (entry[0] === "param") {
+            this.paramTable[k] = entry;
+            this.paramIndex.push(k);
+	} else if (entry[0] === "var") {
+            this.varTable[k] = entry;
+            this.varIndex.push(k);
+	}
+    }
+
+    for (var i = 0; i < this.thisInIndex.length + this.otherInIndex.length; i++) {
+	if (i < this.thisInIndex.length) {
+	    var k = this.thisInIndex[i];
+	    var elem = this.thisInTable[k];
+	} else {
+	    var k = this.otherInIndex[i - this.thisInIndex.length];
+	    var elem = this.otherInTable[k];
+	}
+	this.uniformTable[k] = elem;
+	this.uniformIndex.push(k);
+    }
+
+    if (this.thisOutIndex.length > 0 && this.otherOutIndex.length > 0) {
+	throw "shadama cannot write into this and others from the same script."
+    }
+
+    for (var i = 0; i < this.thisOutIndex.length + this.otherOutIndex.length; i++) {
+	if (i < this.thisOutIndex.length) {
+	    var k = this.thisOutIndex[i];
+	    var elem = this.thisOutTable[k];
+	} else {
+	    var k = this.otherOutIndex[i - this.thisOutIndex.length];
+	    var elem = this.otherOutTable[k];
+	}
+	this.varyingTable[k] = elem;
+	this.varyingIndex.push(k);
+    }
+
+    var usedAsOther = (n) => {
+	for (var i = 0; i < this.otherInIndex.length; i++) {
+	    if (this.otherInTable[this.otherInIndex[i]][1] === n) {
+		return true;
+	    }
+	}
+	for (var i = 0; i < this.otherOutIndex.length; i++) {
+	    if (this.otherOutTable[this.otherOutIndex[i]][1] === n) {
+		return true;
+	    }
+	}
+	return false;
+    };
+
+    for (var i = 0; i < this.paramIndex.length; i++) {
+	var k = this.paramIndex[i];
+	var elem = this.paramTable[k];
+
+	if (!usedAsOther(elem[2])) {
+	    this.scalarParamTable[k] = elem;
+	    this.scalarParamIndex.push(k);
+	}
     }
 };
 
 SymTable.prototype.varying = function(entry) {
-    return this.varyingTable[entry[2]];
+    var k = "propOut." + entry[1] + "." + entry[2];
+    var entry = this.varyingTable[k];
+    return ["v", entry[1],  entry[2]].join("_");
 };
 
-SymTable.prototype.in = function(entry) {
-    return this.uniformTable[entry[2]];
+SymTable.prototype.uniform = function(entry) {
+    var k = "propIn." + entry[1] + "." + entry[2];
+    var entry = this.uniformTable[k];
+    if (!entry) {debugger;}
+    return ["u", entry[1], entry[2]].join("_");
 };
 
 SymTable.prototype.out = function(entry) {
-    return this.outTable[entry[2]];
+    var k = "propOut." + entry[1] + "." + entry[2];
+    var entry = this.varyingTable[k];
+    return ["o", entry[1], entry[2]].join("_");
 };
 
 SymTable.prototype.uniforms = function() {
     var result = [];
     for (var k in this.uniformTable) {
-        result.push("uniform sampler2D " + this.uniformTable[k] + ";");
+	var entry = this.uniformTable[k];
+	var name = ["u", entry[1], entry[2]].join("_");
+        result.push("uniform sampler2D " + name + ";");
     }
     return result;
 };
@@ -573,48 +661,55 @@ SymTable.prototype.uniforms = function() {
 SymTable.prototype.paramUniforms = function() {
     var result = [];
     var that = this;
-    this.paramIndex.forEach(function(k) {
-        result.push("uniform bool u_use_vector_" + k + ";");
-        result.push("uniform sampler2D u_vector_" + k + ";");
-        result.push("uniform float u_scalar_" + k + ";");
+    this.scalarParamIndex.forEach(function(k) {
+	var entry = that.scalarParamTable[k];
+        result.push("uniform bool u_use_vector_" + entry[2] + ";");
+        result.push("uniform sampler2D u_vector_" + entry[2] + ";");
+        result.push("uniform float u_scalar_" + entry[2] + ";");
     });
     return result;
 };
 
-SymTable.prototype.paramIn = function(entry) {
-    return this.paramTable[entry[2]];
-};
+//SymTable.prototype.paramIn = function(entry) {
+//    return this.paramTable[entry[2]];
+//};
 
 SymTable.prototype.vertVaryings = function() {
     var result = [];
-    for (var k in this.varyingTable) {
-        result.push("out float " + this.varyingTable[k] + ";");
+    for (var i = 0; i < this.varyingIndex.length; i++) {
+	var k = this.varyingIndex[i];
+	var entry = this.varyingTable[k];
+        result.push("out float " + this.varying(entry) + ";");
     }
     return result;
 };
 
 SymTable.prototype.fragVaryings = function() {
     var result = [];
-    for (var k in this.varyingTable) {
-        result.push("in float " + this.varyingTable[k] + ";");
+    for (var i = 0; i < this.varyingIndex.length; i++) {
+	var k = this.varyingIndex[i];
+	var entry = this.varyingTable[k];
+        result.push("in float " + this.varying(entry) + ";");
     }
     return result;
 };
 
 SymTable.prototype.outs = function() {
     var result = [];
-    for (var i = 0; i < this.outIndex.length; i++) {
-        var k = this.outIndex[i];
-        result.push("layout (location = " + i + ") out float " + this.outTable[k] + ";");
+    for (var i = 0; i < this.varyingIndex.length; i++) {
+        var k = this.varyingIndex[i];
+	var entry = this.varyingTable[k];
+        result.push("layout (location = " + i + ") out float " + this.out(entry) + ";");
     }
     return result;
 };
 
 SymTable.prototype.fragColors = function() {
     var result = [];
-    var keys = Object.keys(this.varyingTable);
-    for (var i = 0; i < keys.length; i++) {
-        result.push(this.outTable[keys[i]] + " = " + this.varyingTable[keys[i]] + ";");
+    for (var i = 0; i < this.varyingIndex.length; i++) {
+        var k = this.varyingIndex[i];
+	var entry = this.varyingTable[k];
+	result.push(this.out(entry) + " = " + this.varying(entry) + ";");
     }
     return result;
 };
@@ -624,7 +719,13 @@ SymTable.prototype.isBuiltin = function(n) {
 };
 
 SymTable.prototype.insAndParamsAndOuts = function() {
-    return [this.uniformIndex, this.paramIndex, this.outIndex];
+    var ins = this.uniformIndex.map((k) => this.uniformTable[k]);
+    var shortParams = this.paramIndex.map((k) => this.paramTable[k][2]);
+    var outs = this.thisOutIndex.length != 0
+	? this.thisOutIndex.map((k) => this.thisOutTable[k])
+        : this.otherOutIndex.map((k) => this.otherOutTable[k]);
+
+    return [ins, shortParams, outs];
 };
 
 function CodeStream() {
@@ -721,14 +822,6 @@ function addAsSet(to, from) {
 function semanticsTest(str, prod, sem, attr, expected) {
     function stringify(obj) {
         var type = Object.prototype.toString.call(obj);
-        // IE8 <= 8 does not have array map
-        var map = Array.prototype.map || function map(callback) {
-            var ret = [];
-            for (var i = 0; i < this.length; i++) {
-                ret.push(callback(this[i]));
-            }
-            return ret;
-        };
         if (type === "[object Object]") {
             var pairs = [];
             for (var k in obj) {
@@ -736,11 +829,11 @@ function semanticsTest(str, prod, sem, attr, expected) {
                 pairs.push([k, stringify(obj[k])]);
             }
             pairs.sort(function(a, b) { return a[0] < b[0] ? -1 : 1 });
-            pairs = map.call(pairs, function(v) { return '"' + v[0] + '":' + v[1] });
+            pairs = pairs.map(function(v) { return '"' + v[0] + '":' + v[1] });
             return "{" + pairs + "}";
         }
         if (type === "[object Array]") {
-            return "[" + map.call(obj, function(v) { return stringify(v) }) + "]";
+            return "[" + obj.map(function(v) { return stringify(v) }) + "]";
         }
         return JSON.stringify(obj);
     };
