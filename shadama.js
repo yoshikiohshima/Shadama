@@ -144,6 +144,7 @@ function loadShadama(id, source) {
     }
     var result = translate(source, "TopLevel");
     console.log(result);
+    console.log(result["forward"][1]);
 
     for (var k in result) {
         var entry = result[k];
@@ -1090,7 +1091,7 @@ onload = function() {
 
     loadShadama("forward.shadama");
 
-    breeds["Turtle"].setCount(250000);
+    breeds["Turtle"].setCount(100000);
 
     breeds["Turtle"].fillRandom("x", 0, 400);
     breeds["Turtle"].fillRandom("y", 0, 300);
