@@ -206,6 +206,7 @@ function initSemantics() {
                 js.push(fs.glsl_script_formals());
                 return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
             },
+
             Script(_d, _b, _p, n, _o, ns, _c, b) {
                 var inTable = this.args.table;
                 var table = inTable[n.sourceString];
@@ -287,6 +288,7 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
                 var js = this.args.js;
+
                 vert.pushWithSpace("{");
 		vert.cr();
                 vert.addTab();
@@ -321,6 +323,7 @@ function initSemantics() {
                     vert.cr();
 		}
             },
+
             IfStatement(_i, _o, c, _c, t, _e, optF) {
                 var table = this.args.table;
                 var vert = this.args.vert;
@@ -335,6 +338,7 @@ function initSemantics() {
                 vert.pushWithSpace("else");
                 optF.glsl(table, vert, frag, js);
             },
+
             AssignmentStatement(l, _a, e, _) {
                 var table = this.args.table;
                 var vert = this.args.vert;
@@ -387,6 +391,7 @@ function initSemantics() {
             EqualityExpression_equal(l, _, r) {
                 transBinOp(l, r, " == ", this.args);
             },
+
             EqualityExpression_notEqual(l, _, r) {
                 transBinOp(l, r, " != ", this.args);
             },
@@ -394,15 +399,19 @@ function initSemantics() {
             RelationalExpression(e) {
                 e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
             },
+
             RelationalExpression_lt(l, _, r) {
                 transBinOp(l, r, " < ", this.args);
             },
+
             RelationalExpression_gt(l, _, r) {
                 transBinOp(l, r, " > ", this.args);
             },
+
             RelationalExpression_le(l, _, r) {
                 transBinOp(l, r, " <= ", this.args);
             },
+
             RelationalExpression_ge(l, _, r) {
                 transBinOp(l, r, " >= ", this.args);
             },
