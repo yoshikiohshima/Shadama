@@ -331,11 +331,11 @@ void main(void) {
 
         def breed.forward(n, left, right, top, bottom) {
           var dx = this.dirX;
-	  var dy = this.dirY;
+          var dy = this.dirY;
           var maybeX = this.x + dx * n;
           var maybeY = this.y + dy * n;
-	   
-	  if (maybeX < 0.0) {
+           
+          if (maybeX < 0.0) {
             if (left == 1.0) {
               maybeX = 0.0 - maybeX;
               dx = 0.0 - dx;
@@ -347,11 +347,11 @@ void main(void) {
               }
             }
           }
-  	  if (maybeX > u_resolution.x) {
+          if (maybeX > u_resolution.x) {
             if (right == 1.0) {
-	      maybeX = u_resolution.x - (maybeX - u_resolution.x);
-	      dx = 0.0 - dx;
-	    } else {
+              maybeX = u_resolution.x - (maybeX - u_resolution.x);
+              dx = 0.0 - dx;
+            } else {
               if (right == 2.0) {
                 maybeX = u_resolution.x;
               } else {
@@ -359,7 +359,7 @@ void main(void) {
               }
             }
           }
-	  if (maybeY < 0.0) {
+          if (maybeY < 0.0) {
             if (bottom == 1.0) {
               maybeY = 0.0 - maybeY;
               dy = 0.0 - dy;
@@ -371,11 +371,11 @@ void main(void) {
               }
             }
           }
-  	  if (maybeY > u_resolution.y) {
+          if (maybeY > u_resolution.y) {
             if (top == 1.0) {
-	      maybeY = u_resolution.y - (maybeY - u_resolution.y);
-	      dy = 0.0 - dy;
-	    } else {
+              maybeY = u_resolution.y - (maybeY - u_resolution.y);
+              dy = 0.0 - dy;
+            } else {
               if (top == 2.0) {
                 maybeY = u_resolution.y;
               } else {
@@ -396,7 +396,7 @@ void main(void) {
            this.dirY = s * this.dirX + c * this.dirY;
         }
 
-	def breed.setTrail(patch, value) {
+        def breed.setTrail(patch, value) {
            patch.value = value;
         }
         </script>

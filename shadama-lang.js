@@ -25,19 +25,19 @@ function initSemantics() {
             },
 
             Breed(_b, n, _o, fs, _c) {
-		var table = new SymTable(fs.symTable());
+                var table = new SymTable(fs.symTable());
                 return {[n.sourceString]: table};
             },
 
             Patch(_p, n, _o, fs, _c) {
-		var table = new SymTable(fs.symTable());
+                var table = new SymTable(fs.symTable());
                 return {[n.sourceString]: table};
             },
 
             Script(_d, _b, _p, n, _o, ns, _c, b) {
                 var c = b.symTable();
                 addAsSet(c, ns.symTable());
-		var table = new SymTable(c);
+                var table = new SymTable(c);
                 return {[n.sourceString]: table};
             },
 
@@ -61,10 +61,10 @@ function initSemantics() {
 
 
             VariableDeclaration(n, optI) {
-		var r = {["var." + n.sourceString]: ["var", null, n.sourceString]};
-		addAsSet(r, optI.children[0].symTable());
-		return r;
-	    },
+                var r = {["var." + n.sourceString]: ["var", null, n.sourceString]};
+                addAsSet(r, optI.children[0].symTable());
+                return r;
+            },
 
             IfStatement(_if, _o, c, _c, t, _e, optF) {
                 var r = c.symTable();
@@ -73,19 +73,19 @@ function initSemantics() {
                 return r;
             },
             LeftHandSideExpression_field(n, _a, f) {
-		var entry = ["propOut", n.sourceString, f.sourceString];
+                var entry = ["propOut", n.sourceString, f.sourceString];
                 return {[entry.join(".")]: entry};
             },
             PrimExpression_field(n, _p, f) {
-		var name = n.sourceString;
-		if (["u_particleLength", "u_resolution"].indexOf(name) >= 0 ||
-		    ["a_index"].indexOf(name) >= 0) {
-		    return {};
-		}
+                var name = n.sourceString;
+                if (["u_particleLength", "u_resolution"].indexOf(name) >= 0 ||
+                    ["a_index"].indexOf(name) >= 0) {
+                    return {};
+                }
 //                if (table.isBuiltin(n.sourceString)) {
-//		    return {};
-//		}
-		var entry = ["propIn", n.sourceString, f.sourceString];
+//                  return {};
+//              }
+                var entry = ["propIn", n.sourceString, f.sourceString];
                 return {[entry.join(".")]: entry};
             },
             PrimExpression_variable(n) {
@@ -119,31 +119,31 @@ function initSemantics() {
         });
 
     s.addOperation(
-	"rawTable",
-	{
+        "rawTable",
+        {
             Breed(_b, n, _o, fs, _c) {
-		return this.symTable()[n.sourceString].rawTable;
+                return this.symTable()[n.sourceString].rawTable;
             },
 
             Patch(_p, n, _o, fs, _c) {
-		return this.symTable()[n.sourceString].rawTable;
+                return this.symTable()[n.sourceString].rawTable;
             },
 
             Script(_d, _b, _p, n, _o, ns, _c, b) {
-		return this.symTable()[n.sourceString].rawTable;
+                return this.symTable()[n.sourceString].rawTable;
             }
-	});
+        });
 
     function transBinOp(l, r, op, args) {
         var table = args.table;
         var vert = args.vert;
         var frag = args.frag;
         var js = args.frag;
-	vert.push("(");
+        vert.push("(");
         l.glsl(table, vert, frag, js);
         vert.push(op);
         r.glsl(table, vert, frag, js);
-	vert.push(")");
+        vert.push(")");
     };
 
     s.addOperation(
@@ -169,8 +169,8 @@ function initSemantics() {
 
                 for (var i = 0; i < table.scalarParamIndex.length; i++) {
                     var k = table.scalarParamIndex[i];
-		    var entry = table.scalarParamTable[k];
-		    var e = entry[2];
+                    var entry = table.scalarParamTable[k];
+                    var e = entry[2];
                     var template1 = `float ${e} = u_use_vector_${e} ? texelFetch(u_vector_${e}, ivec2(a_index), 0).r : u_scalar_${e};`;
                     vert.tab();
                     vert.push(template1);
@@ -239,17 +239,17 @@ function initSemantics() {
                 frag.pushWithSpace("main");
                 frag.push("()");
 
-		if (table.forPatch) {
+                if (table.forPatch) {
                     b.glsl_helper_for_patch(table, vert, frag, js);
-		} else {
+                } else {
                     b.glsl_helper_for_breed(table, vert, frag, js);
-		}
+                }
 
                 vert.crIfNeeded();
                 vert.tab();
 
                 frag.pushWithSpace("{");
-		frag.cr();
+                frag.cr();
 
                 frag.addTab();
                 table.fragColors().forEach((line) => {
@@ -279,16 +279,16 @@ function initSemantics() {
                 vert.pushWithSpace("{\n");
                 vert.addTab();
                 vert.tab();
-		vert.push("float _x = texelFetch(u_this_x, ivec2(a_index), 0).r;\n");
+                vert.push("float _x = texelFetch(u_this_x, ivec2(a_index), 0).r;\n");
                 vert.tab();
-		vert.push("float _y = texelFetch(u_this_y, ivec2(a_index), 0).r;\n");
-		vert.tab();
-		vert.push("vec2 clipPos = (vec2(_x, _y) / u_resolution) * 2.0 - 1.0;\n");
-		
+                vert.push("float _y = texelFetch(u_this_y, ivec2(a_index), 0).r;\n");
+                vert.tab();
+                vert.push("vec2 clipPos = (vec2(_x, _y) / u_resolution) * 2.0 - 1.0;\n");
+                
                 for (var i = 0; i < table.scalarParamIndex.length; i++) {
                     var k = table.scalarParamIndex[i];
-		    var entry = table.scalarParamTable[k];
-		    var e = entry[2];
+                    var entry = table.scalarParamTable[k];
+                    var e = entry[2];
                     var template1 = `float ${e} = u_use_vector_${e} ? texelFetch(u_vector_${e}, ivec2(a_index), 0).r : u_scalar_${e};`;
                     vert.tab();
                     vert.push(template1);
@@ -316,8 +316,8 @@ function initSemantics() {
                 vert.push("layout (location = 0) in vec2 a_index;\n");
                 vert.push("uniform vec2 u_resolution;\n");
                 vert.push("uniform float u_particleLength;\n");
-		vert.push("uniform sampler2D u_this_x;\n");
-		vert.push("uniform sampler2D u_this_y;\n");
+                vert.push("uniform sampler2D u_this_x;\n");
+                vert.push("uniform sampler2D u_this_y;\n");
 
                 table.uniforms().forEach(elem => {
                     vert.push(elem);
@@ -359,17 +359,17 @@ function initSemantics() {
                 frag.pushWithSpace("main");
                 frag.push("()");
 
-		if (table.forPatch) {
+                if (table.forPatch) {
                     b.glsl_helper_for_patch(table, vert, frag, js);
-		} else {
+                } else {
                     b.glsl_helper_for_breed(table, vert, frag, js);
-		}
+                }
 
                 vert.crIfNeeded();
                 vert.tab();
 
                 frag.pushWithSpace("{");
-		frag.cr();
+                frag.cr();
 
                 frag.addTab();
                 table.fragColors().forEach((line) => {
@@ -432,11 +432,11 @@ function initSemantics() {
                 var vert = new CodeStream();
                 var frag = new CodeStream();
                 var js = [];
-		if (table.forPatch) {
-		    return this.glsl_helper_for_patch(table, vert, frag, js);
-		} else {
-		    return this.glsl_helper_for_breed(table, vert, frag, js);
-		}
+                if (table.forPatch) {
+                    return this.glsl_helper_for_patch(table, vert, frag, js);
+                } else {
+                    return this.glsl_helper_for_breed(table, vert, frag, js);
+                }
             },
 
             Block(_o, ss, _c) {
@@ -446,7 +446,7 @@ function initSemantics() {
                 var js = this.args.js;
 
                 vert.pushWithSpace("{");
-		vert.cr();
+                vert.cr();
                 vert.addTab();
                 ss.glsl(table, vert, frag, js);
                 vert.decTab();
@@ -471,13 +471,13 @@ function initSemantics() {
                 var frag = this.args.frag;
                 var js = this.args.js;
                 e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
-		if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
+                if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                     vert.push(";");
                     vert.cr();
-		} 
-		if (e.ctorName == "IfStatement") {
+                } 
+                if (e.ctorName == "IfStatement") {
                     vert.cr();
-		}
+                }
             },
 
             IfStatement(_i, _o, c, _c, t, _e, optF) {
@@ -654,13 +654,13 @@ function initSemantics() {
                     r.children[i].glsl(table, vert, frag, js);
                 }
             },
-	    ident(n, rest) {
+            ident(n, rest) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
                 var js = this.args.js;
-		vert.push(this.sourceString);
-	    }
+                vert.push(this.sourceString);
+            }
         });
 };
 
@@ -704,84 +704,84 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
     for (var k in table) {
         var entry = table[k];
         if (entry[0] === "propOut" && entry[1] === "this") {
-	    this.thisOutTable[k] = entry;
-	    this.thisOutIndex.push(k);
-	} else if (entry[0] === "propOut" && entry[1] !== "this") {
-	    this.otherOutTable[k] = entry;
-	    this.otherOutIndex.push(k);
-	} else if (entry[0] === "propIn" && entry[1] === "this") {
-	    this.thisInTable[k] = entry;
-	    this.thisInIndex.push(k);
-	} else if (entry[0] === "propIn" && entry[1] !== "this") {
-	    this.otherInTable[k] = entry;
-	    this.otherInIndex.push(k);
-	} else if (entry[0] === "param") {
+            this.thisOutTable[k] = entry;
+            this.thisOutIndex.push(k);
+        } else if (entry[0] === "propOut" && entry[1] !== "this") {
+            this.otherOutTable[k] = entry;
+            this.otherOutIndex.push(k);
+        } else if (entry[0] === "propIn" && entry[1] === "this") {
+            this.thisInTable[k] = entry;
+            this.thisInIndex.push(k);
+        } else if (entry[0] === "propIn" && entry[1] !== "this") {
+            this.otherInTable[k] = entry;
+            this.otherInIndex.push(k);
+        } else if (entry[0] === "param") {
             this.paramTable[k] = entry;
             this.paramIndex.push(k);
-	} else if (entry[0] === "var") {
+        } else if (entry[0] === "var") {
             this.varTable[k] = entry;
             this.varIndex.push(k);
-	}
+        }
     }
 
     for (var i = 0; i < this.thisInIndex.length + this.otherInIndex.length; i++) {
-	if (i < this.thisInIndex.length) {
-	    var k = this.thisInIndex[i];
-	    var elem = this.thisInTable[k];
-	} else {
-	    var k = this.otherInIndex[i - this.thisInIndex.length];
-	    var elem = this.otherInTable[k];
-	}
-	this.uniformTable[k] = elem;
-	this.uniformIndex.push(k);
+        if (i < this.thisInIndex.length) {
+            var k = this.thisInIndex[i];
+            var elem = this.thisInTable[k];
+        } else {
+            var k = this.otherInIndex[i - this.thisInIndex.length];
+            var elem = this.otherInTable[k];
+        }
+        this.uniformTable[k] = elem;
+        this.uniformIndex.push(k);
     }
 
     if (this.thisOutIndex.length > 0 && this.otherOutIndex.length > 0) {
-	throw "shadama cannot write into this and others from the same script."
+        throw "shadama cannot write into this and others from the same script."
     } else {
-	this.forPatch = this.otherOutIndex.length > 0;
+        this.forPatch = this.otherOutIndex.length > 0;
     }
 
     for (var i = 0; i < this.thisOutIndex.length + this.otherOutIndex.length; i++) {
-	if (i < this.thisOutIndex.length) {
-	    var k = this.thisOutIndex[i];
-	    var elem = this.thisOutTable[k];
-	} else {
-	    var k = this.otherOutIndex[i - this.thisOutIndex.length];
-	    var elem = this.otherOutTable[k];
-	}
-	this.varyingTable[k] = elem;
-	this.varyingIndex.push(k);
+        if (i < this.thisOutIndex.length) {
+            var k = this.thisOutIndex[i];
+            var elem = this.thisOutTable[k];
+        } else {
+            var k = this.otherOutIndex[i - this.thisOutIndex.length];
+            var elem = this.otherOutTable[k];
+        }
+        this.varyingTable[k] = elem;
+        this.varyingIndex.push(k);
     }
 
     var usedAsOther = (n) => {
-	for (var i = 0; i < this.otherInIndex.length; i++) {
-	    if (this.otherInTable[this.otherInIndex[i]][1] === n) {
-		return true;
-	    }
-	}
-	for (var i = 0; i < this.otherOutIndex.length; i++) {
-	    if (this.otherOutTable[this.otherOutIndex[i]][1] === n) {
-		return true;
-	    }
-	}
-	return false;
+        for (var i = 0; i < this.otherInIndex.length; i++) {
+            if (this.otherInTable[this.otherInIndex[i]][1] === n) {
+                return true;
+            }
+        }
+        for (var i = 0; i < this.otherOutIndex.length; i++) {
+            if (this.otherOutTable[this.otherOutIndex[i]][1] === n) {
+                return true;
+            }
+        }
+        return false;
     };
 
     for (var i = 0; i < this.paramIndex.length; i++) {
-	var k = this.paramIndex[i];
-	var elem = this.paramTable[k];
+        var k = this.paramIndex[i];
+        var elem = this.paramTable[k];
 
-	if (!usedAsOther(elem[2])) {
-	    this.scalarParamTable[k] = elem;
-	    this.scalarParamIndex.push(k);
-	}
+        if (!usedAsOther(elem[2])) {
+            this.scalarParamTable[k] = elem;
+            this.scalarParamIndex.push(k);
+        }
     }
 
     if (this.forPatch) {
-	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_this_x", "u_this_y"];
+        this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_this_x", "u_this_y"];
     } else {
-	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
+        this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
     }
     this.defaultAttributes = defaultAttributes || ["a_index"];
 };
@@ -808,8 +808,8 @@ SymTable.prototype.out = function(entry) {
 SymTable.prototype.uniforms = function() {
     var result = [];
     for (var k in this.uniformTable) {
-	var entry = this.uniformTable[k];
-	var name = ["u", entry[1], entry[2]].join("_");
+        var entry = this.uniformTable[k];
+        var name = ["u", entry[1], entry[2]].join("_");
         result.push("uniform sampler2D " + name + ";");
     }
     return result;
@@ -819,7 +819,7 @@ SymTable.prototype.paramUniforms = function() {
     var result = [];
     var that = this;
     this.scalarParamIndex.forEach(function(k) {
-	var entry = that.scalarParamTable[k];
+        var entry = that.scalarParamTable[k];
         result.push("uniform bool u_use_vector_" + entry[2] + ";");
         result.push("uniform sampler2D u_vector_" + entry[2] + ";");
         result.push("uniform float u_scalar_" + entry[2] + ";");
@@ -830,8 +830,8 @@ SymTable.prototype.paramUniforms = function() {
 SymTable.prototype.vertVaryings = function() {
     var result = [];
     for (var i = 0; i < this.varyingIndex.length; i++) {
-	var k = this.varyingIndex[i];
-	var entry = this.varyingTable[k];
+        var k = this.varyingIndex[i];
+        var entry = this.varyingTable[k];
         result.push("out float " + this.varying(entry) + ";");
     }
     return result;
@@ -840,8 +840,8 @@ SymTable.prototype.vertVaryings = function() {
 SymTable.prototype.fragVaryings = function() {
     var result = [];
     for (var i = 0; i < this.varyingIndex.length; i++) {
-	var k = this.varyingIndex[i];
-	var entry = this.varyingTable[k];
+        var k = this.varyingIndex[i];
+        var entry = this.varyingTable[k];
         result.push("in float " + this.varying(entry) + ";");
     }
     return result;
@@ -851,7 +851,7 @@ SymTable.prototype.outs = function() {
     var result = [];
     for (var i = 0; i < this.varyingIndex.length; i++) {
         var k = this.varyingIndex[i];
-	var entry = this.varyingTable[k];
+        var entry = this.varyingTable[k];
         result.push("layout (location = " + i + ") out float " + this.out(entry) + ";");
     }
     return result;
@@ -861,8 +861,8 @@ SymTable.prototype.fragColors = function() {
     var result = [];
     for (var i = 0; i < this.varyingIndex.length; i++) {
         var k = this.varyingIndex[i];
-	var entry = this.varyingTable[k];
-	result.push(this.out(entry) + " = " + this.varying(entry) + ";");
+        var entry = this.varyingTable[k];
+        result.push(this.out(entry) + " = " + this.varying(entry) + ";");
     }
     return result;
 };
@@ -875,7 +875,7 @@ SymTable.prototype.insAndParamsAndOuts = function() {
     var ins = this.uniformIndex.map((k) => this.uniformTable[k]);
     var shortParams = this.paramIndex.map((k) => this.paramTable[k][2]);
     var outs = this.thisOutIndex.length != 0
-	? this.thisOutIndex.map((k) => this.thisOutTable[k])
+        ? this.thisOutIndex.map((k) => this.thisOutTable[k])
         : this.otherOutIndex.map((k) => this.otherOutTable[k]);
 
     return [ins, shortParams, outs];
@@ -883,61 +883,61 @@ SymTable.prototype.insAndParamsAndOuts = function() {
 
 class CodeStream {
     constructor() {
-	this.result = [];
-	this.hadCR = true;
-	this.hadSpace = true;
-	this.tabLevel = 0;
+        this.result = [];
+        this.hadCR = true;
+        this.hadSpace = true;
+        this.tabLevel = 0;
     }
 
     addTab() {
-	this.tabLevel++;
+        this.tabLevel++;
     }
 
     decTab() {
-	this.tabLevel--;
+        this.tabLevel--;
     }
 
     cr() {
-	this.result.push("\n");
-	this.hadCR = true;
+        this.result.push("\n");
+        this.hadCR = true;
     }
 
     tab() {
-	for (var i = 0; i < this.tabLevel; i++) {
+        for (var i = 0; i < this.tabLevel; i++) {
             this.result.push("  ");
-	}
+        }
     }
 
     skipSpace() {
-	this.hadSpace = true;
+        this.hadSpace = true;
     }
 
     crIfNeeded() {
-	if (!this.hadCR) {
+        if (!this.hadCR) {
             this.cr();
-	}
+        }
     }
  
    push(val) {
-	this.result.push(val);
-	var last = val[val.length - 1];
-	this.hadSpace = (last === " " || last == "\n" || last == "{" || last == "(");
-	this.hadCR = last == "\n";
+        this.result.push(val);
+        var last = val[val.length - 1];
+        this.hadSpace = (last === " " || last == "\n" || last == "{" || last == "(");
+        this.hadCR = last == "\n";
     }
 
     pushWithSpace(val) {
-	if (!this.hadSpace) {
+        if (!this.hadSpace) {
             this.push(" ");
-	}
-	this.push(val);
+        }
+        this.push(val);
     }
 
     contents() {
-	function flatten(ary) {
+        function flatten(ary) {
             return ary.reduce(function (a, b) {
-		return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
-	};
-	return flatten(this.result);
+                return a.concat(Array.isArray(b) ? flatten(b) : b)}, []).join("");
+        };
+        return flatten(this.result);
     }
 };
     

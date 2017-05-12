@@ -988,35 +988,35 @@ function programFromTable(table, vert, frag, name) {
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
         }
 
-	if (table.forPatch) {
+        if (table.forPatch) {
             var vao = breedVAO;
 
             return function(objects, outs, ins, params) {
-		// objects: {varName: object}
-		// outs: [[object, fieldName]]
-		// ins: [[object, fieldName]]
-		// params: {shortName: value}
+                // objects: {varName: object}
+                // outs: [[object, fieldName]]
+                // ins: [[object, fieldName]]
+                // params: {shortName: value}
 
-		var object = objects["this"];
-		var targets = outs.map(function(pair) {return pair[0]["new" + pair[1]]});
-		setTargetBuffers(gl, framebufferR, targets);
+                var object = objects["this"];
+                var targets = outs.map(function(pair) {return pair[0]["new" + pair[1]]});
+                setTargetBuffers(gl, framebufferR, targets);
 
-		gl.useProgram(prog);
-		gl.bindVertexArray(vao);
+                gl.useProgram(prog);
+                gl.bindVertexArray(vao);
 
-		gl.viewport(0, 0, FW, FH);
-		gl.uniform2f(uniLocations["u_resolution"], FW, FH);
-		gl.uniform1f(uniLocations["u_particleLength"], T);
+                gl.viewport(0, 0, FW, FH);
+                gl.uniform2f(uniLocations["u_resolution"], FW, FH);
+                gl.uniform1f(uniLocations["u_particleLength"], T);
 
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, object.x);
-		gl.uniform1i(uniLocations["u_this_x"], 0);
-		
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, object.y);
-		gl.uniform1i(uniLocations["u_this_y"], 1);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, object.x);
+                gl.uniform1i(uniLocations["u_this_x"], 0);
+                
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, object.y);
+                gl.uniform1i(uniLocations["u_this_y"], 1);
 
-		for (var ind = 0; ind < ins.length; ind++) {
+                for (var ind = 0; ind < ins.length; ind++) {
                     var pair = ins[ind];
                     var glIndex = gl.TEXTURE0 + ind + 2;
                     var k = pair[1]
@@ -1024,58 +1024,58 @@ function programFromTable(table, vert, frag, name) {
                     gl.activeTexture(glIndex);
                     gl.bindTexture(gl.TEXTURE_2D, val);
                     gl.uniform1i(uniLocations["u_this_" + k], ind);
-		}
+                }
 
-		var ind = 0;
+                var ind = 0;
                 for (var k in params) {
                     var val = params[k];
-		    if (val.constructor != Patch) {
-			if (val.constructor == WebGLTexture) {
-			    var glIndex = gl.TEXTURE0 + ind + 2 + ins.length;
-			    ind++;
+                    if (val.constructor != Patch) {
+                        if (val.constructor == WebGLTexture) {
+                            var glIndex = gl.TEXTURE0 + ind + 2 + ins.length;
+                            ind++;
                             gl.activeTexture(glIndex);
                             gl.bindTexture(gl.TEXTURE_2D, val);
                             gl.uniform1i(uniLocations["u_this_" + k], ind);
-			} else {
+                        } else {
                             gl.uniform1i(uniLocations["u_vector_" + k], 0);
                             gl.uniform1f(uniLocations["u_scalar_" + k], val);
                             gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
-			}
-		    }
+                        }
+                    }
                 }
 
-		gl.drawArrays(gl.POINTS, 0, object.count);
-		gl.flush();
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.drawArrays(gl.POINTS, 0, object.count);
+                gl.flush();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-		for (var i = 0; i < outs.length; i++) {
+                for (var i = 0; i < outs.length; i++) {
                     var pair = outs[i];
                     var o = pair[0];
                     var name = pair[1];
                     var tmp = o[name];
                     o[name] = o["new"+name];
                     o["new"+name] = tmp;
-		}
+                }
             }
-	} else {
+        } else {
             var vao = breedVAO;
             return function(objects, outs, ins, params) {
-		// objects: {varName: object}
-		// outs: [[object, fieldName]]
-		// ins: [[object, fieldName]]
-		// params: {shortName: value}
+                // objects: {varName: object}
+                // outs: [[object, fieldName]]
+                // ins: [[object, fieldName]]
+                // params: {shortName: value}
 
-		var targets = outs.map(function(pair) {return pair[0]["new" + pair[1]]});
-		setTargetBuffers(gl, framebufferR, targets);
+                var targets = outs.map(function(pair) {return pair[0]["new" + pair[1]]});
+                setTargetBuffers(gl, framebufferR, targets);
 
-		gl.useProgram(prog);
-		gl.bindVertexArray(vao);
+                gl.useProgram(prog);
+                gl.bindVertexArray(vao);
 
-		gl.viewport(0, 0, T, T);
-		gl.uniform2f(uniLocations["u_resolution"], FW, FH);
-		gl.uniform1f(uniLocations["u_particleLength"], T);
+                gl.viewport(0, 0, T, T);
+                gl.uniform2f(uniLocations["u_resolution"], FW, FH);
+                gl.uniform1f(uniLocations["u_particleLength"], T);
 
-		for (var ind = 0; ind < ins.length; ind++) {
+                for (var ind = 0; ind < ins.length; ind++) {
                     var pair = ins[ind];
                     var glIndex = gl.TEXTURE0 + ind;
                     var k = pair[1]
@@ -1083,40 +1083,40 @@ function programFromTable(table, vert, frag, name) {
                     gl.activeTexture(glIndex);
                     gl.bindTexture(gl.TEXTURE_2D, val);
                     gl.uniform1i(uniLocations["u_this_" + k], ind);
-		}
+                }
 
-		var ind = 0;
-		for (var k in params) {
+                var ind = 0;
+                for (var k in params) {
                     var val = params[k];
                     var glIndex = gl.TEXTURE0 + ins.length + ind;
-		    ind++;
+                    ind++;
                     if (val.constructor == WebGLTexture) {
-			gl.activeTexture(glIndex);
-			gl.bindTexture(gl.TEXTURE_2D, val);
-			gl.uniform1i(uniLocations["u_this_" + k], ind);
+                        gl.activeTexture(glIndex);
+                        gl.bindTexture(gl.TEXTURE_2D, val);
+                        gl.uniform1i(uniLocations["u_this_" + k], ind);
                     } else {
-			gl.uniform1i(uniLocations["u_vector_" + k], 0);
-			gl.uniform1f(uniLocations["u_scalar_" + k], val);
-			gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
+                        gl.uniform1i(uniLocations["u_vector_" + k], 0);
+                        gl.uniform1f(uniLocations["u_scalar_" + k], val);
+                        gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
                     }
-		}
+                }
 
-		gl.clearColor(0.0, 0.0, 0.0, 0.0);
-		gl.clear(gl.COLOR_BUFFER_BIT);
-		gl.drawArrays(gl.POINTS, 0, objects["this"].count);
-		gl.flush();
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                gl.drawArrays(gl.POINTS, 0, objects["this"].count);
+                gl.flush();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-		for (var i = 0; i < outs.length; i++) {
+                for (var i = 0; i < outs.length; i++) {
                     var pair = outs[i];
                     var o = pair[0];
                     var name = pair[1];
                     var tmp = o[name];
                     o[name] = o["new"+name];
                     o["new"+name] = tmp;
-		}
+                }
             }
-	}
+        }
     })();
 };
 
