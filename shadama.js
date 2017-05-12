@@ -326,42 +326,6 @@ function makePrimitive(gl, name, uniforms, vao) {
     return {program: prog, uniLocations: uniLocations, vao: vao};
 };
 
-function forwardProgram(gl) {
-    return makePrimitive(gl, "forward", ["u_resolution", "u_particleLength", "u_position", "u_amount"], breedVAO);
-};
-
-function forwardEdgeBounceProgram(gl) {
-    return makePrimitive(gl, "forwardEdgeBounce", ["u_resolution", "u_particleLength", "u_position", "u_amount", "u_edgeCondition"], breedVAO);
-};
-
-function setPatchProgram(gl) {
-    return makePrimitive(gl, "setPatch", ["u_resolution", "u_particleLength", "u_position", "u_value", "u_type"], breedVAO);
-};
-
-function getPatchProgram(gl) {
-    return makePrimitive(gl, "getPatch", ["u_resolution", "u_particleLength", "u_position", "u_type"], breedVAO);
-};
-
-function turnProgram(gl) {
-    return makePrimitive(gl, "turn", ["u_resolution", "u_particleLength", "u_position", "u_rot"], breedVAO);
-};
-
-function bounceIfProgram(gl) {
-    return makePrimitive(gl, "bounceIf", ["u_resolution", "u_particleLength", "u_position", "u_buffer"], breedVAO);
-};
-
-function genericGetProgram(gl) {
-    return makePrimitive(gl, "genericGet", ["u_resolution", "u_particleLength", "u_v_input"], breedVAO);
-};
-
-function genericSetProgram(gl) {
-    return makePrimitive(gl, "genericSet", ["u_resolution", "u_particleLength", "u_use_vector", "u_v_input", "u_s_input"], breedVAO);
-};
-
-function genericSet2Program(gl) {
-    return makePrimitive(gl, "genericSet2", ["u_resolution", "u_particleLength", "u_use_vector1", "u_v_input1", "u_s_input1", "u_use_vector2", "u_v_input2", "u_s_input2"], breedVAO);
-};
-
 function drawBreedProgram(gl) {
     return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_x", "u_y"], breedVAO);
 };
@@ -409,153 +373,6 @@ Breed.prototype.draw = function() {
     gl.disable(gl.BLEND);
 };
 
-Breed.prototype.forward = function(amount) {
-    var prog = programs["forward"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1f(prog.uniLocations["u_amount"], amount);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.forwardEdgeBounce = function(amount, condition) {
-    var prog = programs["forwardEdgeBounce"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1f(prog.uniLocations["u_amount"], amount);
-    gl.uniform1iv(prog.uniLocations["u_edgeCondition"], new Int32Array(condition));
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.turn = function(amount) {
-    var prog = programs["turn"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    var cos = Math.cos(amount);
-    var sin = Math.sin(amount);
-
-    gl.uniformMatrix2fv(prog.uniLocations["u_rot"], false, [cos, sin, -sin, cos]);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.bounceIf = function(patch) {
-    var prog = programs["bounceIf"];
-    setTargetBuffer(gl, framebufferT, this.newPos);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, patch.values);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1i(prog.uniLocations["u_buffer"], 1);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    var tmp = this.pos;
-    this.pos = this.newPos;
-    this.newPos = tmp;
-};
-
-Breed.prototype.setPatch = function(patch, value) {
-    var prog = programs["setPatch"];
-    setTargetBuffer(gl, framebufferF, patch.values);
-    gl.disable(gl.BLEND);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.viewport(0, 0, FW, FH);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform4fv(prog.uniLocations["u_value"], value);
-    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
 Breed.prototype.increasePatch = function(patch, value) {
     var prog = programs["setPatch"];  // the same program but with blend enabled.
     setTargetBuffer(gl, framebufferF, patch.values);
@@ -580,131 +397,6 @@ Breed.prototype.increasePatch = function(patch, value) {
     gl.disable(gl.BLEND);
 };
 
-Breed.prototype.getPatch = function(patch, dest) {
-    var prog = programs["getPatch"];
-    setTargetBuffer(gl, framebufferT, dest);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.pos);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, patch.values);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform1i(prog.uniLocations["u_value"], 1);
-    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericGet = function(destination, variable) {
-    var prog = programs["genericGet"];
-    setTargetBuffer(gl, framebufferR, destination);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, variable);
-
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericSet = function(source, variable) {
-    var prog = programs["genericSet"];
-    setTargetBuffer(gl, framebufferR, variable);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    var use_vector;
-
-    if (source.constructor == WebGLTexture) {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, source);
-        use_vector = true;
-    } else {
-        use_vector = false;
-    }
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_use_vector"], use_vector);
-    gl.uniform1i(prog.uniLocations["u_v_input"], 0);
-    gl.uniform1f(prog.uniLocations["u_s_input"], use_vector ? 0 : source);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-Breed.prototype.genericSet2 = function(source1, variable1, source2, variable2) {
-    var prog = programs["genericSet2"];
-
-    setTargetBuffers(gl, framebufferR, [variable1, variable2]);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    var use_vector1;
-    var use_vector2;
-
-    if (source1.constructor == WebGLTexture) {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, source1);
-        use_vector1 = true;
-    } else {
-        use_vector1 = false;
-    }
-    if (source2.constructor == WebGLTexture) {
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, source2);
-        use_vector2 = true;
-    } else {
-        use_vector2 = false;
-    }
-    gl.viewport(0, 0, T, T);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_use_vector1"], use_vector1);
-    gl.uniform1i(prog.uniLocations["u_use_vector2"], use_vector2);
-    gl.uniform1i(prog.uniLocations["u_v_input1"], 0);
-    gl.uniform1i(prog.uniLocations["u_v_input2"], 1);
-    gl.uniform1f(prog.uniLocations["u_s_input1"], use_vector1 ? 0 : source1);
-    gl.uniform1f(prog.uniLocations["u_s_input2"], use_vector2 ? 0 : source2);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
 Patch.prototype.clear = function() {
     var prog = programs["clearPatch"];
     setTargetBuffer(gl, framebufferF, this.values);
@@ -712,6 +404,14 @@ Patch.prototype.clear = function() {
     gl.viewport(0, 0, FW, FH);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
+};
+
+Breed.prototype.setCount = function(n) {
+    if (n < 0 || !n) {
+        n = 0;
+    }
+    this.count = n;
+    //
 };
 
 Patch.prototype.draw = function() {
@@ -871,14 +571,6 @@ function debugDisplay2(gl, tex) {
 
     var img = new ImageData(debugArray2, FW, FH);
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-};
-
-Breed.prototype.setCount = function(n) {
-    if (n < 0 || !n) {
-        n = 0;
-    }
-    this.count = n;
-    //
 };
 
 function updateBreed(name, fields) {
@@ -1197,7 +889,7 @@ onload = function() {
 
     loadShadama("forward.shadama");
 
-    breeds["Turtle"].setCount(100);
+    breeds["Turtle"].setCount(1000);
     breeds["Turtle"].fillRandom("x", 0, 400);
     breeds["Turtle"].fillRandom("y", 0, 300);
     breeds["Turtle"].fillRandomDir("dirX", "dirY");
