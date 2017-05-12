@@ -25,17 +25,20 @@ function initSemantics() {
             },
 
             Breed(_b, n, _o, fs, _c) {
-                return {[n.sourceString]: fs.symTable()};
+		var table = new SymTable(fs.symTable());
+                return {[n.sourceString]: table};
             },
 
             Patch(_p, n, _o, fs, _c) {
-                return {[n.sourceString]: fs.symTable()};
+		var table = new SymTable(fs.symTable());
+                return {[n.sourceString]: table};
             },
 
             Script(_d, _b, _p, n, _o, ns, _c, b) {
                 var c = b.symTable();
                 addAsSet(c, ns.symTable());
-                return {[n.sourceString]: c};
+		var table = new SymTable(c);
+                return {[n.sourceString]: table};
             },
 
             Formals_list(h, _c, r) {
@@ -115,6 +118,22 @@ function initSemantics() {
             },
         });
 
+    s.addOperation(
+	"rawTable",
+	{
+            Breed(_b, n, _o, fs, _c) {
+		return this.symTable()[n.sourceString].rawTable;
+            },
+
+            Patch(_p, n, _o, fs, _c) {
+		return this.symTable()[n.sourceString].rawTable;
+            },
+
+            Script(_d, _b, _p, n, _o, ns, _c, b) {
+		return this.symTable()[n.sourceString].rawTable;
+            }
+	});
+
     function transBinOp(l, r, op, args) {
         var table = args.table;
         var vert = args.vert;
@@ -136,7 +155,7 @@ function initSemantics() {
         });
 
     s.addOperation(
-        "glsl_toplevel_block(table, vert, frag, js)",
+        "glsl_helper_for_breed(table, vert, frag, js)",
         {
             Block(_o, ss, _c) {
                 var table = this.args.table;
@@ -168,51 +187,12 @@ function initSemantics() {
                 vert.tab();
                 vert.push("}");
             },
-        });
-
-    s.addOperation(
-        "glsl(table, vert, frag, js)",
-        {
-            TopLevel(ds) {
-                var table = this.args.table;
-                var result = {};
-                //expected to return a list of triples
-                for (var i = 0; i < ds.children.length; i++) {
-                    var d = ds.children[i];
-                    var val = d.glsl(table, null, null, null);
-                    addAsSet(result, val);
-                };
-                return result;
-            },
-
-            Breed(_b, n, _o, fs, _c) {
-                var table = this.args.table;
-                var vert = new CodeStream();
-                var frag = new CodeStream();
-                var js = [];
-                js.push("updateBreed");
-                js.push(n.sourceString);
-                js.push(fs.glsl_script_formals());
-                return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
-            },
-
-            Patch(_p, n, _o, fs, _c) {
-                var table = this.args.table;
-                var vert = new CodeStream();
-                var frag = new CodeStream();
-                var js = [];
-                js.push("updatePatch");
-                js.push(n.sourceString);
-                js.push(fs.glsl_script_formals());
-                return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
-            },
 
             Script(_d, _b, _p, n, _o, ns, _c, b) {
-                var inTable = this.args.table;
-                var table = inTable[n.sourceString];
-                var vert = new CodeStream();
-                var frag = new CodeStream();
-                var js = [];
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                var js = this.args.js;
 
                 vert.push("#version 300 es\n");
                 vert.push("layout (location = 0) in vec2 a_index;\n");
@@ -259,7 +239,11 @@ function initSemantics() {
                 frag.pushWithSpace("main");
                 frag.push("()");
 
-                b.glsl_toplevel_block(table, vert, frag, js);
+		if (table.forPatch) {
+                    b.glsl_helper_for_patch(table, vert, frag, js);
+		} else {
+                    b.glsl_helper_for_breed(table, vert, frag, js);
+		}
 
                 vert.crIfNeeded();
                 vert.tab();
@@ -281,6 +265,178 @@ function initSemantics() {
                 js.push("updateScript");
                 js.push(n.sourceString);
                 return {[n.sourceString]: [table, vert.contents(), frag.contents(), js]};
+            }
+        });
+
+    s.addOperation(
+        "glsl_helper_for_patch(table, vert, frag, js)",
+        {
+            Block(_o, ss, _c) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                var js = this.args.js;
+                vert.pushWithSpace("{\n");
+                vert.addTab();
+                vert.tab();
+		vert.push("float _x = texelFetch(u_this_x, ivec2(a_index), 0).r;\n");
+                vert.tab();
+		vert.push("float _y = texelFetch(u_this_y, ivec2(a_index), 0).r;\n");
+		vert.tab();
+		vert.push("vec2 clipPos = (vec2(_x, _y) / u_resolution) * 2.0 - 1.0;\n");
+		
+                for (var i = 0; i < table.scalarParamIndex.length; i++) {
+                    var k = table.scalarParamIndex[i];
+		    var entry = table.scalarParamTable[k];
+		    var e = entry[2];
+                    var template1 = `float ${e} = u_use_vector_${e} ? texelFetch(u_vector_${e}, ivec2(a_index), 0).r : u_scalar_${e};`;
+                    vert.tab();
+                    vert.push(template1);
+                    vert.cr();
+                }
+
+                ss.glsl(table, vert, frag, js);
+                vert.tab();
+                vert.push("gl_Position = vec4(clipPos, 0.0, 1.0);");
+                vert.cr();
+                vert.tab();
+                vert.push("gl_PointSize = 1.0;\n");
+                vert.decTab();
+                vert.tab();
+                vert.push("}");
+            },
+
+            Script(_d, _b, _p, n, _o, ns, _c, b) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                var js = this.args.js;
+
+                vert.push("#version 300 es\n");
+                vert.push("layout (location = 0) in vec2 a_index;\n");
+                vert.push("uniform vec2 u_resolution;\n");
+                vert.push("uniform float u_particleLength;\n");
+		vert.push("uniform sampler2D u_this_x;\n");
+		vert.push("uniform sampler2D u_this_y;\n");
+
+                table.uniforms().forEach(elem => {
+                    vert.push(elem);
+                    vert.cr();
+                });
+
+                table.paramUniforms().forEach(elem => {
+                    vert.push(elem);
+                    vert.cr();
+                });
+
+                table.vertVaryings().forEach(elem => {
+                    vert.push(elem);
+                    vert.cr();
+                });
+
+                vert.crIfNeeded();
+                vert.push("void");
+                vert.pushWithSpace("main");
+                vert.push("()");
+
+                // fragment head
+
+                frag.push("#version 300 es\n");
+                frag.push("precision highp float;\n");
+
+                table.fragVaryings().forEach((elem) =>{
+                    frag.push(elem);
+                    frag.cr();
+                });
+
+                table.outs().forEach((elem) => {
+                    frag.push(elem);
+                    frag.cr();
+                });
+
+                frag.crIfNeeded();
+                frag.push("void");
+                frag.pushWithSpace("main");
+                frag.push("()");
+
+		if (table.forPatch) {
+                    b.glsl_helper_for_patch(table, vert, frag, js);
+		} else {
+                    b.glsl_helper_for_breed(table, vert, frag, js);
+		}
+
+                vert.crIfNeeded();
+                vert.tab();
+
+                frag.pushWithSpace("{");
+		frag.cr();
+
+                frag.addTab();
+                table.fragColors().forEach((line) => {
+                    frag.tab();
+                    frag.push(line);
+                    frag.cr();
+                });
+                frag.decTab();
+                frag.crIfNeeded();
+                frag.push("}");
+                frag.cr();
+
+                js.push("updateScript");
+                js.push(n.sourceString);
+                return {[n.sourceString]: [table, vert.contents(), frag.contents(), js]};
+            }
+
+        });
+
+    s.addOperation(
+        "glsl(table, vert, frag, js)",
+        {
+            TopLevel(ds) {
+                var table = this.args.table;
+                var result = {};
+                //expected to return a list of triples
+                for (var i = 0; i < ds.children.length; i++) {
+                    var d = ds.children[i];
+                    var val = d.glsl(table, null, null, null);
+                    addAsSet(result, val);
+                };
+                return result;
+            },
+
+            Breed(_b, n, _o, fs, _c) {
+                var table = this.args.table;
+                var vert = new CodeStream();
+                var frag = new CodeStream();
+                var js = [];
+                js.push("updateBreed");
+                js.push(n.sourceString);
+                js.push(fs.glsl_script_formals());
+                return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
+            },
+
+            Patch(_p, n, _o, fs, _c) {
+                var table = this.args.table;
+                var vert = new CodeStream();
+                var frag = new CodeStream();
+                var js = [];
+                js.push("updatePatch");
+                js.push(n.sourceString);
+                js.push(fs.glsl_script_formals());
+                return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
+            },
+
+            Script(_d, _b, _p, n, _o, ns, _c, b) {
+                var inTable = this.args.table;
+                var table = inTable[n.sourceString];
+                var vert = new CodeStream();
+                var frag = new CodeStream();
+                var js = [];
+		if (table.forPatch) {
+		    return this.glsl_helper_for_patch(table, vert, frag, js);
+		} else {
+		    return this.glsl_helper_for_breed(table, vert, frag, js);
+		}
             },
 
             Block(_o, ss, _c) {
@@ -511,6 +667,8 @@ function initSemantics() {
 function SymTable(table, defaultUniforms, defaultAttributes) {
     this.rawTable = table;
 
+    this.forPatch = false;
+
     this.defaultUniforms = [];
     this.defaultAttributes = [];
 
@@ -542,13 +700,6 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 
     this.scalarParamTable = {};  // params - other object
     this.scalarParamIndex = [];
-
-    if (defaultUniforms) {
-        this.defaultUniforms = defaultUniforms;
-    }
-    if (defaultAttributes) {
-        this.defaultAttributes = defaultAttributes;
-    }
 
     for (var k in table) {
         var entry = table[k];
@@ -587,6 +738,8 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 
     if (this.thisOutIndex.length > 0 && this.otherOutIndex.length > 0) {
 	throw "shadama cannot write into this and others from the same script."
+    } else {
+	this.forPatch = this.otherOutIndex.length > 0;
     }
 
     for (var i = 0; i < this.thisOutIndex.length + this.otherOutIndex.length; i++) {
@@ -624,6 +777,13 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
 	    this.scalarParamIndex.push(k);
 	}
     }
+
+    if (this.forPatch) {
+	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_position"];
+    } else {
+	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
+    }
+    this.defaultAttributes = defaultAttributes || ["a_index"];
 };
 
 SymTable.prototype.varying = function(entry) {
@@ -858,15 +1018,14 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
 
     var n = s(match);
     var rawTable = n.symTable();
-    var newTable = {};
 
     for (var k in rawTable) {
-        var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
-        var a = defaultAttributes ? defaultAttributes : ["a_index"];
+//        var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
+//        var a = defaultAttributes ? defaultAttributes : ["a_index"];
         // u_resolution only needed when the code has patches.  And for patches, they'd be something else
-        newTable[k] = new SymTable(rawTable[k], d, a);
+//        newTable[k] = new SymTable(rawTable[k], d, a);
     }
-    return n.glsl(newTable, null, null, null);
+    return n.glsl(rawTable, null, null, null);
 };
 
 function grammarUnitTests() {
@@ -952,23 +1111,23 @@ function grammarUnitTests() {
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"]});
 
-    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "symTable", {"foo": {
+    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "rawTable", {
         "propOut.this.x": ["propOut" ,"this", "x"],
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"],
         "param.a": ["param" , null, "a"],
         "param.b": ["param" , null, "b"],
         "param.c": ["param" , null, "c"],
-    }});
+    });
 
-    semanticsTest("def breed.foo(a, b, c) {this.x = 4; this.y = other.x;}", "TopLevel", s, "symTable", {"foo": {
+    semanticsTest("def breed.foo(a, b, c) {this.x = 4; this.y = other.x;}", "TopLevel", s, "rawTable", [{
         "propOut.this.x": ["propOut" ,"this", "x"],
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"],
         "param.a": ["param" , null, "a"],
         "param.b": ["param" , null, "b"],
         "param.c": ["param" , null, "c"],
-    }});
+    }]);
 
 //    translate("this.x = this.y + 3;", "Statement", s);
     translate("breed foo (x, y)", "Breed", s);
