@@ -303,6 +303,32 @@ Breed.prototype.fillRandomDir = function(xName, yName) {
     this[yName] = createTexture(gl, y, gl.R32F);
 };
 
+Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
+    this.count = xDim * yDim;
+    if (this[xName]) {
+        gl.deleteTexture(this[xName]);
+    }
+    if (this[yName]) {
+        gl.deleteTexture(this[yName]);
+    }
+
+    var x = new Float32Array(T * T * 4);
+    var y = new Float32Array(T * T * 4);
+
+    for (var j = 0; j < yDim; j++) {
+	for (var i = 0; i < xDim; i++) {
+//	    var ind = i * j;
+	    var ind = yDim * j + i;
+            x[ind*4] = i;
+            y[ind*4] = j;
+	}
+    }
+    this[xName] = createTexture(gl, x, gl.R32F);
+    this[yName] = createTexture(gl, y, gl.R32F);
+};
+
+
+
 function Patch() {
 };
 
@@ -331,7 +357,7 @@ function drawBreedProgram(gl) {
 };
 
 function drawPatchProgram(gl) {
-    return makePrimitive(gl, "drawPatch", ["u_value"], patchVAO);
+    return makePrimitive(gl, "drawPatch", ["u_a", "u_r", "u_g", "u_b"], patchVAO);
 };
 
 function debugPatchProgram(gl) {
@@ -422,8 +448,21 @@ Patch.prototype.draw = function() {
     gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.value);
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
+    gl.bindTexture(gl.TEXTURE_2D, this.r);
+    gl.uniform1i(prog.uniLocations["u_r"], 0);
+
+    gl.activeTexture(gl.TEXTURE0 + 1);
+    gl.bindTexture(gl.TEXTURE_2D, this.g);
+    gl.uniform1i(prog.uniLocations["u_g"], 1);
+
+    gl.activeTexture(gl.TEXTURE0 + 2);
+    gl.bindTexture(gl.TEXTURE_2D, this.b);
+    gl.uniform1i(prog.uniLocations["u_b"], 2);
+
+    gl.activeTexture(gl.TEXTURE0 + 3);
+    gl.bindTexture(gl.TEXTURE_2D, this.a);
+    gl.uniform1i(prog.uniLocations["u_a"], 3);
+
 
     gl.viewport(0, 0, FW, FH);
 
@@ -702,11 +741,11 @@ function programFromTable(table, vert, frag, name) {
 
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, object.x);
-                gl.uniform1i(uniLocations["u_this_x"], 0);
+                gl.uniform1i(uniLocations["u_that_x"], 0);
                 
                 gl.activeTexture(gl.TEXTURE1);
                 gl.bindTexture(gl.TEXTURE_2D, object.y);
-                gl.uniform1i(uniLocations["u_this_y"], 1);
+                gl.uniform1i(uniLocations["u_that_y"], 1);
 
                 for (var ind = 0; ind < ins.length; ind++) {
                     var pair = ins[ind];
@@ -892,6 +931,11 @@ onload = function() {
     breeds["Turtle"].setCount(1000);
     breeds["Turtle"].fillRandom("x", 0, 400);
     breeds["Turtle"].fillRandom("y", 0, 300);
+
+    breeds["Filler"].fillSpace("x", "y", 400, 300);
+//    breeds["Filler"].fillRandom("x", 0, 400);
+//    breeds["Filler"].fillRandom("y", 0, 300);
+
     breeds["Turtle"].fillRandomDir("dirX", "dirY");
 
     runner();
@@ -917,9 +961,11 @@ function runner() {
 
 function step() {
     clear();
-    callProgram("forward", {this: breeds["Turtle"]}, {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
-    callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
-    callProgram("setTrail", {this: breeds["Turtle"], patch: patches["Patch"]}, {"patch": patches["Patch"], "value": 100.0});
+//    callProgram("forward", {this: breeds["Turtle"]}, {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
+//    callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
+//    callProgram("setTrail", {this: breeds["Turtle"], patch: patches["Patch"]}, {"patch": patches["Patch"], "value": 100.0});
+
+    callProgram("dropX", {this: breeds["Filler"], patch: patches["Patch"]}, {"patch": patches["Patch"]});
     patches["Patch"].draw();
-    breeds["Turtle"].draw();
+//    breeds["Filler"].draw();
 }

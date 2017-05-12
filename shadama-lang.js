@@ -279,9 +279,9 @@ function initSemantics() {
                 vert.pushWithSpace("{\n");
                 vert.addTab();
                 vert.tab();
-                vert.push("float _x = texelFetch(u_this_x, ivec2(a_index), 0).r;\n");
+                vert.push("float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;\n");
                 vert.tab();
-                vert.push("float _y = texelFetch(u_this_y, ivec2(a_index), 0).r;\n");
+                vert.push("float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;\n");
                 vert.tab();
                 vert.push("vec2 clipPos = (vec2(_x, _y) / u_resolution) * 2.0 - 1.0;\n");
                 
@@ -316,8 +316,8 @@ function initSemantics() {
                 vert.push("layout (location = 0) in vec2 a_index;\n");
                 vert.push("uniform vec2 u_resolution;\n");
                 vert.push("uniform float u_particleLength;\n");
-                vert.push("uniform sampler2D u_this_x;\n");
-                vert.push("uniform sampler2D u_this_y;\n");
+                vert.push("uniform sampler2D u_that_x;\n");
+                vert.push("uniform sampler2D u_that_y;\n");
 
                 table.uniforms().forEach(elem => {
                     vert.push(elem);
@@ -779,7 +779,7 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
     }
 
     if (this.forPatch) {
-        this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_this_x", "u_this_y"];
+        this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_that_x", "u_that_y"];
     } else {
         this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
     }
@@ -1019,12 +1019,6 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
     var n = s(match);
     var rawTable = n.symTable();
 
-    for (var k in rawTable) {
-//        var d = defaultUniforms ? defaultUniforms : ["u_particleLength", "u_resolution"];
-//        var a = defaultAttributes ? defaultAttributes : ["a_index"];
-        // u_resolution only needed when the code has patches.  And for patches, they'd be something else
-//        newTable[k] = new SymTable(rawTable[k], d, a);
-    }
     return n.glsl(rawTable, null, null, null);
 };
 

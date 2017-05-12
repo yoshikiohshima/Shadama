@@ -230,14 +230,20 @@ void main(void) {
         <script id="drawPatch.frag" type="x-shader/x-fragment">#version 300 es
 precision highp float;
 
-uniform sampler2D u_value;
+uniform sampler2D u_r;
+uniform sampler2D u_g;
+uniform sampler2D u_b;
+uniform sampler2D u_a;
 
 out vec4 fragColor;
 
 void main(void) {
   ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-  float v = texelFetch(u_value, fc, 0).r;
-  fragColor = vec4(v, 0.0, 0.0, v);
+  float r = texelFetch(u_r, fc, 0).r;
+  float g = texelFetch(u_g, fc, 0).r;
+  float b = texelFetch(u_b, fc, 0).r;
+  float a = texelFetch(u_a, fc, 0).r;
+  fragColor = vec4(r, g, b, a);
 }
         </script>
         <script id="diffusePatch.vert" type="x-shader/x-vertex">#version 300 es
@@ -326,8 +332,9 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
-        breed Turtle (x, y, dirX, dirY)
-        patch Patch (value)
+        breed Turtle (x, y, dirX, dirY, r, g, b, a)
+        breed Filler (x, y, dirX, dirY, r, g, b, a)
+        patch Patch (r, g, b, a)
 
         def breed.forward(n, left, right, top, bottom) {
           var dx = this.dirX;
@@ -397,8 +404,19 @@ void main(void) {
         }
 
         def breed.setTrail(patch, value) {
-           patch.value = value;
+           patch.r = value;
+           patch.g = 0.0;
+           patch.b = value;
+           patch.a = 1000.0;
         }
+
+        def breed.dropX(patch) {
+           patch.r = this.x / 255.0;
+           patch.g = this.x / 255.0;
+           patch.b = 0.0;
+           patch.a = this.x / 255.0;
+        }
+
         </script>
 
 
