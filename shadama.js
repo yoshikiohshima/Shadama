@@ -1010,9 +1010,11 @@ function programFromTable(table, vert, frag, name) {
 
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, object.x);
-
+		gl.uniform1i(uniLocations["u_this_x"], 0);
+		
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, object.y);
+		gl.uniform1i(uniLocations["u_this_y"], 1);
 
 		for (var ind = 0; ind < ins.length; ind++) {
                     var pair = ins[ind];
@@ -1029,7 +1031,7 @@ function programFromTable(table, vert, frag, name) {
                     var val = params[k];
 		    if (val.constructor != Patch) {
 			if (val.constructor == WebGLTexture) {
-			    var glIndex = gl.TEXTURE0 + ins.length + ind;
+			    var glIndex = gl.TEXTURE0 + ind + 2 + ins.length;
 			    ind++;
                             gl.activeTexture(glIndex);
                             gl.bindTexture(gl.TEXTURE_2D, val);
@@ -1195,12 +1197,12 @@ onload = function() {
 
     loadShadama("forward.shadama");
 
-    breeds["Turtle"].setCount(100000);
+    breeds["Turtle"].setCount(100);
     breeds["Turtle"].fillRandom("x", 0, 400);
     breeds["Turtle"].fillRandom("y", 0, 300);
     breeds["Turtle"].fillRandomDir("dirX", "dirY");
 
-    step();
+    runner();
 };
 
 function runner() {
@@ -1227,5 +1229,5 @@ function step() {
     callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
     callProgram("setTrail", {this: breeds["Turtle"], patch: patches["Patch"]}, {"patch": patches["Patch"], "value": 100.0});
     patches["Patch"].draw();
-//    breeds["Turtle"].draw();
+    breeds["Turtle"].draw();
 }

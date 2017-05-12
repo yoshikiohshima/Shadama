@@ -779,7 +779,7 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
     }
 
     if (this.forPatch) {
-	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_position"];
+	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_this_x", "u_this_y"];
     } else {
 	this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
     }
