@@ -20,12 +20,9 @@ var patchVAO;
 
 var programs = {};
 var scripts = {};
-var breeds = {};
-var patches = {};
+var myObjects = {};
 
-var myBreed;
-var myPatch;
-
+var loop;
 
 var debugCanvas1;
 
@@ -143,19 +140,23 @@ function loadShadama(id, source) {
         source = scriptElement.text;
     }
     var result = translate(source, "TopLevel");
-    console.log(result);
     for (var k in result) {
-        var entry = result[k];
-        var js = entry[3];
-        if (js[0] === "updateBreed") {
-            updateBreed(js[1], js[2]);
-        } else if (js[0] === "updatePatch") {
-            updatePatch(js[1], js[2]);
-        } else if (js[0] === "updateScript") {
-            var table = entry[0];
-            scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
-                              table.insAndParamsAndOuts()];
-        }
+	if (k === "loop") {
+	    debugger;
+	    loop = eval(result[k]);
+	} else {
+            var entry = result[k];
+            var js = entry[3];
+            if (js[0] === "updateBreed") {
+		updateBreed(js[1], js[2]);
+            } else if (js[0] === "updatePatch") {
+		updatePatch(js[1], js[2]);
+            } else if (js[0] === "updateScript") {
+		var table = entry[0];
+		scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
+				  table.insAndParamsAndOuts()];
+	    }
+	}
     }
 };
 
@@ -613,13 +614,13 @@ function debugDisplay2(gl, tex) {
 };
 
 function updateBreed(name, fields) {
-    var breed = breeds[name];
+    var breed = myObjects[name];
     if (!breed) {
         breed = new Breed();
         for (var i = 0; i < fields.length; i++) {
             breed.addOwnVariable(fields[i]);
         }
-        breeds[name] = breed;
+        myObjects[name] = breed;
         return breed;
     }
 
@@ -654,13 +655,13 @@ function updateBreed(name, fields) {
 };
 
 function updatePatch(name, fields) {
-    var patch = patches[name];
+    var patch = myObjects[name];
     if (!patch) {
         patch = new Patch();
         for (var i = 0; i < fields.length; i++) {
             patch.addOwnVariable(fields[i]);
         }
-        patches[name] = patch;
+        myObjects[name] = patch;
         return patch;
     }
 
@@ -725,12 +726,12 @@ function programFromTable(table, vert, frag, name) {
 
         return function(objects, outs, ins, params) {
             // objects: {varName: object}
-            // outs: [[object, fieldName]]
-            // ins: [[object, fieldName]]
+            // outs: [[varName, fieldName]]
+            // ins: [[varName, fieldName]]
             // params: {shortName: value}
 	    
             var object = objects["this"];
-            var targets = outs.map(function(pair) {return pair[0]["new" + pair[1]]});
+            var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
             setTargetBuffers(gl, framebufferR, targets);
 	    
             gl.useProgram(prog);
@@ -756,7 +757,7 @@ function programFromTable(table, vert, frag, name) {
                 var pair = ins[ind];
                 var glIndex = gl.TEXTURE0 + ind + offset;
                 var k = pair[1]
-                var val = pair[0][k];
+                var val = objects[pair[0]][k];
                 gl.activeTexture(glIndex);
                 gl.bindTexture(gl.TEXTURE_2D, val);
                 gl.uniform1i(uniLocations["u_this_" + k], ind + offset);
@@ -787,7 +788,7 @@ function programFromTable(table, vert, frag, name) {
 	    
             for (var i = 0; i < outs.length; i++) {
                 var pair = outs[i];
-                var o = pair[0];
+                var o = objects[pair[0]];
                 var name = pair[1];
                 var tmp = o[name];
                 o[name] = o["new"+name];
@@ -874,16 +875,15 @@ onload = function() {
 
     loadShadama("forward.shadama");
 
-    breeds["Turtle"].setCount(100000);
-    breeds["Turtle"].fillRandom("x", 0, 400);
-    breeds["Turtle"].fillRandom("y", 0, 300);
+    myObjects["Turtle"].setCount(100000);
+    myObjects["Turtle"].fillRandom("x", 0, 400);
+    myObjects["Turtle"].fillRandom("y", 0, 300);
 
-    breeds["Filler"].fillSpace("x", "y", 400, 300);
-//    breeds["Filler"].fillRandom("x", 0, 400);
-//    breeds["Filler"].fillRandom("y", 0, 300);
+    myObjects["Filler"].fillSpace("x", "y", 400, 300);
 
-    breeds["Turtle"].fillRandomDir("dirX", "dirY");
+    myObjects["Turtle"].fillRandomDir("dirX", "dirY");
 
+//
     runner();
 };
 
@@ -907,12 +907,14 @@ function runner() {
 
 function step() {
     clear();
-    callProgram("forward", {this: breeds["Turtle"]}, {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
-    callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
+    loop.forEach(f => f());
+
+//    callProgram("forward", {this: breeds["Turtle"]}, {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
+//    callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
 //    callProgram("setTrail", {this: breeds["Turtle"], patch: patches["Patch"]}, {"patch": patches["Patch"], "value": 100.0});
 
-    callProgram("dropX", {this: breeds["Filler"], patch: patches["Patch"]}, {"patch": patches["Patch"]});
-    patches["Patch"].draw();
-//    breeds["Filler"].draw();
-    breeds["Turtle"].draw();
+//    callProgram("dropX", {this: breeds["Filler"], patch: patches["Patch"]}, {"patch": patches["Patch"]});
+    myObjects["Patch"].draw();
+    myObjects["Filler"].draw();
+    myObjects["Turtle"].draw();
 }

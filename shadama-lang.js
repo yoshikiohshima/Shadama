@@ -13,7 +13,7 @@ function initSemantics() {
     s.addOperation(
         "symTable", 
         {
-            TopLevel(ds) {
+            TopLevel(ds, l) {
                 var result = {};
                 for (var i = 0; i< ds.children.length; i++) {
                     var d = ds.children[i].symTable();
@@ -138,7 +138,7 @@ function initSemantics() {
         var table = args.table;
         var vert = args.vert;
         var frag = args.frag;
-        var js = args.frag;
+        var js = args.js;
         vert.push("(");
         l.glsl(table, vert, frag, js);
         vert.push(op);
@@ -235,6 +235,7 @@ function initSemantics() {
                 });
 
                 frag.crIfNeeded();
+
                 frag.push("void");
                 frag.pushWithSpace("main");
                 frag.push("()");
@@ -389,19 +390,293 @@ function initSemantics() {
 
         });
 
+    function loopTransBinOp(l, r, op, args) {
+        var table = args.table;
+        var js = args.js;
+        js.push("(");
+        l.loop(table, js);
+        js.push(op);
+        r.loop(table, js);
+        js.push(")");
+    };
+
+    s.addOperation(
+        "loop_method_actuals(table, js, method, isOther)",
+        {
+            Actuals_list(h, _c, r) {
+		var table = this.args.table;
+		var result = [];
+		var js = new CodeStream();
+		var method = this.args.method;
+
+		function isOther(i) {
+		    var r = table[method].usedAsOther(table[method].paramTable[table[method].paramIndex[i]][2]);
+		    return r;
+		};
+		h.loop(table, js, method, isOther(0));
+		result.push(js.contents());
+		for (var i = 0; i < r.children.length; i++) {
+		    var c = r.children[i];
+		    var js = new CodeStream();
+		    c.loop(this.args.table, js, method, isOther(i+1));
+		    result.push(js.contents());
+		}
+		return result;
+	    },
+
+	    empty() {
+		return [];
+	    }
+        });
+
+    s.addOperation(
+	"loop(table, js, method, isOther)",
+	{
+
+            Loop(_l, b) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+		b.loop(table, js, method, false);
+		return {loop: js.contents()};
+            },
+
+            Block(_o, ss, _c) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+                ss.loop(table, js, method, false);
+            },
+
+            StatementList(ss) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+		var isOther = this.args.isOther;
+		js.push("[\n");
+                for (var i = 0; i < ss.children.length; i++) {
+                    ss.children[i].loop(table, js, method, isOther);
+		    if (i != ss.children.length) {
+			js.push(",\n");
+		    }
+                }
+		js.push("]\n");
+            },
+
+            Statement(e) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+                var isOther = this.args.isOther;
+                e.loop(table, js, method, isOther);
+            },
+
+            IfStatement(_i, _o, c, _c, t, _e, optF) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+                var isOther = this.args.isOther;
+                js.push("if");
+                js.pushWithSpace("(");
+                c.loop(table, js, method, isOther);
+                js.push(")");
+                t.loop(table, js, method, isOther);
+                if (optF.children.length === 0) { return;}
+                js.pushWithSpace("else");
+                optF.loop(table, js, method, isOther);
+            },
+
+	    ExpressionStatement(e, _s) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+	    },
+
+            Expression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            EqualityExpression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            EqualityExpression_equal(l, _, r) {
+                loopTransBinOp(l, r, " == ", this.args);
+            },
+
+            EqualityExpression_notEqual(l, _, r) {
+                loopTransBinOp(l, r, " != ", this.args);
+            },
+
+            RelationalExpression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            RelationalExpression_lt(l, _, r) {
+                loopTransBinOp(l, r, " < ", this.args);
+            },
+
+            RelationalExpression_gt(l, _, r) {
+                loopTransBinOp(l, r, " > ", this.args);
+            },
+
+            RelationalExpression_le(l, _, r) {
+                loopTransBinOp(l, r, " <= ", this.args);
+            },
+
+            RelationalExpression_ge(l, _, r) {
+                loopTransBinOp(l, r, " >= ", this.args);
+            },
+
+            AddExpression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            AddExpression_plus(l, _, r) {
+                loopTransBinOp(l, r, " + ", this.args);
+            },
+
+            AddExpression_minus(l, _, r) {
+                loopTransBinOp(l, r, " - ", this.args);
+            },
+
+            MulExpression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            MulExpression_times(l, _, r) {
+                loopTransBinOp(l, r, " * ", this.args);
+            },
+
+            MulExpression_divide(l, _, r) {
+                loopTransBinOp(l, r, " / ", this.args);
+            },
+
+            PrimExpression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            PrimExpression_paren(_o, e, _c) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            PrimExpression_number(e) {
+                var js = this.args.js;
+                js.push(e.sourceString);
+            },
+
+            PrimExpression_field(n, _p, f) {
+		js.push("'nop'");
+            },
+
+            PrimExpression_variable(n) {
+                var table = this.args.table;
+                var js = this.args.js;
+		var method = this.args.method;
+		var isOther = this.args.isOther;
+		if (isOther) {
+		    js.push('myObjects["' + n.sourceString + '"]');
+		} else {
+                    js.push(n.sourceString);
+		}
+            },
+
+            PrimitiveCall(n, _o, as, _c) {
+		js.push("'nop'");
+            },
+
+            MethodCall(r, _p, n, _o, as, _c) {
+                var table = this.args.table;
+		var js = this.args.js;
+		var method = n.sourceString;
+		var actuals = as.loop_method_actuals(table, null, method, false);
+
+		var myTable = table[n.sourceString];
+
+		var formals = myTable.paramIndex;
+
+		
+		if (actuals.length !== formals.length) {
+		    throw "number of arguments don't match.";
+		}
+		var params = new CodeStream();
+		var objectsString = new CodeStream();
+
+		params.addTab();
+		objectsString.addTab();
+                for (var i = 0; i < actuals.length; i++) {
+		    var actual = actuals[i];
+		    var formalEntry = myTable.paramTable[formals[i]];
+		    var shortName = formalEntry[2];
+
+		    if (myTable.usedAsOther(shortName)) {
+			objectsString.tab();
+			objectsString.push(`objects["${shortName}"] = ${actual};\n`);
+			params.tab();
+			params.push(`params["${shortName}"] = objects["${shortName}"];\n`);
+		    } else {
+			params.tab();
+			params.push(`params["${shortName}"] = ${actual};\n`);
+		    }
+		}
+
+		var callProgram = `
+function() {
+    var data = scripts["${n.sourceString}"];
+    var func = data[0];
+    var ins = data[1][0]; // [[name, <fieldName>]]
+    var formals = data[1][1];
+    var outs = data[1][2]; //[[object, <fieldName>]]
+
+    var objects = {};
+    objects.this = myObjects["${r.sourceString}"];
+    ${objectsString.contents()};
+    
+    var params = {};
+    ${params.contents()}
+    
+    func(objects, outs, ins, params);
+}\n`;
+		js.push(callProgram);
+	    },
+
+            Actuals_list(h, _c, r) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                var js = this.args.js;
+                h.glsl(table, vert, frag, js);
+                for (var i = 0; i < r.children.length; i++) {
+                    vert.push(", ");
+                    r.children[i].glsl(table, vert, frag, js);
+                }
+            },
+            ident(n, rest) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                var js = this.args.js;
+                vert.push(this.sourceString);
+            }
+	});
+
     s.addOperation(
         "glsl(table, vert, frag, js)",
         {
-            TopLevel(ds) {
+            TopLevel(ds, l) {
                 var table = this.args.table;
                 var result = {};
-                //expected to return a list of triples
                 for (var i = 0; i < ds.children.length; i++) {
                     var d = ds.children[i];
                     var val = d.glsl(table, null, null, null);
                     addAsSet(result, val);
                 };
-                return result;
+
+		if (l.children.length !== 0) {
+		    var js = new CodeStream();
+                    var loop = l.children[0].loop(table, js, null, false);
+		    console.log(js.contents());
+		    addAsSet(result, loop);
+		}
+		return result;
             },
 
             Breed(_b, n, _o, fs, _c) {
@@ -470,7 +745,7 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
                 var js = this.args.js;
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(table, vert, frag, js);
                 if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                     vert.push(";");
                     vert.cr();
@@ -605,9 +880,7 @@ function initSemantics() {
             },
 
             PrimExpression_number(e) {
-                var table = this.args.table;
                 var vert = this.args.vert;
-                var frag = this.args.frag;
                 vert.push(e.sourceString);
             },
 
@@ -754,25 +1027,11 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
         this.varyingIndex.push(k);
     }
 
-    var usedAsOther = (n) => {
-        for (var i = 0; i < this.otherInIndex.length; i++) {
-            if (this.otherInTable[this.otherInIndex[i]][1] === n) {
-                return true;
-            }
-        }
-        for (var i = 0; i < this.otherOutIndex.length; i++) {
-            if (this.otherOutTable[this.otherOutIndex[i]][1] === n) {
-                return true;
-            }
-        }
-        return false;
-    };
-
     for (var i = 0; i < this.paramIndex.length; i++) {
         var k = this.paramIndex[i];
         var elem = this.paramTable[k];
 
-        if (!usedAsOther(elem[2])) {
+        if (!this.usedAsOther(elem[2])) {
             this.scalarParamTable[k] = elem;
             this.scalarParamIndex.push(k);
         }
@@ -784,6 +1043,20 @@ function SymTable(table, defaultUniforms, defaultAttributes) {
         this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
     }
     this.defaultAttributes = defaultAttributes || ["a_index"];
+};
+
+SymTable.prototype.usedAsOther = function(n) {
+    for (var i = 0; i < this.otherInIndex.length; i++) {
+        if (this.otherInTable[this.otherInIndex[i]][1] === n) {
+            return true;
+        }
+    }
+    for (var i = 0; i < this.otherOutIndex.length; i++) {
+        if (this.otherOutTable[this.otherOutIndex[i]][1] === n) {
+            return true;
+        }
+    }
+    return false;
 };
 
 SymTable.prototype.varying = function(entry) {
@@ -872,12 +1145,22 @@ SymTable.prototype.isBuiltin = function(n) {
 };
 
 SymTable.prototype.insAndParamsAndOuts = function() {
-    var ins = this.uniformIndex.map((k) => this.uniformTable[k]);
+    var ins = this.uniformIndex.map((k) => {
+	var entry = this.uniformTable[k];
+	return [entry[1], entry[2]];
+    });
     var shortParams = this.paramIndex.map((k) => this.paramTable[k][2]);
-    var outs = this.thisOutIndex.length != 0
-        ? this.thisOutIndex.map((k) => this.thisOutTable[k])
-        : this.otherOutIndex.map((k) => this.otherOutTable[k]);
-
+    if (this.thisOutIndex.length > 0) {
+	var outs = this.thisOutIndex.map((k) => {
+	    var entry = this.thisOutTable[k];
+	    return [entry[1], entry[2]];
+	});
+    } else {
+	var outs = this.otherOutIndex.map((k) => {
+	    var entry = this.otherOutTable[k];
+	    return [entry[1], entry[2]];
+	});
+    }
     return [ins, shortParams, outs];
 };
 
@@ -1113,15 +1396,6 @@ function grammarUnitTests() {
         "param.b": ["param" , null, "b"],
         "param.c": ["param" , null, "c"],
     });
-
-    semanticsTest("def breed.foo(a, b, c) {this.x = 4; this.y = other.x;}", "TopLevel", s, "rawTable", [{
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"],
-        "param.a": ["param" , null, "a"],
-        "param.b": ["param" , null, "b"],
-        "param.c": ["param" , null, "c"],
-    }]);
 
 //    translate("this.x = this.y + 3;", "Statement", s);
     translate("breed foo (x, y)", "Breed", s);

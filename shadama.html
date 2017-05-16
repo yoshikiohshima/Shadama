@@ -9,12 +9,13 @@
         <script type="text/ohm-js">
 Shadama {
   TopLevel
-    = (Breed | Patch | Script)*
+    = (Breed | Patch | Script)* Loop?
 
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
-  Script
-    = def ident "." ident "(" Formals ")" Block
+  Script = def ident "." ident "(" Formals ")" Block
+
+  Loop = loop Block
 
   Formals
     = ident ("," ident)* -- list
@@ -30,12 +31,13 @@ Shadama {
     | AssignmentStatement
     | ExpressionStatement
     | IfStatement
+    | ExpressionStatement
 
   VariableStatement = var VariableDeclaration ";"
   VariableDeclaration = ident Initialiser?
   Initialiser = "=" Expression
 
-  ExpressionStatement = AddExpression ";"
+  ExpressionStatement = Expression ";"
   IfStatement = if "(" Expression ")" Statement (else Statement)?
 
   AssignmentStatement
@@ -71,13 +73,17 @@ Shadama {
 
   PrimExpression
     = "(" Expression ")"  -- paren
-    | ident "." ident     -- field
     | PrimitiveCall
+    | MethodCall
+    | ident "." ident     -- field
     | ident               -- variable
     | number              -- number
 
   PrimitiveCall
     = ident "(" Actuals ")"
+
+  MethodCall
+    = ident "." ident "(" Actuals ")"
 
   Actuals
     = Expression ("," Expression)* -- list
@@ -101,6 +107,7 @@ Shadama {
   def = "def" ~identifierPart
   this = "this" ~identifierPart
   self = "self" ~identifierPart
+  loop = "loop" ~identifierPart
 
   empty =
 }
@@ -417,6 +424,12 @@ void main(void) {
            patch.a = this.x / 255.0;
         }
 
+	loop {
+          Turtle.forward(1.5, 1, 0, 1, 1);
+          Turtle.turn(0.05);
+          Turtle.setTrail(Patch, 100);
+          Filler.dropX(Patch);
+        }
         </script>
 
 
