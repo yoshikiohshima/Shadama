@@ -872,9 +872,7 @@ onload = function() {
     loadShadama("forward.shadama");
 
     var code = document.getElementById("code");
-    var codeArray = shadama.split("\n");
-    code.innerHTML = codeArray.join("<br>");
-
+    code.value = shadama;
 
 
     myObjects["Turtle"].setCount(100000);
