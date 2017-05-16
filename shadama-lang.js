@@ -404,41 +404,41 @@ function initSemantics() {
         "loop_method_actuals(table, js, method, isOther)",
         {
             Actuals_list(h, _c, r) {
-		var table = this.args.table;
-		var result = [];
-		var js = new CodeStream();
-		var method = this.args.method;
+                var table = this.args.table;
+                var result = [];
+                var js = new CodeStream();
+                var method = this.args.method;
 
-		function isOther(i) {
-		    var r = table[method].usedAsOther(table[method].paramTable[table[method].paramIndex[i]][2]);
-		    return r;
-		};
-		h.loop(table, js, method, isOther(0));
-		result.push(js.contents());
-		for (var i = 0; i < r.children.length; i++) {
-		    var c = r.children[i];
-		    var js = new CodeStream();
-		    c.loop(this.args.table, js, method, isOther(i+1));
-		    result.push(js.contents());
-		}
-		return result;
-	    },
+                function isOther(i) {
+                    var r = table[method].usedAsOther(table[method].paramTable[table[method].paramIndex[i]][2]);
+                    return r;
+                };
+                h.loop(table, js, method, isOther(0));
+                result.push(js.contents());
+                for (var i = 0; i < r.children.length; i++) {
+                    var c = r.children[i];
+                    var js = new CodeStream();
+                    c.loop(this.args.table, js, method, isOther(i+1));
+                    result.push(js.contents());
+                }
+                return result;
+            },
 
-	    empty() {
-		return [];
-	    }
+            empty() {
+                return [];
+            }
         });
 
     s.addOperation(
-	"loop(table, js, method, isOther)",
-	{
+        "loop(table, js, method, isOther)",
+        {
 
             Loop(_l, b) {
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
-		b.loop(table, js, method, false);
-		return {loop: js.contents()};
+                b.loop(table, js, method, false);
+                return {loop: js.contents()};
             },
 
             Block(_o, ss, _c) {
@@ -452,15 +452,15 @@ function initSemantics() {
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
-		var isOther = this.args.isOther;
-		js.push("[\n");
+                var isOther = this.args.isOther;
+                js.push("[\n");
                 for (var i = 0; i < ss.children.length; i++) {
                     ss.children[i].loop(table, js, method, isOther);
-		    if (i != ss.children.length) {
-			js.push(",\n");
-		    }
+                    if (i != ss.children.length) {
+                        js.push(",\n");
+                    }
                 }
-		js.push("]\n");
+                js.push("]\n");
             },
 
             Statement(e) {
@@ -486,9 +486,9 @@ function initSemantics() {
                 optF.loop(table, js, method, isOther);
             },
 
-	    ExpressionStatement(e, _s) {
+            ExpressionStatement(e, _s) {
                 e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
-	    },
+            },
 
             Expression(e) {
                 e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
@@ -564,61 +564,72 @@ function initSemantics() {
             },
 
             PrimExpression_field(n, _p, f) {
-		js.push("'nop'");
+                js.push("'nop'");
             },
 
             PrimExpression_variable(n) {
                 var table = this.args.table;
                 var js = this.args.js;
-		var method = this.args.method;
-		var isOther = this.args.isOther;
-		if (isOther) {
-		    js.push('myObjects["' + n.sourceString + '"]');
-		} else {
+                var method = this.args.method;
+                var isOther = this.args.isOther;
+                if (isOther) {
+                    js.push('myObjects["' + n.sourceString + '"]');
+                } else {
                     js.push(n.sourceString);
-		}
+                }
             },
 
             PrimitiveCall(n, _o, as, _c) {
-		js.push("'nop'");
+                js.push("'nop'");
             },
 
             MethodCall(r, _p, n, _o, as, _c) {
                 var table = this.args.table;
-		var js = this.args.js;
-		var method = n.sourceString;
-		var actuals = as.loop_method_actuals(table, null, method, false);
+                var js = this.args.js;
+                var method = n.sourceString;
 
-		var myTable = table[n.sourceString];
+                if (method === "clear") {
+                    js.push("function () {clear();}");
+                    return;
+                }
 
-		var formals = myTable.paramIndex;
+                if (method === "draw") {
+                    js.push(`function () {
+                        myObjects["${r.sourceString}"].draw()}`);
+                    return;
+                }
 
-		
-		if (actuals.length !== formals.length) {
-		    throw "number of arguments don't match.";
-		}
-		var params = new CodeStream();
-		var objectsString = new CodeStream();
+                var actuals = as.loop_method_actuals(table, null, method, false);
 
-		params.addTab();
-		objectsString.addTab();
+                var myTable = table[n.sourceString];
+
+                var formals = myTable.paramIndex;
+
+                if (actuals.length !== formals.length) {
+                    throw "number of arguments don't match.";
+                }
+                var params = new CodeStream();
+                var objectsString = new CodeStream();
+
+                params.addTab();
+                objectsString.addTab();
                 for (var i = 0; i < actuals.length; i++) {
-		    var actual = actuals[i];
-		    var formalEntry = myTable.paramTable[formals[i]];
-		    var shortName = formalEntry[2];
+                    var actual = actuals[i];
+                    var formalEntry = myTable.paramTable[formals[i]];
+                    var shortName = formalEntry[2];
 
-		    if (myTable.usedAsOther(shortName)) {
-			objectsString.tab();
-			objectsString.push(`objects["${shortName}"] = ${actual};\n`);
-			params.tab();
-			params.push(`params["${shortName}"] = objects["${shortName}"];\n`);
-		    } else {
-			params.tab();
-			params.push(`params["${shortName}"] = ${actual};\n`);
-		    }
-		}
+                    if (myTable.usedAsOther(shortName)) {
+                        objectsString.tab();
+                        objectsString.push(`objects["${shortName}"] = ${actual};\n`);
+                        params.tab();
+                        params.push(`params["${shortName}"] = objects["${shortName}"];\n`);
+                    } else {
+                        params.tab();
+                        params.push(`params["${shortName}"] = ${actual};\n`);
+                    }
+                }
 
-		var callProgram = `
+                var callProgram = `
 function() {
     var data = scripts["${n.sourceString}"];
     var func = data[0];
@@ -635,8 +646,8 @@ function() {
     
     func(objects, outs, ins, params);
 }\n`;
-		js.push(callProgram);
-	    },
+                js.push(callProgram);
+            },
 
             Actuals_list(h, _c, r) {
                 var table = this.args.table;
@@ -656,7 +667,7 @@ function() {
                 var js = this.args.js;
                 vert.push(this.sourceString);
             }
-	});
+        });
 
     s.addOperation(
         "glsl(table, vert, frag, js)",
@@ -670,13 +681,13 @@ function() {
                     addAsSet(result, val);
                 };
 
-		if (l.children.length !== 0) {
-		    var js = new CodeStream();
+                if (l.children.length !== 0) {
+                    var js = new CodeStream();
                     var loop = l.children[0].loop(table, js, null, false);
-		    console.log(js.contents());
-		    addAsSet(result, loop);
-		}
-		return result;
+                    console.log(js.contents());
+                    addAsSet(result, loop);
+                }
+                return result;
             },
 
             Breed(_b, n, _o, fs, _c) {
@@ -1146,20 +1157,20 @@ SymTable.prototype.isBuiltin = function(n) {
 
 SymTable.prototype.insAndParamsAndOuts = function() {
     var ins = this.uniformIndex.map((k) => {
-	var entry = this.uniformTable[k];
-	return [entry[1], entry[2]];
+        var entry = this.uniformTable[k];
+        return [entry[1], entry[2]];
     });
     var shortParams = this.paramIndex.map((k) => this.paramTable[k][2]);
     if (this.thisOutIndex.length > 0) {
-	var outs = this.thisOutIndex.map((k) => {
-	    var entry = this.thisOutTable[k];
-	    return [entry[1], entry[2]];
-	});
+        var outs = this.thisOutIndex.map((k) => {
+            var entry = this.thisOutTable[k];
+            return [entry[1], entry[2]];
+        });
     } else {
-	var outs = this.otherOutIndex.map((k) => {
-	    var entry = this.otherOutTable[k];
-	    return [entry[1], entry[2]];
-	});
+        var outs = this.otherOutIndex.map((k) => {
+            var entry = this.otherOutTable[k];
+            return [entry[1], entry[2]];
+        });
     }
     return [ins, shortParams, outs];
 };

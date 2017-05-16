@@ -424,11 +424,16 @@ void main(void) {
            patch.a = this.x / 255.0;
         }
 
-	loop {
+        loop {
+          Display.clear();
           Turtle.forward(1.5, 1, 0, 1, 1);
           Turtle.turn(0.05);
           Turtle.setTrail(Patch, 100);
           Filler.dropX(Patch);
+          Patch.draw();
+          Turtle.draw();
+          Filler.draw();
+
         }
         </script>
 

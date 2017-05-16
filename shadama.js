@@ -22,6 +22,7 @@ var programs = {};
 var scripts = {};
 var myObjects = {};
 
+var shadama;
 var loop;
 
 var debugCanvas1;
@@ -139,24 +140,24 @@ function loadShadama(id, source) {
         if(!scriptElement){return;}
         source = scriptElement.text;
     }
+    shadama = source;
     var result = translate(source, "TopLevel");
     for (var k in result) {
-	if (k === "loop") {
-	    debugger;
-	    loop = eval(result[k]);
-	} else {
+        if (k === "loop") {
+            loop = eval(result[k]);
+        } else {
             var entry = result[k];
             var js = entry[3];
             if (js[0] === "updateBreed") {
-		updateBreed(js[1], js[2]);
+                updateBreed(js[1], js[2]);
             } else if (js[0] === "updatePatch") {
-		updatePatch(js[1], js[2]);
+                updatePatch(js[1], js[2]);
             } else if (js[0] === "updateScript") {
-		var table = entry[0];
-		scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
-				  table.insAndParamsAndOuts()];
-	    }
-	}
+                var table = entry[0];
+                scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
+                                  table.insAndParamsAndOuts()];
+            }
+        }
     }
 };
 
@@ -317,12 +318,12 @@ Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
     var y = new Float32Array(T * T * 4);
 
     for (var j = 0; j < yDim; j++) {
-	for (var i = 0; i < xDim; i++) {
-//	    var ind = i * j;
-	    var ind = xDim * j + i;
+        for (var i = 0; i < xDim; i++) {
+//          var ind = i * j;
+            var ind = xDim * j + i;
             x[ind*4] = i;
             y[ind*4] = j;
-	}
+        }
     }
     this[xName] = createTexture(gl, x, gl.R32F);
     this[yName] = createTexture(gl, y, gl.R32F);
@@ -700,9 +701,9 @@ function programFromTable(table, vert, frag, name) {
                                  createShader(gl, name + ".frag", frag));
         var vao = breedVAO;
         var uniLocations = {};
-	
-	var viewportW = table.forPatch ? FW : T;
-	var viewportH = table.forPatch ? FH : T;
+        
+        var viewportW = table.forPatch ? FW : T;
+        var viewportH = table.forPatch ? FH : T;
 
         table.defaultUniforms.forEach(function(n) {
             uniLocations[n] = gl.getUniformLocation(prog, n);
@@ -729,20 +730,20 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-	    
+            
             var object = objects["this"];
             var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
             setTargetBuffers(gl, framebufferR, targets);
-	    
+            
             gl.useProgram(prog);
             gl.bindVertexArray(vao);
-	    
+            
             gl.viewport(0, 0, viewportW, viewportH);
             gl.uniform2f(uniLocations["u_resolution"], FW, FH);
             gl.uniform1f(uniLocations["u_particleLength"], T);
-	    
-	    var offset = 0;
-	    if (table.forPatch) {
+            
+            var offset = 0;
+            if (table.forPatch) {
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, object.x);
                 gl.uniform1i(uniLocations["u_that_x"], 0);
@@ -750,9 +751,9 @@ function programFromTable(table, vert, frag, name) {
                 gl.activeTexture(gl.TEXTURE1);
                 gl.bindTexture(gl.TEXTURE_2D, object.y);
                 gl.uniform1i(uniLocations["u_that_y"], 1);
-		offset = 2;
-	    }
-	    
+                offset = 2;
+            }
+            
             for (var ind = 0; ind < ins.length; ind++) {
                 var pair = ins[ind];
                 var glIndex = gl.TEXTURE0 + ind + offset;
@@ -762,30 +763,30 @@ function programFromTable(table, vert, frag, name) {
                 gl.bindTexture(gl.TEXTURE_2D, val);
                 gl.uniform1i(uniLocations["u_this_" + k], ind + offset);
             }
-	    
+            
             for (var k in params) {
                 var val = params[k];
                 if (val.constructor == WebGLTexture) {
-		    var glIndex = gl.TEXTURE0 + ind + offset;
+                    var glIndex = gl.TEXTURE0 + ind + offset;
                     gl.activeTexture(glIndex);
                     gl.bindTexture(gl.TEXTURE_2D, val);
                     gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
-		    ind++;
+                    ind++;
                 } else {
                     gl.uniform1i(uniLocations["u_vector_" + k], 0);
                     gl.uniform1f(uniLocations["u_scalar_" + k], val);
                     gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
                 }
             }
-	    
-	    if (!table.forPatch) {
+            
+            if (!table.forPatch) {
                 gl.clearColor(0.0, 0.0, 0.0, 0.0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
-	    }
+            }
             gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-	    
+            
             for (var i = 0; i < outs.length; i++) {
                 var pair = outs[i];
                 var o = objects[pair[0]];
@@ -866,14 +867,15 @@ onload = function() {
     initFramebuffer(gl, framebufferR, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
-    var code = document.getElementById("code");
-    var codeArray = step.toString().split("\n");
-
-    code.innerHTML = codeArray.splice(1, codeArray.length - 2).join("<br>");
-
     grammarUnitTests();
 
     loadShadama("forward.shadama");
+
+    var code = document.getElementById("code");
+    var codeArray = shadama.split("\n");
+    code.innerHTML = codeArray.join("<br>");
+
+
 
     myObjects["Turtle"].setCount(100000);
     myObjects["Turtle"].fillRandom("x", 0, 400);
@@ -906,15 +908,5 @@ function runner() {
 };
 
 function step() {
-    clear();
     loop.forEach(f => f());
-
-//    callProgram("forward", {this: breeds["Turtle"]}, {"n":  1.5, "left": 1, "right": 0, "top": 1, "bottom": 1});
-//    callProgram("turn", {this: breeds["Turtle"]}, {"d": 0.05});
-//    callProgram("setTrail", {this: breeds["Turtle"], patch: patches["Patch"]}, {"patch": patches["Patch"], "value": 100.0});
-
-//    callProgram("dropX", {this: breeds["Filler"], patch: patches["Patch"]}, {"patch": patches["Patch"]});
-    myObjects["Patch"].draw();
-    myObjects["Filler"].draw();
-    myObjects["Turtle"].draw();
 }
