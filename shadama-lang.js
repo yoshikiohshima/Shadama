@@ -10,11 +10,29 @@ function initCompiler() {
 };
 
 function initSemantics() {
+    function addDefaults(obj) {
+	obj["setCount"] = new SymTable({"param.num": ["param", null, "num"]});
+	obj["draw"] = new SymTable({});
+	obj["fillRandom"] = new SymTable({
+	    "param.name": ["param", null, "name"],
+	    "param.min": ["param", null, "min"],
+	    "param.max": ["param", null, "max"]});
+	obj["fillRandomDir"] = new SymTable({
+	    "param.xDir": ["param", null, "xDir"],
+	    "param.yDir": ["param", null, "yDir"]});
+	obj["fillSpace"] = new SymTable({
+	    "param.xDir": ["param", null, "xName"],
+	    "param.yDir": ["param", null, "yName"],
+	    "param.x": ["param", null, "x"],
+	    "param.y": ["param", null, "y"]});
+    }
+
     s.addOperation(
         "symTable", 
         {
-            TopLevel(ds, l) {
+            TopLevel(ds, s, l) {
                 var result = {};
+		addDefaults(result);
                 for (var i = 0; i< ds.children.length; i++) {
                     var d = ds.children[i].symTable();
                     if (ds.children[i].ctorName == "Script") {
@@ -410,6 +428,9 @@ function initSemantics() {
                 var method = this.args.method;
 
                 function isOther(i) {
+		    if (!table[method]) {
+			debugger;
+		    }
                     var r = table[method].usedAsOther(table[method].paramTable[table[method].paramIndex[i]][2]);
                     return r;
                 };
@@ -439,6 +460,14 @@ function initSemantics() {
                 var method = this.args.method;
                 b.loop(table, js, method, false);
                 return {loop: js.contents()};
+            },
+
+            Setup(_s, b) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+                b.loop(table, js, method, false);
+                return {setup: js.contents()};
             },
 
             Block(_o, ss, _c) {
@@ -558,6 +587,11 @@ function initSemantics() {
                 e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
             },
 
+            PrimExpression_string(e) {
+                var js = this.args.js;
+                js.push(e.sourceString);
+            },
+
             PrimExpression_number(e) {
                 var js = this.args.js;
                 js.push(e.sourceString);
@@ -596,6 +630,16 @@ function initSemantics() {
                 if (method === "draw") {
                     js.push(`function () {
                         myObjects["${r.sourceString}"].draw()}`);
+                    return;
+                }
+
+		var builtIns = ["setCount", "fillRandom", "fillSpace", "fillRandomDir"];
+
+                if (builtIns.indexOf(method) >= 0) {
+                    var actuals = as.loop_method_actuals(table, null, method, false);
+		    var str = actuals.join(", ");
+                    js.push(`function () {
+                        myObjects["${r.sourceString}"].${method}(${str})}`);
                     return;
                 }
 
@@ -672,7 +716,7 @@ function() {
     s.addOperation(
         "glsl(table, vert, frag, js)",
         {
-            TopLevel(ds, l) {
+            TopLevel(ds, s, l) {
                 var table = this.args.table;
                 var result = {};
                 for (var i = 0; i < ds.children.length; i++) {
@@ -681,10 +725,15 @@ function() {
                     addAsSet(result, val);
                 };
 
+                if (s.children.length !== 0) {
+                    var js = new CodeStream();
+                    var setup = s.children[0].loop(table, js, null, false);
+                    addAsSet(result, setup);
+                };
+
                 if (l.children.length !== 0) {
                     var js = new CodeStream();
                     var loop = l.children[0].loop(table, js, null, false);
-                    console.log(js.contents());
                     addAsSet(result, loop);
                 }
                 return result;
@@ -1312,7 +1361,6 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
 
     var n = s(match);
     var rawTable = n.symTable();
-
     return n.glsl(rawTable, null, null, null);
 };
 
@@ -1409,5 +1457,7 @@ function grammarUnitTests() {
     });
 
 //    translate("this.x = this.y + 3;", "Statement", s);
-    translate("breed foo (x, y)", "Breed", s);
+
+	
+//    translate("def breed.count(num) {      }");
 };

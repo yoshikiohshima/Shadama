@@ -24,6 +24,7 @@ var myObjects = {};
 
 var shadama;
 var loop;
+var setup;
 
 var debugCanvas1;
 
@@ -145,7 +146,9 @@ function loadShadama(id, source) {
     for (var k in result) {
         if (k === "loop") {
             loop = eval(result[k]);
-        } else {
+        } else if (k === "setup") {
+            setup = eval(result[k]);
+	} else {
             var entry = result[k];
             var js = entry[3];
             if (js[0] === "updateBreed") {
@@ -799,33 +802,6 @@ function programFromTable(table, vert, frag, name) {
     })();
 };
 
-function callProgram(name, objects, params) {
-    var data = scripts[name];
-    if (!data) {throw name + " cannot be found"; return};
-    var func = data[0];
-    var ins = data[1][0];
-    var formals = data[1][1];
-    var outs = data[1][2];
-
-    var realOuts = [];  // [[object, <fieldName>]]
-    var realIns = [];  // [[object, <fieldName>]]
-    var realParams = [] // [[shortName, value]]
-
-    for (var i = 0; i < outs.length; i++) {
-        var entry = outs[i];
-        var target = objects[entry[1]];
-        realOuts.push([target, entry[2]]);
-    }
-
-    for (var i = 0; i < ins.length; i++) {
-        var entry = ins[i];
-        var target = objects[entry[1]];
-        realIns.push([target, entry[2]]);
-    }
-
-    func(objects, realOuts, realIns, params);
-};
-
 onload = function() {
     readout = document.getElementById("readout");
 
@@ -874,16 +850,10 @@ onload = function() {
     var code = document.getElementById("code");
     code.value = shadama;
 
+    if (setup) {
+	setup.forEach(f => f());
+    }
 
-    myObjects["Turtle"].setCount(100000);
-    myObjects["Turtle"].fillRandom("x", 0, 400);
-    myObjects["Turtle"].fillRandom("y", 0, 300);
-
-    myObjects["Filler"].fillSpace("x", "y", 400, 300);
-
-    myObjects["Turtle"].fillRandomDir("dirX", "dirY");
-
-//
     runner();
 };
 
@@ -906,5 +876,7 @@ function runner() {
 };
 
 function step() {
-    loop.forEach(f => f());
+    if (loop) {
+	loop.forEach(f => f());
+    }
 }

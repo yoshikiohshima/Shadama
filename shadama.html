@@ -9,11 +9,13 @@
         <script type="text/ohm-js">
 Shadama {
   TopLevel
-    = (Breed | Patch | Script)* Loop?
+    = (Breed | Patch | Script)* Setup? Loop?
 
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Script = def ident "." ident "(" Formals ")" Block
+
+  Setup = setup Block
 
   Loop = loop Block
 
@@ -77,6 +79,7 @@ Shadama {
     | MethodCall
     | ident "." ident     -- field
     | ident               -- variable
+    | string              -- string
     | number              -- number
 
   PrimitiveCall
@@ -96,6 +99,12 @@ Shadama {
     = digit* "." digit+  -- fract
     | digit+             -- whole
 
+  string = "\"" doubleStringCharacter* "\""
+
+  doubleStringCharacter 
+    = "\\" any           -- escaped
+    | ~"\"" any          -- nonEscaped
+
   identifierStart = letter | "_"
   identifierPart = identifierStart | digit
 
@@ -108,6 +117,7 @@ Shadama {
   this = "this" ~identifierPart
   self = "self" ~identifierPart
   loop = "loop" ~identifierPart
+  setup = "setup" ~identifierPart
 
   empty =
 }
@@ -422,6 +432,14 @@ void main(void) {
            patch.g = this.x / 255.0;
            patch.b = 0.0;
            patch.a = this.x / 255.0;
+        }
+
+	setup {
+           Turtle.setCount(10000);
+	   Turtle.fillRandom("x", 0, 400);
+	   Turtle.fillRandom("y", 0, 300);
+	   Turtle.fillRandomDir("dirX", "dirY");
+	   Filler.fillSpace("x", "y", 400, 300);
         }
 
         loop {
