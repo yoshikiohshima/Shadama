@@ -26,6 +26,8 @@ var shadama;
 var loop;
 var setup;
 
+var compilation;
+
 var debugCanvas1;
 
 var debugArray;
@@ -143,6 +145,7 @@ function loadShadama(id, source) {
     }
     shadama = source;
     var result = translate(source, "TopLevel");
+    compilation = result;
     for (var k in result) {
         if (k === "loop") {
             loop = eval(result[k]);
@@ -358,7 +361,7 @@ function makePrimitive(gl, name, uniforms, vao) {
 };
 
 function drawBreedProgram(gl) {
-    return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_x", "u_y"], breedVAO);
+    return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
 };
 
 function drawPatchProgram(gl) {
@@ -388,15 +391,31 @@ Breed.prototype.draw = function() {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.x);
+    gl.uniform1i(prog.uniLocations["u_x"], 0);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.y);
+    gl.uniform1i(prog.uniLocations["u_y"], 1);
+
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.r);
+    gl.uniform1i(prog.uniLocations["u_r"], 2);
+
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, this.g);
+    gl.uniform1i(prog.uniLocations["u_g"], 3);
+
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.b);
+    gl.uniform1i(prog.uniLocations["u_b"], 4);
+
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D, this.a);
+    gl.uniform1i(prog.uniLocations["u_a"], 5);
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_x"], 0);
-    gl.uniform1i(prog.uniLocations["u_y"], 1);
 
     gl.drawArrays(gl.POINTS, 0, this.count);
 

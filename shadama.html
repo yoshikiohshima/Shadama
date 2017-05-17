@@ -131,6 +131,13 @@ uniform float u_particleLength;
 uniform sampler2D u_x;
 uniform sampler2D u_y;
 
+uniform sampler2D u_r;
+uniform sampler2D u_g;
+uniform sampler2D u_b;
+uniform sampler2D u_a;
+
+out vec4 v_color;
+
 void main(void) {
     vec2 zeroToOne = a_index / u_particleLength;
     float x = texelFetch(u_x, ivec2(a_index), 0).r;
@@ -138,8 +145,13 @@ void main(void) {
     vec2 dPos = vec2(x, y);   // (0-resolution, 0-resolution)
     vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
     vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
-
     gl_Position = vec4(clipPos, 0, 1.0);
+
+    float r = texelFetch(u_r, ivec2(a_index), 0).r;
+    float g = texelFetch(u_g, ivec2(a_index), 0).r;
+    float b = texelFetch(u_b, ivec2(a_index), 0).r;
+    float a = texelFetch(u_a, ivec2(a_index), 0).r;
+    v_color = vec4(r, g, b, a);
     gl_PointSize = 1.0;
 }
         </script>
@@ -147,14 +159,12 @@ void main(void) {
         <script id="drawBreed.frag" type="x-shader/x-fragment">#version 300 es
 precision highp float;
 
-uniform sampler2D u_color;
-
-//in vec2 v_coord;
+in vec4 v_color;
 
 out vec4 fragColor;
 
 void main(void) {
-  fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+  fragColor = v_color;
 }
         </script>
         <script id="setPatch.vert" type="x-shader/x-vertex">#version 300 es
@@ -353,6 +363,7 @@ void main(void) {
         breed Filler (x, y, dirX, dirY, r, g, b, a)
         patch Patch (r, g, b, a)
 
+
         def breed.forward(n, left, right, top, bottom) {
           var dx = this.dirX;
           var dy = this.dirY;
@@ -434,23 +445,27 @@ void main(void) {
            patch.a = this.x / 255.0;
         }
 
+	def breed.setColor() {
+           this.r = this.x / 256.0;
+           this.g = this.y / 256.0;
+           this.b = 0.0;
+           this.a = 0.5;
+        }
+
 	setup {
-           Turtle.setCount(10000);
-	   Turtle.fillRandom("x", 0, 400);
-	   Turtle.fillRandom("y", 0, 300);
-	   Turtle.fillRandomDir("dirX", "dirY");
-	   Filler.fillSpace("x", "y", 400, 300);
+          Turtle.setCount(100000);
+          Turtle.fillRandom("x", 0, 400);
+          Turtle.fillRandom("y", 0, 300);
+	  Turtle.fillRandomDir("dirX", "dirY");
+	  Filler.fillSpace("x", "y", 400, 300);
+          Turtle.setColor();
         }
 
         loop {
           Display.clear();
           Turtle.forward(1.5, 1, 0, 1, 1);
           Turtle.turn(0.05);
-          Turtle.setTrail(Patch, 100);
-          Filler.dropX(Patch);
-          Patch.draw();
           Turtle.draw();
-          Filler.draw();
 
         }
         </script>
