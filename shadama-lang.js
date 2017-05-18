@@ -411,10 +411,12 @@ function initSemantics() {
     function loopTransBinOp(l, r, op, args) {
         var table = args.table;
         var js = args.js;
+        var method = args.method;
+        var isOther = args.isOther;
         js.push("(");
-        l.loop(table, js);
+        l.loop(table, js, method, isOther);
         js.push(op);
-        r.loop(table, js);
+        r.loop(table, js, method, isOther);
         js.push(")");
     };
 

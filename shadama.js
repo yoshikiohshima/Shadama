@@ -1,8 +1,8 @@
 "use strict";
 
 var TEXTURE_SIZE = 512;
-var FIELD_WIDTH = 400;
-var FIELD_HEIGHT = 300;
+var FIELD_WIDTH = 256;
+var FIELD_HEIGHT = 256;
 var ENLARGE = 2;
 
 var T = TEXTURE_SIZE;
@@ -25,6 +25,8 @@ var myObjects = {};
 var shadama;
 var loop;
 var setup;
+
+var editor;
 
 var compilation;
 
@@ -275,6 +277,7 @@ function Breed(count) {
 
 Breed.prototype.addOwnVariable = function(name) {
     var ary = new Float32Array(T * T);
+    this.own[name] = name;
     this[name] = createTexture(gl, ary, gl.R32F);
     this["new"+name] = createTexture(gl, ary, gl.R32F);
 };
@@ -335,13 +338,13 @@ Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
     this[yName] = createTexture(gl, y, gl.R32F);
 };
 
-
-
 function Patch() {
+   this.own = {};
 };
 
 Patch.prototype.addOwnVariable = function(name) {
     var ary = new Float32Array(FW * FH * 4);
+    this.own[name] = name;
     this[name] = createTexture(gl, ary, gl.R32F);
     this["new"+name] = createTexture(gl, ary, gl.R32F);
 };
@@ -447,16 +450,8 @@ Breed.prototype.increasePatch = function(patch, value) {
     gl.disable(gl.BLEND);
 };
 
-Patch.prototype.clear = function() {
-    var prog = programs["clearPatch"];
-    setTargetBuffer(gl, framebufferF, this.values);
-
-    gl.viewport(0, 0, FW, FH);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-};
-
 Breed.prototype.setCount = function(n) {
+    var oldCount = this.count;
     if (n < 0 || !n) {
         n = 0;
     }
@@ -869,6 +864,9 @@ onload = function() {
     var code = document.getElementById("code");
     code.value = shadama;
 
+    editor = CodeMirror.fromTextArea(document.getElementById("code"));
+    code.remove();
+
     if (setup) {
 	setup.forEach(f => f());
     }
@@ -876,9 +874,13 @@ onload = function() {
     runner();
 };
 
+function updateCode() {
+    var code = editor.getValue();
+    loadShadama(null, code);
+};
+
 function runner() {
     var start = performance.now();
-
     step();
     var now = performance.now();
 
