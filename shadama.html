@@ -74,6 +74,11 @@ Shadama {
   MulExpression
     = MulExpression "*" PrimExpression  -- times
     | MulExpression "/" PrimExpression  -- divide
+    | UnaryExpression
+
+  UnaryExpression
+    = "+" PrimExpression -- plus
+    | "-" PrimExpression -- minus
     | PrimExpression
 
   PrimExpression

@@ -581,6 +581,20 @@ function initSemantics() {
                 loopTransBinOp(l, r, " / ", this.args);
             },
 
+            UnaryExpression(e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            UnaryExpression_plus(_p, e) {
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+	    },
+
+            UnaryExpression_minus(_p, e) {
+		var js = this.args.js;
+		js.pushWithSpace("-");
+                e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
+	    },
+
             PrimExpression(e) {
                 e.loop(this.args.table, this.args.js, this.args.method, this.args.isOther);
             },
@@ -646,9 +660,7 @@ function initSemantics() {
                 }
 
                 var actuals = as.loop_method_actuals(table, null, method, false);
-
                 var myTable = table[n.sourceString];
-
                 var formals = myTable.paramIndex;
 
                 if (actuals.length !== formals.length) {
@@ -932,6 +944,23 @@ function() {
             MulExpression_divide(l, _, r) {
                 transBinOp(l, r, " / ", this.args);
             },
+
+	    UnaryExpression(e) {
+                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+	    },
+
+	    UnaryExpression_plus(_p, e) {
+                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+	    },
+
+	    UnaryExpression_minus(_p, e) {
+		var table = this.args.table;
+		var vert = this.args.vert;
+		var frag = this.args.frag;
+		var js = this.args.js;
+		vert.pushWithSpace("-");
+		e.glsl(table, vert, frag, js);
+	    },
 
             PrimExpression(e) {
                 e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
