@@ -11,30 +11,31 @@ function initCompiler() {
 
 function initSemantics() {
     function addDefaults(obj) {
-	obj["setCount"] = new SymTable({"param.num": ["param", null, "num"]});
-	obj["draw"] = new SymTable({});
-	obj["fillRandom"] = new SymTable({
-	    "param.name": ["param", null, "name"],
-	    "param.min": ["param", null, "min"],
-	    "param.max": ["param", null, "max"]});
-	obj["fillRandomDir"] = new SymTable({
-	    "param.xDir": ["param", null, "xDir"],
-	    "param.yDir": ["param", null, "yDir"]});
-	obj["fillSpace"] = new SymTable({
-	    "param.xDir": ["param", null, "xName"],
-	    "param.yDir": ["param", null, "yName"],
-	    "param.x": ["param", null, "x"],
-	    "param.y": ["param", null, "y"]});
+	obj["setCount"] = new SymTable([
+	    ["param", null, "num"]]);
+	obj["draw"] = new SymTable([]);
+	obj["fillRandom"] = new SymTable([
+	    ["param", null, "name"],
+	    ["param", null, "min"],
+	    ["param", null, "max"]]);
+	obj["fillRandomDir"] = new SymTable([
+	    ["param", null, "xDir"],
+	    ["param", null, "yDir"]]);
+	obj["fillSpace"] = new SymTable([
+	    ["param", null, "xName"],
+	    ["param", null, "yName"],
+	    ["param", null, "x"],
+	    ["param", null, "y"]]);
     }
 
     s.addOperation(
-        "symTable", 
+        "symTable(table)", 
         {
             TopLevel(ds, s, l) {
                 var result = {};
 		addDefaults(result);
                 for (var i = 0; i< ds.children.length; i++) {
-                    var d = ds.children[i].symTable();
+                    var d = ds.children[i].symTable(null);
                     if (ds.children[i].ctorName == "Script") {
                         addAsSet(result, d);
                     }
@@ -43,96 +44,102 @@ function initSemantics() {
             },
 
             Breed(_b, n, _o, fs, _c) {
-                var table = new SymTable(fs.symTable());
+		var table = new SymTable();
+		fs.symTable(table);
+		table.process();
                 return {[n.sourceString]: table};
             },
 
             Patch(_p, n, _o, fs, _c) {
-                var table = new SymTable(fs.symTable());
+                var table = new SymTable();
+		fs.symTable(table);
+		table.process();
                 return {[n.sourceString]: table};
             },
 
             Script(_d, _b, _p, n, _o, ns, _c, b) {
-                var c = b.symTable();
-                addAsSet(c, ns.symTable());
-                var table = new SymTable(c);
+		var table = new SymTable();
+		ns.symTable(table);
+                b.symTable(table);
+		table.process();
                 return {[n.sourceString]: table};
             },
 
             Formals_list(h, _c, r) {
-                var c = {["param." + h.sourceString]: ["param", null, h.sourceString]};
+		var table = this.args.table;
+		table.add("param", null, h.sourceString);
                 for (var i = 0; i < r.children.length; i++) {
                     var n = r.children[i].sourceString;
-                    c["param." + n] = ["param", null, n];
+                    table.add("param", null, n);
                 }
-                return c;
+		return table;
             },
 
-            StatementList(ss) { // an iter
-                var result = {};
+            StatementList(ss) { // an iter node
+                var table = this.args.table;
                 for (var i = 0; i< ss.children.length; i++) {
-                    var s = ss.children[i].symTable();
-                    addAsSet(result, s);
-                }
-                return result;
+		    ss.children[i].symTable(table);
+		}
+		return table;
             },
-
 
             VariableDeclaration(n, optI) {
+		var table = this.args.table;
                 var r = {["var." + n.sourceString]: ["var", null, n.sourceString]};
-                addAsSet(r, optI.children[0].symTable());
-                return r;
+		table.add("var", null, n.sourceString);
+                optI.children[0].symTable(table);
+		return table;
             },
 
             IfStatement(_if, _o, c, _c, t, _e, optF) {
-                var r = c.symTable();
-                addAsSet(r, t.symTable());
-                addAsSet(r, optF.symTable()[0]);
-                return r;
+		var table = this.args.table;
+                c.symTable(table);
+                t.symTable(table);
+		if (optF.children.length > 0) {
+                    optF.children[0].symTable(table);
+		}
+                return table;
             },
+
             LeftHandSideExpression_field(n, _a, f) {
-                var entry = ["propOut", n.sourceString, f.sourceString];
-                return {[entry.join(".")]: entry};
+		this.args.table.add("propOut", n.sourceString, f.sourceString);
+		return this.args.table;
             },
             PrimExpression_field(n, _p, f) {
+		var table = this.args.table;
                 var name = n.sourceString;
-                if (["u_particleLength", "u_resolution"].indexOf(name) >= 0 ||
-                    ["a_index"].indexOf(name) >= 0) {
-                    return {};
-                }
-//                if (table.isBuiltin(n.sourceString)) {
-//                  return {};
-//              }
-                var entry = ["propIn", n.sourceString, f.sourceString];
-                return {[entry.join(".")]: entry};
-            },
+		if (!table.isBuiltin(name)) {
+		    table.add("propIn", n.sourceString, f.sourceString);
+		}
+		return table;
+	    },
+
             PrimExpression_variable(n) {
                 return {};//["var." + n.sourceString]: ["var", null, n.sourceString]};
             },
 
             PrimitiveCall(n, _o, as, _c) {
-                var c = {};
-                addAsSet(c, as.symTable());
-                return c;
+                return as.symTable(this.args.table);
             },
 
             Actuals_list(h, _c, r) {
-                var c = h.symTable();
+		var table = this.args.table;
+                h.symTable(table);
                 for (var i = 0; i < r.children.length; i++) {
-                    addAsSet(c, r.children[i].symTable());
+                    r.children[i].symTable(table);
                 }
-                return c;
+                return table;
             },
 
-            ident(_h, _r) {return {};},
-            number(s) {return {};},
-            _terminal() {return {};},
+            ident(_h, _r) {return this.args.table;},
+            number(s) {return this.args.table;},
+            _terminal() {return this.args.table;},
             _nonterminal(children) {
-                var result = {};
+		var table = this.args.table;
                 for (var i = 0; i < children.length; i++) {
-                    addAsSet(result, children[i].symTable());
+                    children[i].symTable(table);
                 }
-                return result;
+                return table;
             },
         });
 
@@ -140,15 +147,15 @@ function initSemantics() {
         "rawTable",
         {
             Breed(_b, n, _o, fs, _c) {
-                return this.symTable()[n.sourceString].rawTable;
+                return this.symTable(null)[n.sourceString];
             },
 
             Patch(_p, n, _o, fs, _c) {
-                return this.symTable()[n.sourceString].rawTable;
+                return this.symTable(null)[n.sourceString];
             },
 
             Script(_d, _b, _p, n, _o, ns, _c, b) {
-                return this.symTable()[n.sourceString].rawTable;
+                return this.symTable(null)[n.sourceString];
             }
         });
 
@@ -203,20 +210,18 @@ function initSemantics() {
                 vert.pushWithSpace("{\n");
                 vert.addTab();
 		
-		vert.push(table.forPatch ? patchPrologue : breedPrologue);
+		vert.push(table.forBreed ? breedPrologue : patchPrologue);
 
-                for (var i = 0; i < table.scalarParamIndex.length; i++) {
-                    var k = table.scalarParamIndex[i];
-                    var entry = table.scalarParamTable[k];
-                    var e = entry[2];
+		table.scalarParamTable.keysAndValuesDo((key, entry) => {
+		    var e = entry[2];
                     var template1 = `float ${e} = u_use_vector_${e} ? texelFetch(u_vector_${e}, ivec2(a_index), 0).r : u_scalar_${e};`;
                     vert.tab();
                     vert.push(template1);
                     vert.cr();
-                }
+		});
 
                 ss.glsl(table, vert, frag, js);
-		vert.push(table.forPatch ? patchEpilogue : breedEpilogue);
+		vert.push(table.forBreed ? breedEpilogue : patchEpilogue);
 
                 vert.decTab();
                 vert.tab();
@@ -241,7 +246,7 @@ uniform sampler2D u_that_x;
 uniform sampler2D u_that_y;
 `;
 
-		vert.push(table.forPatch ? patchPrologue : breedPrologue);
+		vert.push(table.forBreed ? breedPrologue : patchPrologue);
 
                 table.uniforms().forEach(elem => {
                     vert.push(elem);
@@ -621,10 +626,8 @@ uniform sampler2D u_that_y;
                 var method = this.args.method;
 
                 function isOther(i) {
-		    if (!table[method]) {
-			debugger;
-		    }
-                    var r = table[method].usedAsOther(table[method].paramTable[table[method].paramIndex[i]][2]);
+		    var realTable = table[method];
+                    var r = realTable.usedAsOther(realTable.param.at(i)[2]);
                     return r;
                 };
                 h.static(table, js, method, isOther(0));
@@ -632,7 +635,7 @@ uniform sampler2D u_that_y;
                 for (var i = 0; i < r.children.length; i++) {
                     var c = r.children[i];
                     var js = new CodeStream();
-                    c.static(this.args.table, js, method, isOther(i+1));
+                    c.static(table, js, method, isOther(i+1));
                     result.push(js.contents());
                 }
                 return result;
@@ -834,13 +837,7 @@ uniform sampler2D u_that_y;
                     return;
                 }
 
-                if (method === "draw") {
-                    js.push(`function () {
-                        myObjects["${r.sourceString}"].draw()}`);
-                    return;
-                }
-
-		var builtIns = ["setCount", "fillRandom", "fillSpace", "fillRandomDir"];
+		var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir"];
 
                 if (builtIns.indexOf(method) >= 0) {
                     var actuals = as.static_method_actuals(table, null, method, false);
@@ -852,9 +849,9 @@ uniform sampler2D u_that_y;
 
                 var actuals = as.static_method_actuals(table, null, method, false);
                 var myTable = table[n.sourceString];
-                var formals = myTable.paramIndex;
+                var formals = myTable.param;
 
-                if (actuals.length !== formals.length) {
+                if (actuals.length !== formals.size()) {
                     throw "number of arguments don't match.";
                 }
                 var params = new CodeStream();
@@ -864,8 +861,8 @@ uniform sampler2D u_that_y;
                 objectsString.addTab();
                 for (var i = 0; i < actuals.length; i++) {
                     var actual = actuals[i];
-                    var formalEntry = myTable.paramTable[formals[i]];
-                    var shortName = formalEntry[2];
+		    var formal = formals.at(i);
+                    var shortName = formal[2];
 
                     if (myTable.usedAsOther(shortName)) {
                         objectsString.tab();
@@ -921,232 +918,229 @@ function() {
 
 };
 
-function SymTable(table, defaultUniforms, defaultAttributes) {
-    this.rawTable = table;
-
-    this.forPatch = false;
-
-    this.defaultUniforms = [];
-    this.defaultAttributes = [];
-
-    this.thisOutTable = {};   // this.x = ... -> ["propOut", "this", "x"]
-    this.thisOutIndex = [];
-
-    this.otherOutTable = {};  // other.x = ... -> ["propOut", "other", "x"]
-    this.otherOutIndex = [];
-
-    this.thisInTable = {};    // v = this.x    -> ["propIn", "this", "x"]
-    this.thisInIndex = [];    
-
-    this.otherInTable = {};   // v = other.x   -> ["propIn", "other", "x"]
-    this.otherInIndex = [];
-
-    this.paramTable = {};     // def foo(a, b, c) -> [["param", null, "a"], ...]
-    this.paramIndex = [];
-
-    this.varTable = {};       // var x = ... -> ["var", null, "x"]
-    this.varIndex = [];
-
-// ----------------------------
-
-    this.varyingTable = {};   // from prop out
-    this.varyingIndex = [];
-
-    this.uniformTable = {};   // from in
-    this.uniformIndex = [];
-
-    this.scalarParamTable = {};  // params - other object
-    this.scalarParamIndex = [];
-
-    for (var k in table) {
-        var entry = table[k];
-        if (entry[0] === "propOut" && entry[1] === "this") {
-            this.thisOutTable[k] = entry;
-            this.thisOutIndex.push(k);
-        } else if (entry[0] === "propOut" && entry[1] !== "this") {
-            this.otherOutTable[k] = entry;
-            this.otherOutIndex.push(k);
-        } else if (entry[0] === "propIn" && entry[1] === "this") {
-            this.thisInTable[k] = entry;
-            this.thisInIndex.push(k);
-        } else if (entry[0] === "propIn" && entry[1] !== "this") {
-            this.otherInTable[k] = entry;
-            this.otherInIndex.push(k);
-        } else if (entry[0] === "param") {
-            this.paramTable[k] = entry;
-            this.paramIndex.push(k);
-        } else if (entry[0] === "var") {
-            this.varTable[k] = entry;
-            this.varIndex.push(k);
-        }
+class OrderedPair {
+    constructor() {
+	this.keys = [];
+	this.entries = {};
     }
 
-    for (var i = 0; i < this.thisInIndex.length + this.otherInIndex.length; i++) {
-        if (i < this.thisInIndex.length) {
-            var k = this.thisInIndex[i];
-            var elem = this.thisInTable[k];
+    add(k, entry) {
+	var maybeEntry = this.entries[k];
+	if (maybeEntry) {
+		if (maybeEntry[0] === entry[0] &&
+		    maybeEntry[1] === entry[1] &&
+		    maybeEntry[2] === entry[2]) {
+		    return;
+		} else {
+		    throw "error duplicate variable" + name
+		    return;
+		}
+	}
+        this.entries[k] = entry;
+        this.keys.push(k);
+    }
+
+    addAll(other) {
+	other.keysAndValuesDo((key, entry) => 
+	    this.add(key, entry));
+    }
+
+    at(key) {
+	if (typeof key === "number") {
+	    return this.entries[this.keys[key]];
+	} else {
+	    return this.entries[key];
+	}
+    }
+
+    keysAndValuesDo(func) {
+	for (var i = 0; i < this.keys.length; i++) {
+	    func(this.keys[i], this.entries[this.keys[i]]);
+	}
+    }
+
+    keysAndValuesCollect(func) {
+	var result = [];
+	this.keysAndValuesDo((key, value) => {
+	    var element = func(key, value);
+	    result.push(element);
+	});
+	return result;
+    }
+
+    size() {
+	return this.keys.length;
+    }
+};
+
+class SymTable {
+    constructor(entries) {
+	this.forBreed = true;
+	this.defaultUniforms = null;
+	this.defaultAttributes = null;
+
+	// - from source (extensional)
+	// I use this term because I want to remember which is which)
+
+	this.thisIn = new OrderedPair();   // v = this.x    -> ["propIn", "this", "x"]
+	this.otherIn = new OrderedPair();  // v = other.x   -> ["propIn", "other", "x"]
+	this.thisOut = new OrderedPair();  // this.x = ... -> ["propOut", "this", "x"]
+	this.otherOut = new OrderedPair(); // other.x = ... -> ["propOut", "other", "x"]
+	this.param = new OrderedPair();   // def foo(a, b, c) -> [["param", null, "a"], ...]
+	this.local= new OrderedPair();    // var x = ... -> ["var", null, "x"]
+
+	// - generated (intensional)
+
+	this.varyingTable = new OrderedPair();
+	this.uniformTable = new OrderedPair();
+	this.scalarParamTable = new OrderedPair();
+
+	if (entries) {
+	    for (var i = 0; i < entries.length; i++) {
+		this.add.apply(this, (entries[i]))
+	    }
+	}
+
+	this.defaultUniforms = ["u_resolution", "u_particleLength"];
+	this.defaultAttributes = ["a_index"];
+    }
+
+	
+    process() {
+	this.uniformTable.addAll(this.thisIn);
+	this.uniformTable.addAll(this.otherIn);
+
+	if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
+            throw "shadama cannot write into this and others from the same script."
+	} else {
+            this.forBreed = this.thisOut.size() > 0;
+	}
+	if (this.forBreed) {
+	    this.varyingTable.addAll(this.thisOut);
+	} else {
+	    this.varyingTable.addAll(this.otherOut);
+	}
+
+	this.param.keysAndValuesDo((key, entry) => {
+	    if (!this.usedAsOther(entry[2])) {
+		this.scalarParamTable.add(key, entry);
+	    }
+	});
+    };
+
+    add(tag, rcvr, name) {
+	var entry = [tag, rcvr, name];
+	var k = [tag, rcvr ? rcvr : "null", name].join(".");
+	var prior = this.otherOut.size() === 0;
+
+        if (tag === "propOut" && rcvr === "this") {
+            this.thisOut.add(k, entry);
+        } else if (tag === "propOut" && rcvr !== "this") {
+            this.otherOut.add(k, entry);
+        } else if (tag === "propIn" && rcvr === "this") {
+            this.thisIn.add(k, entry);
+        } else if (tag === "propIn" && rcvr !== "this") {
+            this.otherIn.add(k, entry);
+        } else if (tag === "param") {
+	    this.param.add(k, entry);
+        } else if (tag === "var") {
+            this.local.add(k, entry);
+        }
+
+	if (prior && (this.otherOut.size() !== 0)) {
+	    this.defaultUniforms = this.defaultUniforms.concat(["u_that_x", "u_that_y"]);
+	}
+    }
+
+    usedAsOther(n) {
+	var result = false;
+	this.otherIn.keysAndValuesDo((k, entry) => {
+	    result = result | (entry[1] === n);
+	});
+	this.otherOut.keysAndValuesDo((k, entry) => {
+	    result = result | (entry[1] === n);
+	});
+	return result;
+    }
+
+    uniform(entry) {
+	var k = ["propIn", entry[1], entry[2]].join(".");
+	var entry = this.uniformTable.at(k);
+	if (!entry) {
+	    debugger;
+	}
+	return ["u", entry[1], entry[2]].join("_");
+    }
+
+    varying(entry) {
+	var k = ["propOut", entry[1], entry[2]].join(".");
+	var entry = this.varyingTable.at(k);
+	return ["v", entry[1],  entry[2]].join("_");
+    }
+
+    out(entry) {
+	var k = ["propOut", entry[1], entry[2]].join(".");
+	var entry = this.varyingTable.at(k);
+	return ["o", entry[1],  entry[2]].join("_");
+    }
+
+    uniforms() {
+	return this.uniformTable.keysAndValuesCollect((key, entry) =>
+            "uniform sampler2D " + this.uniform(entry) + ";");
+    }
+    
+    paramUniforms() {
+	var result = [];
+	this.scalarParamTable.keysAndValuesDo((key, entry) => {
+            result.push("uniform bool u_use_vector_" + entry[2] + ";");
+            result.push("uniform sampler2D u_vector_" + entry[2] + ";");
+            result.push("uniform float u_scalar_" + entry[2] + ";");
+	});
+	return result;
+    }
+
+    vertVaryings() {
+	return this.varyingTable.keysAndValuesCollect((key, entry) => 
+						 "out float " + this.varying(entry) + ";");
+    }
+
+    fragVaryings() {
+	return this.varyingTable.keysAndValuesCollect((key, entry) => 
+						 "in float " + this.varying(entry) + ";");
+    }
+
+    outs() {
+	var i = 0;
+	var result = [];
+	this.varyingTable.keysAndValuesDo((key, entry) => {
+	    result.push("layout (location = " + i + ") out float " + this.out(entry) + ";");
+	    i++;
+	})
+	return result;
+    }
+
+    fragColors() {
+	return this.varyingTable.keysAndValuesCollect((key, entry) =>
+						 this.out(entry) + " = " + this.varying(entry) + ";");
+    }
+
+    isBuiltin(n) {
+	return this.defaultAttributes.indexOf(n) >= 0 || this.defaultUniforms.indexOf(n) >= 0 ;
+    }
+    
+    insAndParamsAndOuts() {
+	var ins = this.uniformTable.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
+	var shortParams = this.scalarParamTable.keysAndValuesCollect((key, entry) => entry[2]);
+	var outs;
+	if (this.forBreed) {
+            outs = this.thisOut.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
         } else {
-            var k = this.otherInIndex[i - this.thisInIndex.length];
-            var elem = this.otherInTable[k];
-        }
-        this.uniformTable[k] = elem;
-        this.uniformIndex.push(k);
+            outs = this.otherOut.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
+	}
+	return [ins, shortParams, outs];
     }
-
-    if (this.thisOutIndex.length > 0 && this.otherOutIndex.length > 0) {
-        throw "shadama cannot write into this and others from the same script."
-    } else {
-        this.forPatch = this.otherOutIndex.length > 0;
-    }
-
-    for (var i = 0; i < this.thisOutIndex.length + this.otherOutIndex.length; i++) {
-        if (i < this.thisOutIndex.length) {
-            var k = this.thisOutIndex[i];
-            var elem = this.thisOutTable[k];
-        } else {
-            var k = this.otherOutIndex[i - this.thisOutIndex.length];
-            var elem = this.otherOutTable[k];
-        }
-        this.varyingTable[k] = elem;
-        this.varyingIndex.push(k);
-    }
-
-    for (var i = 0; i < this.paramIndex.length; i++) {
-        var k = this.paramIndex[i];
-        var elem = this.paramTable[k];
-
-        if (!this.usedAsOther(elem[2])) {
-            this.scalarParamTable[k] = elem;
-            this.scalarParamIndex.push(k);
-        }
-    }
-
-    if (this.forPatch) {
-        this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength", "u_that_x", "u_that_y"];
-    } else {
-        this.defaultUniforms = defaultUniforms || ["u_resolution", "u_particleLength"];
-    }
-    this.defaultAttributes = defaultAttributes || ["a_index"];
 };
 
-SymTable.prototype.usedAsOther = function(n) {
-    for (var i = 0; i < this.otherInIndex.length; i++) {
-        if (this.otherInTable[this.otherInIndex[i]][1] === n) {
-            return true;
-        }
-    }
-    for (var i = 0; i < this.otherOutIndex.length; i++) {
-        if (this.otherOutTable[this.otherOutIndex[i]][1] === n) {
-            return true;
-        }
-    }
-    return false;
-};
-
-SymTable.prototype.varying = function(entry) {
-    var k = "propOut." + entry[1] + "." + entry[2];
-    var entry = this.varyingTable[k];
-    return ["v", entry[1],  entry[2]].join("_");
-};
-
-SymTable.prototype.uniform = function(entry) {
-    var k = "propIn." + entry[1] + "." + entry[2];
-    var entry = this.uniformTable[k];
-    if (!entry) {debugger;}
-    return ["u", entry[1], entry[2]].join("_");
-};
-
-SymTable.prototype.out = function(entry) {
-    var k = "propOut." + entry[1] + "." + entry[2];
-    var entry = this.varyingTable[k];
-    return ["o", entry[1], entry[2]].join("_");
-};
-
-SymTable.prototype.uniforms = function() {
-    var result = [];
-    for (var k in this.uniformTable) {
-        var entry = this.uniformTable[k];
-        var name = ["u", entry[1], entry[2]].join("_");
-        result.push("uniform sampler2D " + name + ";");
-    }
-    return result;
-};
-
-SymTable.prototype.paramUniforms = function() {
-    var result = [];
-    var that = this;
-    this.scalarParamIndex.forEach(function(k) {
-        var entry = that.scalarParamTable[k];
-        result.push("uniform bool u_use_vector_" + entry[2] + ";");
-        result.push("uniform sampler2D u_vector_" + entry[2] + ";");
-        result.push("uniform float u_scalar_" + entry[2] + ";");
-    });
-    return result;
-};
-
-SymTable.prototype.vertVaryings = function() {
-    var result = [];
-    for (var i = 0; i < this.varyingIndex.length; i++) {
-        var k = this.varyingIndex[i];
-        var entry = this.varyingTable[k];
-        result.push("out float " + this.varying(entry) + ";");
-    }
-    return result;
-};
-
-SymTable.prototype.fragVaryings = function() {
-    var result = [];
-    for (var i = 0; i < this.varyingIndex.length; i++) {
-        var k = this.varyingIndex[i];
-        var entry = this.varyingTable[k];
-        result.push("in float " + this.varying(entry) + ";");
-    }
-    return result;
-};
-
-SymTable.prototype.outs = function() {
-    var result = [];
-    for (var i = 0; i < this.varyingIndex.length; i++) {
-        var k = this.varyingIndex[i];
-        var entry = this.varyingTable[k];
-        result.push("layout (location = " + i + ") out float " + this.out(entry) + ";");
-    }
-    return result;
-};
-
-SymTable.prototype.fragColors = function() {
-    var result = [];
-    for (var i = 0; i < this.varyingIndex.length; i++) {
-        var k = this.varyingIndex[i];
-        var entry = this.varyingTable[k];
-        result.push(this.out(entry) + " = " + this.varying(entry) + ";");
-    }
-    return result;
-};
-
-SymTable.prototype.isBuiltin = function(n) {
-    return this.defaultAttributes.indexOf(n) >= 0 || this.defaultUniforms.indexOf(n) >= 0 ;
-};
-
-SymTable.prototype.insAndParamsAndOuts = function() {
-    var ins = this.uniformIndex.map((k) => {
-        var entry = this.uniformTable[k];
-        return [entry[1], entry[2]];
-    });
-    var shortParams = this.paramIndex.map((k) => this.paramTable[k][2]);
-    if (this.thisOutIndex.length > 0) {
-        var outs = this.thisOutIndex.map((k) => {
-            var entry = this.thisOutTable[k];
-            return [entry[1], entry[2]];
-        });
-    } else {
-        var outs = this.otherOutIndex.map((k) => {
-            var entry = this.otherOutTable[k];
-            return [entry[1], entry[2]];
-        });
-    }
-    return [ins, shortParams, outs];
-};
 
 class CodeStream {
     constructor() {
@@ -1267,7 +1261,7 @@ function semanticsTest(str, prod, sem, attr, expected) {
     };
 
     var n = sem(match);
-    var result = n[attr].call(n);
+    var result = n[attr].call(n, null);
     var a = stringify(result);
     var b = stringify(expected);
     if (a != b) {
@@ -1284,7 +1278,7 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
     }
 
     var n = s(match);
-    var rawTable = n.symTable();
+    var rawTable = n.symTable(null);
     return n.glsl(rawTable, null, null, null);
 };
 

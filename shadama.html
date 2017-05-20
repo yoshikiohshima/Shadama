@@ -447,10 +447,10 @@ void main(void) {
         }
 
         def breed.dropX(patch) {
-           patch.r = this.x / 255.0;
-           patch.g = this.x / 255.0;
+           patch.r = this.x / 256.0;
+           patch.g = this.x / 256.0;
            patch.b = 0.0;
-           patch.a = this.x / 255.0;
+           patch.a = this.x / 256.0;
         }
 
 	def breed.setColor() {
@@ -462,10 +462,10 @@ void main(void) {
 
 	setup {
           Turtle.setCount(100000);
-          Turtle.fillRandom("x", 0, 400);
-          Turtle.fillRandom("y", 0, 300);
+          Turtle.fillRandom("x", 0, 256);
+          Turtle.fillRandom("y", 0, 256);
 	  Turtle.fillRandomDir("dirX", "dirY");
-	  Filler.fillSpace("x", "y", 400, 300);
+	  Filler.fillSpace("x", "y", 256, 256);
           Turtle.setColor();
         }
 

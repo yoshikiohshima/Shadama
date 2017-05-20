@@ -722,25 +722,26 @@ function programFromTable(table, vert, frag, name) {
         var viewportW = table.forPatch ? FW : T;
         var viewportH = table.forPatch ? FH : T;
 
+	var forBreed = table.forBreed;
+
         table.defaultUniforms.forEach(function(n) {
             uniLocations[n] = gl.getUniformLocation(prog, n);
         });
 
-        for (var n in table.uniformTable) {
-            var uni = table.uniform(table.uniformTable[n]);
+        table.uniformTable.keysAndValuesDo((key, entry) => {
+            var uni = table.uniform(entry);
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
-        }
+        });
 
-        for (var i = 0; i < table.scalarParamIndex.length; i++) {
-            var n = table.scalarParamIndex[i];
-            var entry = table.scalarParamTable[n];
-            uni = "u_use_vector_" + entry[2];
+	table.scalarParamTable.keysAndValuesDo((key, entry) => {
+	    var name = entry[2];
+            var uni = "u_use_vector_" + name;
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
-            uni = "u_vector_" + entry[2];
+            uni = "u_vector_" + name;
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
-            uni = "u_scalar_" + entry[2];
+            uni = "u_scalar_" + name;
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
-        }
+        });
 
         return function(objects, outs, ins, params) {
             // objects: {varName: object}
@@ -760,7 +761,7 @@ function programFromTable(table, vert, frag, name) {
             gl.uniform1f(uniLocations["u_particleLength"], T);
             
             var offset = 0;
-            if (table.forPatch) {
+            if (!forBreed) {
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, object.x);
                 gl.uniform1i(uniLocations["u_that_x"], 0);
@@ -796,7 +797,7 @@ function programFromTable(table, vert, frag, name) {
                 }
             }
             
-            if (!table.forPatch) {
+            if (forBreed) {
                 gl.clearColor(0.0, 0.0, 0.0, 0.0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
@@ -857,7 +858,7 @@ onload = function() {
     initFramebuffer(gl, framebufferR, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
-    grammarUnitTests();
+//    grammarUnitTests();
 
     loadShadama("forward.shadama");
 
