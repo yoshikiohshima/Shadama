@@ -453,19 +453,19 @@ void main(void) {
            patch.a = this.x / 256.0;
         }
 
-	def breed.setColor() {
+        def breed.setColor() {
            this.r = this.x / 256.0;
            this.g = this.y / 256.0;
            this.b = 0.0;
            this.a = 0.5;
         }
 
-	setup {
+        setup {
           Turtle.setCount(100000);
           Turtle.fillRandom("x", 0, 256);
           Turtle.fillRandom("y", 0, 256);
-	  Turtle.fillRandomDir("dirX", "dirY");
-	  Filler.fillSpace("x", "y", 256, 256);
+          Turtle.fillRandomDir("dirX", "dirY");
+          Filler.fillSpace("x", "y", 256, 256);
           Turtle.setColor();
         }
 
@@ -475,7 +475,7 @@ void main(void) {
           Turtle.turn(0.05);
           Turtle.setTrail(Patch, 1.0);
           Patch.draw();
-	  Turtle.draw();
+          Turtle.draw();
         }
         </script>
 
@@ -496,7 +496,7 @@ void main(void) {
                    <textarea id="code"></textarea>
                 </div>
                 <br>
-		<button style="float: left" type="button" onclick="updateCode()">Load</button>
+                <button style="float: left" type="button" onclick="updateCode()">Load</button>
                 <div style="clear: left" id="readout"></div>
                 <canvas id="debugCanvas1"></canvas>
         </body>

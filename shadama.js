@@ -153,7 +153,7 @@ function loadShadama(id, source) {
             loop = eval(result[k]);
         } else if (k === "setup") {
             setup = eval(result[k]);
-	} else {
+        } else {
             var entry = result[k];
             var js = entry[3];
             if (js[0] === "updateBreed") {
@@ -722,7 +722,7 @@ function programFromTable(table, vert, frag, name) {
         var viewportW = table.forPatch ? FW : T;
         var viewportH = table.forPatch ? FH : T;
 
-	var forBreed = table.forBreed;
+        var forBreed = table.forBreed;
 
         table.defaultUniforms.forEach(function(n) {
             uniLocations[n] = gl.getUniformLocation(prog, n);
@@ -733,8 +733,8 @@ function programFromTable(table, vert, frag, name) {
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
         });
 
-	table.scalarParamTable.keysAndValuesDo((key, entry) => {
-	    var name = entry[2];
+        table.scalarParamTable.keysAndValuesDo((key, entry) => {
+            var name = entry[2];
             var uni = "u_use_vector_" + name;
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
             uni = "u_vector_" + name;
@@ -869,7 +869,7 @@ onload = function() {
     code.remove();
 
     if (setup) {
-	setup.forEach(f => f());
+        setup.forEach(f => f());
     }
 
     runner();
@@ -899,6 +899,6 @@ function runner() {
 
 function step() {
     if (loop) {
-	loop.forEach(f => f());
+        loop.forEach(f => f());
     }
 }
