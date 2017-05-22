@@ -367,117 +367,108 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
-        breed Turtle (x, y, dirX, dirY, r, g, b, a)
-        breed Filler (x, y, dirX, dirY, r, g, b, a)
-        patch Patch (r, g, b, a)
+breed Turtle (x, y, dirX, dirY, r, g, b, a)
+breed Filler (x, y, dirX, dirY, r, g, b, a)
+patch Patch (r, g, b, a)
 
-
-        def breed.forward(n, left, right, top, bottom) {
-          var dx = this.dirX;
-          var dy = this.dirY;
-          var maybeX = this.x + dx * n;
-          var maybeY = this.y + dy * n;
+def breed.forward(n, left, right, top, bottom) {
+  var dx = this.dirX;
+  var dy = this.dirY;
+  var maybeX = this.x + dx * n;
+  var maybeY = this.y + dy * n;
            
-          if (maybeX < 0.0) {
-            if (left == 1.0) {
-              maybeX = 0.0 - maybeX;
-              dx = 0.0 - dx;
-            } else {
-              if (left == 2.0) {
-                maybeX = 0.0;
-              } else {
-                maybeX = mod(maybeX, u_resolution.x);
-              }
-            }
-          }
-          if (maybeX > u_resolution.x) {
-            if (right == 1.0) {
-              maybeX = u_resolution.x - (maybeX - u_resolution.x);
-              dx = 0.0 - dx;
-            } else {
-              if (right == 2.0) {
-                maybeX = u_resolution.x;
-              } else {
-                maybeX = mod(maybeX, u_resolution.x);
-              }
-            }
-          }
-          if (maybeY < 0.0) {
-            if (bottom == 1.0) {
-              maybeY = 0.0 - maybeY;
-              dy = 0.0 - dy;
-            } else {
-              if (bottom == 2.0) {
-                maybeY = 0.0;
-              } else {
-                maybeY = mod(maybeY, u_resolution.y);
-              }
-            }
-          }
-          if (maybeY > u_resolution.y) {
-            if (top == 1.0) {
-              maybeY = u_resolution.y - (maybeY - u_resolution.y);
-              dy = 0.0 - dy;
-            } else {
-              if (top == 2.0) {
-                maybeY = u_resolution.y;
-              } else {
-                maybeY = mod(maybeY, u_resolution.y);
-              }
-            }
-          }
-          this.dirX = dx;
-          this.dirY = dy;
-          this.x = maybeX;
-          this.y = maybeY;
-        }
+  if (maybeX < 0.0) {
+    if (left == 1.0) {
+      maybeX = 0.0 - maybeX;
+      dx = -dx;
+    } else if (left == 2.0) {
+      maybeX = 0.0;
+    } else {
+      maybeX = mod(maybeX, u_resolution.x);
+    }
+  }
+  if (maybeX > u_resolution.x) {
+    if (right == 1.0) {
+      maybeX = u_resolution.x - (maybeX - u_resolution.x);
+      dx = -dx;
+    } else if (right == 2.0) {
+      maybeX = u_resolution.x;
+    } else {
+      maybeX = mod(maybeX, u_resolution.x);
+    }
+  }
+  if (maybeY < 0.0) {
+    if (bottom == 1.0) {
+      maybeY = 0.0 - maybeY;
+      dy = -dy;
+    } else if (bottom == 2.0) {
+      maybeY = 0.0;
+    } else {
+      maybeY = mod(maybeY, u_resolution.y);
+    }
+  }
+  if (maybeY > u_resolution.y) {
+    if (top == 1.0) {
+      maybeY = u_resolution.y - (maybeY - u_resolution.y);
+      dy = -dy;
+    } else if (top == 2.0) {
+      maybeY = u_resolution.y;
+    } else {
+      maybeY = mod(maybeY, u_resolution.y);
+    }
+  }
+  this.dirX = dx;
+  this.dirY = dy;
+  this.x = maybeX;
+  this.y = maybeY;
+}
 
-        def breed.turn(d) {
-           var c = cos(d);
-           var s = sin(d);
-           this.dirX = c * this.dirX + (0.0 - s) * this.dirY;
-           this.dirY = s * this.dirX + c * this.dirY;
-        }
+def breed.turn(d) {
+  var c = cos(d);
+  var s = sin(d);
+  this.dirX = c * this.dirX + (0.0 - s) * this.dirY;
+  this.dirY = s * this.dirX + c * this.dirY;
+}
 
-        def breed.setTrail(patch, value) {
-           patch.r = this.x / 256.0;
-           patch.g = this.y / 256.0;
-           patch.b = 1.0 - (value / 256.0);
-           patch.a = 1.0;
-        }
+def breed.setTrail(patch, value) {
+  patch.r = this.x / 256.0;
+  patch.g = this.y / 256.0;
+  patch.b = 1.0 - (value / 256.0);
+  patch.a = 1.0;
+}
 
-        def breed.dropX(patch) {
-           patch.r = this.x / 256.0;
-           patch.g = this.x / 256.0;
-           patch.b = 0.0;
-           patch.a = this.x / 256.0;
-        }
+def breed.dropX(patch) {
+  patch.r = this.x / 256.0;
+  patch.g = this.x / 256.0;
+  patch.b = 0.0;
+  patch.a = this.x / 256.0;
+}
 
-        def breed.setColor() {
-           this.r = this.x / 256.0;
-           this.g = this.y / 256.0;
-           this.b = 0.0;
-           this.a = 0.5;
-        }
+def breed.setColor() {
+  this.r = this.x / 256.0;
+  this.g = this.y / 256.0;
+  this.b = 0.0;
+  this.a = 0.5;
+}
 
-        setup {
-          Turtle.setCount(100000);
-          Turtle.fillRandom("x", 0, 256);
-          Turtle.fillRandom("y", 0, 256);
-          Turtle.fillRandomDir("dirX", "dirY");
-          Filler.fillSpace("x", "y", 256, 256);
-          Turtle.setColor();
-        }
+setup {
+  Turtle.setCount(100000);
+  Turtle.fillRandom("x", 0, 256);
+  Turtle.fillRandom("y", 0, 256);
+  Turtle.fillRandomDir("dirX", "dirY");
+  Filler.fillSpace("x", "y", 256, 256);
+  Turtle.setColor();
+}
 
-        loop {
-          Display.clear();
-          Turtle.forward(1.5, 1, 0, 1, 1);
-          Turtle.turn(0.05);
-          Turtle.setTrail(Patch, 1.0);
-          Patch.draw();
-          Turtle.draw();
-        }
-        </script>
+loop {
+  Display.clear();
+  Turtle.forward(1.5, 1, 0, 1, 1);
+  Turtle.turn(0.05);
+  Turtle.setTrail(Patch, 1.0);
+  Patch.draw();
+  Turtle.draw();
+}
+</script>
 
 <style>
 #code {
@@ -493,7 +484,7 @@ void main(void) {
                    <div style="float: left">
                      <canvas id="canvas"></canvas>
                    </div>
-                   <textarea id="code"></textarea>
+                   <textarea style="float: left" id="code"></textarea>
                 </div>
                 <br>
                 <button style="float: left" type="button" onclick="updateCode()">Load</button>

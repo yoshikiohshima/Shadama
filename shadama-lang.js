@@ -414,7 +414,7 @@ uniform sampler2D u_that_y;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
                 var js = this.args.js;
-                vert.push("if");
+                vert.pushWithSpace("if");
                 vert.pushWithSpace("(");
                 c.glsl(table, vert, frag, js);
                 vert.push(")");
@@ -1166,6 +1166,7 @@ class CodeStream {
     tab() {
         for (var i = 0; i < this.tabLevel; i++) {
             this.result.push("  ");
+	    this.hadSpace = true;
         }
     }
 
@@ -1178,8 +1179,8 @@ class CodeStream {
             this.cr();
         }
     }
- 
-   push(val) {
+
+    push(val) {
         this.result.push(val);
         var last = val[val.length - 1];
         this.hadSpace = (last === " " || last == "\n" || last == "{" || last == "(");
