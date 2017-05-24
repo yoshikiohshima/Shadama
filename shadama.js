@@ -390,7 +390,8 @@ Breed.prototype.draw = function() {
     gl.bindVertexArray(prog.vao);
 
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    //    gl.blendFunc(gl.ONE, gl.ONE);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.x);
