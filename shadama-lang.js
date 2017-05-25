@@ -143,22 +143,6 @@ function initSemantics() {
             },
         });
 
-    s.addOperation(
-        "rawTable",
-        {
-            Breed(_b, n, _o, fs, _c) {
-                return this.symTable(null)[n.sourceString];
-            },
-
-            Patch(_p, n, _o, fs, _c) {
-                return this.symTable(null)[n.sourceString];
-            },
-
-            Script(_d, _b, _p, n, _o, ns, _c, b) {
-                return this.symTable(null)[n.sourceString];
-            }
-        });
-
     function transBinOp(l, r, op, args) {
         var table = args.table;
         var vert = args.vert;
@@ -1139,6 +1123,17 @@ class SymTable {
         }
         return [ins, shortParams, outs];
     }
+
+    rawTable() {
+	var result = {};
+	this.thisIn.keysAndValuesDo((key, entry) => result[key] = entry);
+	this.thisOut.keysAndValuesDo((key, entry) => result[key] = entry);
+	this.otherIn.keysAndValuesDo((key, entry) => result[key] = entry);
+	this.otherOut.keysAndValuesDo((key, entry) => result[key] = entry);
+	this.param.keysAndValuesDo((key, entry) => result[key] = entry);
+	this.local.keysAndValuesDo((key, entry) => result[key] = entry);
+	return result;
+    }
 };
 
 
@@ -1236,7 +1231,7 @@ function addAsSet(to, from) {
     return to;
 };
 
-function semanticsTest(str, prod, sem, attr, expected) {
+function symTableTest(str, prod, sem, expected) {
     var stringify = (obj) => {
         var type = Object.prototype.toString.call(obj);
         if (type === "[object Object]") {
@@ -1261,13 +1256,26 @@ function semanticsTest(str, prod, sem, attr, expected) {
         console.log("did not parse: " + str);
     };
 
+    var rawTable = function(table) {
+	var t;
+	if (table.constructor === SymTable) {
+	    t = table;
+	} else {
+	    t = table[Object.keys(table)[0]];
+	}
+	return t.rawTable();
+    }
+
     var n = sem(match);
-    var result = n[attr].call(n, null);
+    var table = new SymTable();
+    var ret = n.symTable(table);
+
+    var result = rawTable(ret);
     var a = stringify(result);
     var b = stringify(expected);
     if (a != b) {
         console.log(str);
-        console.log("rule: " + attr + " expected: " + b + " got: " + a);
+        console.log("Expected: " + b + " got: " + a);
     }
 };
 
@@ -1279,8 +1287,8 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
     }
 
     var n = s(match);
-    var rawTable = n.symTable(null);
-    return n.glsl(rawTable, null, null, null);
+    var symTable = n.symTable(null);
+    return n.glsl(symTable, null, null, null);
 };
 
 function grammarUnitTests() {
@@ -1329,22 +1337,23 @@ function grammarUnitTests() {
     grammarTest("breed Turtle (x, y)", "Breed");
     grammarTest("patch Patch (x, y)", "Patch");
     grammarTest("def Turtle.foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+}
 
+function symTableUnitTests() {
+    symTableTest("this.x = 3;", "Statement", s,{"propOut.this.x": ["propOut", "this","x"]});
+    symTableTest("{this.x = 3; other.y = 4;}", "Statement", s,{"propOut.this.x": ["propOut", "this", "x"], "propOut.other.y": ["propOut", "other", "y"]});
+    symTableTest("{this.x = 3; this.x = 4;}", "Statement", s, {"propOut.this.x": ["propOut", "this", "x"]});
 
-    semanticsTest("this.x = 3;", "Statement", s, "symTable", {"propOut.this.x": ["propOut", "this","x"]});
-    semanticsTest("{this.x = 3; other.y = 4;}", "Statement", s, "symTable", {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.y": ["propOut", "other", "y"]});
-    semanticsTest("{this.x = 3; this.x = 4;}", "Statement", s, "symTable", {"propOut.this.x": ["propOut", "this", "x"]});
+    symTableTest("{var x = 3; x = x + 3;}", "Block", s, {"var.null.x": ["var", null, "x"]});
 
-    semanticsTest("{var x = 3; x = x + 3;}", "Block", s, "symTable", {"var.x": ["var", null, "x"]});
-
-    semanticsTest(`
+    symTableTest(`
        if (other.x > 0) {
          this.x = 3;
          other.a = 4;
        }
-       `, "Statement", s, "symTable", {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propIn.other.x": ["propIn", "other", "x"]});
+       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propIn.other.x": ["propIn", "other", "x"]});
 
-    semanticsTest(`
+    symTableTest(`
        if (other.x > 0) {
          this.x = 3;
          other.a = 4;
@@ -1352,27 +1361,26 @@ function grammarUnitTests() {
          this.y = 3;
          other.a = 4;
        }
-       `, "Statement", s, "symTable", {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propOut.this.y": ["propOut", "this", "y"], "propIn.other.x": ["propIn", "other", "x"]});
+       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propOut.this.y": ["propOut", "this", "y"], "propIn.other.x": ["propIn", "other", "x"]});
 
-
-    semanticsTest("{this.x = this.y; other.z = this.x;}", "Statement", s, "symTable", {
+    symTableTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
         "propIn.this.y": ["propIn", "this", "y"],
         "propOut.this.x": ["propOut" ,"this", "x"],
         "propOut.other.z": ["propOut" ,"other", "z"],
         "propIn.this.x": ["propIn" ,"this", "x"]});
 
-    semanticsTest("{this.x = 3; this.y = other.x;}", "Statement", s, "symTable", {
+    symTableTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
         "propOut.this.x": ["propOut" ,"this", "x"],
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"]});
 
-    semanticsTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, "rawTable", {
+    symTableTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
         "propOut.this.x": ["propOut" ,"this", "x"],
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"],
-        "param.a": ["param" , null, "a"],
-        "param.b": ["param" , null, "b"],
-        "param.c": ["param" , null, "c"],
+        "param.null.a": ["param" , null, "a"],
+        "param.null.b": ["param" , null, "b"],
+        "param.null.c": ["param" , null, "c"],
     });
 
 //    translate("this.x = this.y + 3;", "Statement", s);

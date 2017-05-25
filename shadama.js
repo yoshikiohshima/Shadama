@@ -153,6 +153,9 @@ function loadShadama(id, source) {
             loop = eval(result[k]);
         } else if (k === "setup") {
             setup = eval(result[k]);
+	    if (setup) {
+		setup.forEach(f => f());
+	    }
         } else {
             var entry = result[k];
             var js = entry[3];
@@ -859,7 +862,8 @@ onload = function() {
     initFramebuffer(gl, framebufferR, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
-//    grammarUnitTests();
+    grammarUnitTests();
+    symTableUnitTests();
 
     loadShadama("forward.shadama");
 
@@ -868,10 +872,6 @@ onload = function() {
 
     editor = CodeMirror.fromTextArea(document.getElementById("code"));
     code.remove();
-
-    if (setup) {
-        setup.forEach(f => f());
-    }
 
     runner();
 };
