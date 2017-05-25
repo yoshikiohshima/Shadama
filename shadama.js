@@ -871,7 +871,12 @@ onload = function() {
     code.value = shadama;
 
     editor = CodeMirror.fromTextArea(document.getElementById("code"));
-    code.remove();
+    editor.setOption("extraKeys", {
+	Tab: function(cm) {updateCode()},
+	"Cmd-S": function(cm) {updateCode()},
+	});
+//    { keys: 'Y', type: 'operatorMotion', operator: 'yank', motion: 'expandToLine', motionArgs: { linewise: true }, context: 'normal'},
+
 
     runner();
 };
