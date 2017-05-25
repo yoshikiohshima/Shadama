@@ -57,7 +57,7 @@ function initSemantics() {
                 return {[n.sourceString]: table};
             },
 
-            Script(_d, _b, _p, n, _o, ns, _c, b) {
+            Script(_d, n, _o, ns, _c, b) {
                 var table = new SymTable();
                 ns.symTable(table);
                 b.symTable(table);
@@ -147,11 +147,10 @@ function initSemantics() {
         var table = args.table;
         var vert = args.vert;
         var frag = args.frag;
-        var js = args.js;
         vert.push("(");
-        l.glsl(table, vert, frag, js);
+        l.glsl(table, vert, frag);
         vert.push(op);
-        r.glsl(table, vert, frag, js);
+        r.glsl(table, vert, frag);
         vert.push(")");
     };
 
@@ -164,13 +163,12 @@ function initSemantics() {
         });
 
     s.addOperation(
-        "glsl_helper(table, vert, frag, js)",
+        "glsl_helper(table, vert, frag)",
         {
             Block(_o, ss, _c) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
 
                 var patchPrologue = `
   float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
@@ -204,7 +202,7 @@ function initSemantics() {
                     vert.cr();
                 });
 
-                ss.glsl(table, vert, frag, js);
+                ss.glsl(table, vert, frag);
                 vert.push(table.forBreed ? breedEpilogue : patchEpilogue);
 
                 vert.decTab();
@@ -212,11 +210,10 @@ function initSemantics() {
                 vert.push("}");
             },
 
-            Script(_d, _b, _p, n, _o, ns, _c, b) {
+            Script(_d, n, _o, ns, _c, b) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
 
                 var breedPrologue = 
 `#version 300 es
@@ -268,7 +265,7 @@ uniform sampler2D u_that_y;
                 frag.crIfNeeded();
                 frag.push("void main()");
 
-                b.glsl_helper(table, vert, frag, js);
+                b.glsl_helper(table, vert, frag);
 
                 vert.crIfNeeded();
                 vert.tab();
@@ -287,21 +284,19 @@ uniform sampler2D u_that_y;
                 frag.push("}");
                 frag.cr();
 
-                js.push("updateScript");
-                js.push(n.sourceString);
-                return {[n.sourceString]: [table, vert.contents(), frag.contents(), js]};
+                return {[n.sourceString]: [table, vert.contents(), frag.contents(), ["updateScript", n.sourceString]]};
             }
         });
 
     s.addOperation(
-        "glsl(table, vert, frag, js)",
+        "glsl(table, vert, frag)",
         {
             TopLevel(ds, s, l) {
                 var table = this.args.table;
                 var result = {};
                 for (var i = 0; i < ds.children.length; i++) {
                     var d = ds.children[i];
-                    var val = d.glsl(table, null, null, null);
+                    var val = d.glsl(table, null, null);
                     addAsSet(result, val);
                 };
 
@@ -341,27 +336,25 @@ uniform sampler2D u_that_y;
                 return {[n.sourceString]: [table[n.sourceString], vert.contents(), frag.contents(), js]};
             },
 
-            Script(_d, _b, _p, n, _o, ns, _c, b) {
+            Script(_d, n, _o, ns, _c, b) {
                 var inTable = this.args.table;
                 var table = inTable[n.sourceString];
                 var vert = new CodeStream();
                 var frag = new CodeStream();
-                var js = [];
 
-                this.glsl_helper(table, vert, frag, js);
-                return {[n.sourceString]: [table, vert.contents(), frag.contents(), js]};
+		var prev = {[n.sourceString]: [table, vert.contents(), frag.contents(), []]};
+                return this.glsl_helper(table, vert, frag);
             },
 
             Block(_o, ss, _c) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
 
                 vert.pushWithSpace("{");
                 vert.cr();
                 vert.addTab();
-                ss.glsl(table, vert, frag, js);
+                ss.glsl(table, vert, frag);
                 vert.decTab();
                 vert.tab();
                 vert.push("}");
@@ -371,10 +364,9 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
                 for (var i = 0; i < ss.children.length; i++) {
                     vert.tab();
-                    ss.children[i].glsl(table, vert, frag, js);
+                    ss.children[i].glsl(table, vert, frag);
                 }
             },
 
@@ -382,8 +374,7 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
-                e.glsl(table, vert, frag, js);
+                e.glsl(table, vert, frag);
                 if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                     vert.push(";");
                     vert.cr();
@@ -397,50 +388,46 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
                 vert.pushWithSpace("if");
                 vert.pushWithSpace("(");
-                c.glsl(table, vert, frag, js);
+                c.glsl(table, vert, frag);
                 vert.push(")");
-                t.glsl(table, vert, frag, js);
+                t.glsl(table, vert, frag);
                 if (optF.children.length === 0) { return;}
                 vert.pushWithSpace("else");
-                optF.glsl(table, vert, frag, js);
+                optF.glsl(table, vert, frag);
             },
 
             AssignmentStatement(l, _a, e, _) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
-                l.glsl(table, vert, frag, js);
+                l.glsl(table, vert, frag);
                 vert.push(" = ");
-                e.glsl(table, vert, frag, js);
+                e.glsl(table, vert, frag);
             },
 
             VariableStatement(_v, d, _s) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
-                d.glsl(table, vert, frag, js);
+                d.glsl(table, vert, frag);
             },
 
             VariableDeclaration(n, i) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
                 vert.push("float");
                 vert.pushWithSpace(n.sourceString);
                 if (i.children.length !== 0) {
                     vert.push(" = ");
-                    i.glsl(table, vert, frag, js);
+                    i.glsl(table, vert, frag);
                 }
             },
 
             Initialiser(_a, e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             LeftHandSideExpression_field(n, _p, f) {
@@ -450,11 +437,11 @@ uniform sampler2D u_that_y;
             },
 
             Expression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             EqualityExpression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             EqualityExpression_equal(l, _, r) {
@@ -466,7 +453,7 @@ uniform sampler2D u_that_y;
             },
 
             RelationalExpression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             RelationalExpression_lt(l, _, r) {
@@ -486,7 +473,7 @@ uniform sampler2D u_that_y;
             },
 
             AddExpression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             AddExpression_plus(l, _, r) {
@@ -498,7 +485,7 @@ uniform sampler2D u_that_y;
             },
 
             MulExpression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             MulExpression_times(l, _, r) {
@@ -510,28 +497,27 @@ uniform sampler2D u_that_y;
             },
 
             UnaryExpression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             UnaryExpression_plus(_p, e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             UnaryExpression_minus(_p, e) {
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
                 vert.pushWithSpace("-");
-                e.glsl(table, vert, frag, js);
+                e.glsl(table, vert, frag);
             },
 
             PrimExpression(e) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             PrimExpression_paren(_o, e, _c) {
-                e.glsl(this.args.table, this.args.vert, this.args.frag, this.args.js);
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
             PrimExpression_number(e) {
@@ -564,10 +550,9 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
                 vert.push(n.sourceString);
                 vert.push("(");
-                as.glsl(table, vert, frag, js);
+                as.glsl(table, vert, frag);
                 vert.push(")");
             },
 
@@ -575,11 +560,10 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
-                var js = this.args.js;
-                h.glsl(table, vert, frag, js);
+                h.glsl(table, vert, frag);
                 for (var i = 0; i < r.children.length; i++) {
                     vert.push(", ");
-                    r.children[i].glsl(table, vert, frag, js);
+                    r.children[i].glsl(table, vert, frag);
                 }
             },
 
@@ -878,28 +862,7 @@ function() {
 }\n`;
                 js.push(callProgram);
             },
-
-            Actuals_list(h, _c, r) {
-                var table = this.args.table;
-                var vert = this.args.vert;
-                var frag = this.args.frag;
-                var js = this.args.js;
-                h.glsl(table, vert, frag, js);
-                for (var i = 0; i < r.children.length; i++) {
-                    vert.push(", ");
-                    r.children[i].glsl(table, vert, frag, js);
-                }
-            },
-            ident(n, rest) {
-                var table = this.args.table;
-                var vert = this.args.vert;
-                var frag = this.args.frag;
-                var js = this.args.js;
-                vert.push(this.sourceString);
-            }
         });
-
-
 };
 
 class OrderedPair {
@@ -1288,7 +1251,7 @@ function translate(str, prod, defaultUniforms, defaultAttributes) {
 
     var n = s(match);
     var symTable = n.symTable(null);
-    return n.glsl(symTable, null, null, null);
+    return n.glsl(symTable, null, null);
 };
 
 function grammarUnitTests() {
@@ -1336,7 +1299,7 @@ function grammarUnitTests() {
 
     grammarTest("breed Turtle (x, y)", "Breed");
     grammarTest("patch Patch (x, y)", "Patch");
-    grammarTest("def Turtle.foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+    grammarTest("def foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
 }
 
 function symTableUnitTests() {
@@ -1374,7 +1337,7 @@ function symTableUnitTests() {
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"]});
 
-    symTableTest("def breed.foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
+    symTableTest("def foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
         "propOut.this.x": ["propOut" ,"this", "x"],
         "propIn.other.x": ["propIn", "other", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"],

@@ -16,7 +16,7 @@ Shadama {
 
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
-  Script = def ident "." ident "(" Formals ")" Block
+  Script = def ident "(" Formals ")" Block
 
   Setup = setup Block
 
@@ -371,7 +371,7 @@ breed Turtle (x, y, dirX, dirY, r, g, b, a)
 breed Filler (x, y, dirX, dirY, r, g, b, a)
 patch Patch (r, g, b, a)
 
-def breed.forward(n, left, right, top, bottom) {
+def forward(n, left, right, top, bottom) {
   var dx = this.dirX;
   var dy = this.dirY;
   var maybeX = this.x + dx * n;
@@ -423,28 +423,28 @@ def breed.forward(n, left, right, top, bottom) {
   this.y = maybeY;
 }
 
-def breed.turn(d) {
+def turn(d) {
   var c = cos(d);
   var s = sin(d);
   this.dirX = c * this.dirX + (0.0 - s) * this.dirY;
   this.dirY = s * this.dirX + c * this.dirY;
 }
 
-def breed.setTrail(patch, value) {
+def setTrail(patch, value) {
   patch.r = this.x / 256.0;
   patch.g = this.y / 256.0;
   patch.b = 1.0 - (value / 256.0);
   patch.a = 1.0;
 }
 
-def breed.dropX(patch) {
+def dropX(patch) {
   patch.r = this.x / 256.0;
   patch.g = this.x / 256.0;
   patch.b = 0.0;
   patch.a = this.x / 256.0;
 }
 
-def breed.setColor() {
+def setColor() {
   this.r = this.x / 256.0;
   this.g = this.y / 256.0;
   this.b = 0.0;
