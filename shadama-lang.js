@@ -31,14 +31,15 @@ function initSemantics() {
     s.addOperation(
         "symTable(table)", 
         {
-            TopLevel(ds, s, l) {
+            TopLevel(ds) {
                 var result = {};
                 addDefaults(result);
                 for (var i = 0; i< ds.children.length; i++) {
                     var d = ds.children[i].symTable(null);
-                    if (ds.children[i].ctorName == "Script") {
+		    var ctor = ds.children[i].ctorName;
+                    if (ctor == "Script" || ctor == "Static") {
                         addAsSet(result, d);
-                    }
+		    }
                 }
                 return result;
             },
@@ -64,6 +65,13 @@ function initSemantics() {
                 table.process();
                 return {[n.sourceString]: table};
             },
+
+	    Static(_s, n, _o, ns, _c, b) {
+		var table = new SymTable();
+		ns.symTable(table);
+		table.process();
+		return {[n.sourceString]: table};
+	    },
 
             Formals_list(h, _c, r) {
                 var table = this.args.table;
@@ -291,26 +299,20 @@ uniform sampler2D u_that_y;
     s.addOperation(
         "glsl(table, vert, frag)",
         {
-            TopLevel(ds, s, l) {
+            TopLevel(ds) {
                 var table = this.args.table;
                 var result = {};
                 for (var i = 0; i < ds.children.length; i++) {
-                    var d = ds.children[i];
-                    var val = d.glsl(table, null, null);
-                    addAsSet(result, val);
-                };
-
-                if (s.children.length !== 0) {
-                    var js = new CodeStream();
-                    var setup = s.children[0].static(table, js, null, false);
-                    addAsSet(result, setup);
-                };
-
-                if (l.children.length !== 0) {
-                    var js = new CodeStream();
-                    var loop = l.children[0].static(table, js, null, false);
-                    addAsSet(result, loop);
-                }
+		    var child = ds.children[i];
+		    if (child.ctorName == "Static") {
+			var js = new CodeStream();
+			var val = child.static(table, js, null, false);
+			addAsSet(result, val);
+		    } else {
+			var val = child.glsl(table, null, null);
+			addAsSet(result, val);
+                    }
+		}
                 return result;
             },
 
@@ -585,7 +587,7 @@ uniform sampler2D u_that_y;
     };
 
     s.addOperation(
-        "static_method_actuals(table, js, method, isOther)",
+        "static_method_helper(table, js, method, isOther)",
         {
             Actuals_list(h, _c, r) {
                 var table = this.args.table;
@@ -595,6 +597,7 @@ uniform sampler2D u_that_y;
 
                 function isOther(i) {
                     var realTable = table[method];
+		    if (!realTable) {return false}
                     var r = realTable.usedAsOther(realTable.param.at(i)[2]);
                     return r;
                 };
@@ -609,6 +612,20 @@ uniform sampler2D u_that_y;
                 return result;
             },
 
+	    Formals_list(h, _c, r) {
+                var table = this.args.table;
+                var result = [];
+                var js = new CodeStream();
+
+                result.push(h.sourceString);
+                for (var i = 0; i < r.children.length; i++) {
+                    var c = r.children[i];
+		    result.push(", ");
+		    result.push(c.sourceString);
+		}
+                return result;
+            },
+
             empty() {
                 return [];
             }
@@ -618,27 +635,32 @@ uniform sampler2D u_that_y;
         "static(table, js, method, isOther)",
         {
 
-            Loop(_l, b) {
+            Static(_s, n, _o, fs, _c, b) {
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
-                b.static(table, js, method, false);
-                return {loop: js.contents()};
-            },
 
-            Setup(_s, b) {
-                var table = this.args.table;
-                var js = this.args.js;
-                var method = this.args.method;
+		js.push("(function");
+		js.pushWithSpace(n.sourceString);
+		js.push("(");
+		js.push(fs.static_method_helper(table, null, null, null));
+		js.push(") ");
                 b.static(table, js, method, false);
-                return {setup: js.contents()};
+		js.push(")");
+                return {[n.sourceString]: js.contents()};
             },
 
             Block(_o, ss, _c) {
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
+		js.pushWithSpace("{");
+		js.cr();
+		js.addTab();
                 ss.static(table, js, method, false);
+		js.decTab();
+		js.tab();
+		js.push("}");
             },
 
             StatementList(ss) {
@@ -646,14 +668,10 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = this.args.method;
                 var isOther = this.args.isOther;
-                js.push("[\n");
                 for (var i = 0; i < ss.children.length; i++) {
+		    js.tab();
                     ss.children[i].static(table, js, method, isOther);
-                    if (i != ss.children.length) {
-                        js.push(",\n");
-                    }
                 }
-                js.push("]\n");
             },
 
             Statement(e) {
@@ -662,6 +680,13 @@ uniform sampler2D u_that_y;
                 var method = this.args.method;
                 var isOther = this.args.isOther;
                 e.static(table, js, method, isOther);
+                if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
+                    js.push(";");
+                    js.cr();
+                } 
+                if (e.ctorName == "IfStatement") {
+                    js.cr();
+                }
             },
 
             IfStatement(_i, _o, c, _c, t, _e, optF) {
@@ -674,7 +699,7 @@ uniform sampler2D u_that_y;
                 c.static(table, js, method, isOther);
                 js.push(")");
                 t.static(table, js, method, isOther);
-                if (optF.children.length === 0) { return;}
+                if (optF.children.length === 0) {return;}
                 js.pushWithSpace("else");
                 optF.static(table, js, method, isOther);
             },
@@ -776,7 +801,7 @@ uniform sampler2D u_that_y;
             },
 
             PrimExpression_field(n, _p, f) {
-                js.push("'nop'");
+                js.push(n.sourceString + "." + f.sourceString);
             },
 
             PrimExpression_variable(n) {
@@ -801,25 +826,27 @@ uniform sampler2D u_that_y;
                 var method = n.sourceString;
 
                 if (method === "clear") {
-                    js.push("function () {clear();}");
+                    js.push("clear()");
                     return;
                 }
 
                 var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir"];
 
                 if (builtIns.indexOf(method) >= 0) {
-                    var actuals = as.static_method_actuals(table, null, method, false);
+                    var actuals = as.static_method_helper(table, null, method, false);
                     var str = actuals.join(", ");
-                    js.push(`function () {
-                        myObjects["${r.sourceString}"].${method}(${str})}`);
+                    js.push(`myObjects["${r.sourceString}"].${method}(${str})`);
                     return;
                 }
 
-                var actuals = as.static_method_actuals(table, null, method, false);
+                var actuals = as.static_method_helper(table, null, method, false);
                 var myTable = table[n.sourceString];
-                var formals = myTable.param;
+		var formals;
+		if (myTable) {
+                    formals = myTable.param;
+		}		    
 
-                if (actuals.length !== formals.size()) {
+                if (formals && (actuals.length !== formals.size())) {
                     throw "number of arguments don't match.";
                 }
                 var params = new CodeStream();
@@ -829,37 +856,38 @@ uniform sampler2D u_that_y;
                 objectsString.addTab();
                 for (var i = 0; i < actuals.length; i++) {
                     var actual = actuals[i];
-                    var formal = formals.at(i);
-                    var shortName = formal[2];
+		    if (formals) {
+			var formal = formals.at(i);
+			var shortName = formal[2];
+			var isOther = myTable.usedAsOther(shortName);
+		    } else {
+			var shortName = "t" + i;
+			isOther = false;
+		    }
 
-                    if (myTable.usedAsOther(shortName)) {
+                    if (isOther) {
                         objectsString.tab();
                         objectsString.push(`objects["${shortName}"] = ${actual};\n`);
-                        params.tab();
                         params.push(`params["${shortName}"] = objects["${shortName}"];\n`);
                     } else {
-                        params.tab();
                         params.push(`params["${shortName}"] = ${actual};\n`);
                     }
                 }
 
                 var callProgram = `
-function() {
+(function() {
     var data = scripts["${n.sourceString}"];
     var func = data[0];
     var ins = data[1][0]; // [[name, <fieldName>]]
     var formals = data[1][1];
     var outs = data[1][2]; //[[object, <fieldName>]]
-
     var objects = {};
     objects.this = myObjects["${r.sourceString}"];
-    ${objectsString.contents()};
-    
+    ${objectsString.contents()}
     var params = {};
     ${params.contents()}
-    
     func(objects, outs, ins, params);
-}\n`;
+})()`;
                 js.push(callProgram);
             },
         });
@@ -1345,9 +1373,12 @@ function symTableUnitTests() {
         "param.null.b": ["param" , null, "b"],
         "param.null.c": ["param" , null, "c"],
     });
-
-//    translate("this.x = this.y + 3;", "Statement", s);
-
-        
-//    translate("def breed.count(num) {      }");
 };
+
+function translateTests() {
+    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));
+
+    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
+    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
+};
+

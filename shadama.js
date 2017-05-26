@@ -21,10 +21,9 @@ var patchVAO;
 var programs = {};
 var scripts = {};
 var myObjects = {};
+var statics = {};
 
 var shadama;
-var loop;
-var setup;
 
 var editor;
 
@@ -149,12 +148,10 @@ function loadShadama(id, source) {
     var result = translate(source, "TopLevel");
     compilation = result;
     for (var k in result) {
-        if (k === "loop") {
-            loop = eval(result[k]);
-        } else if (k === "setup") {
-            setup = eval(result[k]);
-	    if (setup) {
-		setup.forEach(f => f());
+	if (typeof result[k] === "string") { // static mathod case
+	    statics[k] = eval(result[k]);
+            if (k === "setup") {
+		statics["setup"]();
 	    }
         } else {
             var entry = result[k];
@@ -864,6 +861,7 @@ onload = function() {
 
     grammarUnitTests();
     symTableUnitTests();
+    translateTests();
 
     loadShadama("forward.shadama");
 
@@ -875,8 +873,6 @@ onload = function() {
 	Tab: function(cm) {updateCode()},
 	"Cmd-S": function(cm) {updateCode()},
 	});
-//    { keys: 'Y', type: 'operatorMotion', operator: 'yank', motion: 'expandToLine', motionArgs: { linewise: true }, context: 'normal'},
-
 
     runner();
 };
@@ -904,7 +900,7 @@ function runner() {
 };
 
 function step() {
-    if (loop) {
-        loop.forEach(f => f());
+    if (statics["loop"]) {
+        statics["loop"]();
     }
 }

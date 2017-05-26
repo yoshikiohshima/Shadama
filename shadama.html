@@ -12,15 +12,12 @@
         <script type="text/ohm-js">
 Shadama {
   TopLevel
-    = (Breed | Patch | Script)* Setup? Loop?
+    = (Breed | Patch | Script | Static)*
 
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Script = def ident "(" Formals ")" Block
-
-  Setup = setup Block
-
-  Loop = loop Block
+  Static = static ident "(" Formals ")" Block
 
   Formals
     = ident ("," ident)* -- list
@@ -124,8 +121,7 @@ Shadama {
   def = "def" ~identifierPart
   this = "this" ~identifierPart
   self = "self" ~identifierPart
-  loop = "loop" ~identifierPart
-  setup = "setup" ~identifierPart
+  static = "static" ~identifierPart
 
   empty =
 }
@@ -451,7 +447,7 @@ def setColor() {
   this.a = 0.5;
 }
 
-setup {
+static setup() {
   Turtle.setCount(100000);
   Turtle.fillRandom("x", 0, 256);
   Turtle.fillRandom("y", 0, 256);
@@ -460,7 +456,7 @@ setup {
   Turtle.setColor();
 }
 
-loop {
+static loop() {
   Display.clear();
   Turtle.forward(1.5, 1, 0, 1, 1);
   Turtle.turn(0.05);
@@ -468,6 +464,7 @@ loop {
   Patch.draw();
   Turtle.draw();
 }
+
 </script>
 
 <style>
