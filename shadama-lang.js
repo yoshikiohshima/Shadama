@@ -1270,11 +1270,12 @@ function symTableTest(str, prod, sem, expected) {
     }
 };
 
-function translate(str, prod, defaultUniforms, defaultAttributes) {
-    var match = parse(str, prod);
+function translate(str, prod, errorCallback) {
+    var match = g.match(str, "TopLevel");
     if (!match.succeeded()) {
         console.log(str);
         console.log("did not parse: " + str);
+	return errorCallback(match, str);
     }
 
     var n = s(match);

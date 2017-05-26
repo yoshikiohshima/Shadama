@@ -26,6 +26,7 @@ var statics = {};
 var shadama;
 
 var editor;
+var parseErrorWidget;
 
 var compilation;
 
@@ -145,7 +146,8 @@ function loadShadama(id, source) {
         source = scriptElement.text;
     }
     shadama = source;
-    var result = translate(source, "TopLevel");
+    cleanUpEditorState();
+    var result = translate(source, "TopLevel", syntaxError);
     compilation = result;
     for (var k in result) {
 	if (typeof result[k] === "string") { // static mathod case
@@ -870,17 +872,64 @@ onload = function() {
 
     editor = CodeMirror.fromTextArea(document.getElementById("code"));
     editor.setOption("extraKeys", {
-	Tab: function(cm) {updateCode()},
 	"Cmd-S": function(cm) {updateCode()},
 	});
 
     runner();
 };
 
+function cleanUpEditorState() {
+    if (editor) {
+	if (parseErrorWidget) {
+	    editor.removeLineWidget(parseErrorWidget);
+	    parseErrorWidget = undefined;
+	}
+	editor.getAllMarks().forEach(function(mark) { mark.clear(); });
+    }
+};
+
+function syntaxError(match, src) {
+    function toDOM(x) {
+	if (x instanceof Array) {
+	    var xNode = document.createElement(x[0]);
+	    x.slice(1)
+		.map(toDOM)
+		.forEach(yNode => xNode.appendChild(yNode));
+	    return xNode;
+	} else {
+	    return document.createTextNode(x);
+	}
+    };
+
+    if (editor) {
+	setTimeout(
+	    function() {
+		if (editor.getValue() === src && !parseErrorWidget) {
+		    function repeat(x, n) {
+			var xs = [];
+			while (n-- > 0) {
+			    xs.push(x);
+			}
+			return xs.join('');
+		    }
+		    var msg = 'Expected: ' + match.getExpectedText();
+		    var pos = editor.doc.posFromIndex(match.getRightmostFailurePosition());
+		    var error = toDOM(['parseerror', repeat(' ', pos.ch) + '^\n' + msg]);
+		    parseErrorWidget = editor.addLineWidget(pos.line, error);
+		}
+	    },
+	    2500
+	);
+    }
+};
+
+
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
 };
+
+
 
 function runner() {
     var start = performance.now();
