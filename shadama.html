@@ -52,8 +52,13 @@ Shadama {
   Expression = EqualityExpression
 
   EqualityExpression
-    = EqualityExpression "==" RelationalExpression  -- equal
-    | EqualityExpression "!=" RelationalExpression  -- notEqual
+    = EqualityExpression "==" LogicalExpression  -- equal
+    | EqualityExpression "!=" LogicalExpression  -- notEqual
+    | LogicalExpression
+
+  LogicalExpression
+    = LogicalExpression "&&" RelationalExpression       -- and
+    | LogicalExpression "||" RelationalExpression       -- or
     | RelationalExpression
 
   RelationalExpression
@@ -363,9 +368,110 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
-breed Turtle (x, y, dirX, dirY, r, g, b, a)
-breed Filler (x, y, dirX, dirY, r, g, b, a)
+breed Turtle (x, y, dirX, dirY, v, oldX, oldY, r, g, b, a)
+breed Filler (x, y, r, g, b, a)
 patch Patch (r, g, b, a)
+patch Field (nx, ny, r, g, b, a)
+
+def fillRectangle(ax, ay, bx, by, field) {
+  if (this.x >= ax && this.y >= ay  &&
+      this.x < bx && this.y < by) {
+          field.nx = 0.0;
+          field.ny = 1.0;
+  } else {
+          field.nx = 0.0;
+          field.ny = 0.0;
+  }
+}
+
+def maybeMove() {
+  this.oldX = this.x;
+  this.oldY = this.y;
+  var dx = this.dirX;
+  var dy = this.dirY;
+  this.x = this.x + dx * this.v;
+  this.y = this.y + dy * this.v;
+}
+
+def bounce(field) {
+  var nx = field.nx;
+  var ny = field.ny;
+  var dx = this.dirX;
+  var dy = this.dirY;
+  var dot = dx * nx + dy * ny;
+  var newDx = dx - 2.0 * dot * nx;
+  var newDy = dy - 2.0 * dot * ny;
+  var norm = sqrt(newDx * newDx + newDy * newDy);
+  newDx = newDx / norm;
+  newDy = newDy / norm;
+  var newX;
+  var newY;
+  if (nx > 0.0 || ny > 0.0) {
+    newX = this.x + newDx * this.v;
+    newY = this.y + newDy * this.v;
+  } else {
+    newX = this.x;
+    newY = this.y;
+  }
+
+  if (newX < 0.0) {
+    newX = 0.0 - newX;
+    newDx = -newDx;
+  }
+  if (newX > u_resolution.x) {
+    newX = u_resolution.x - (newX - u_resolution.x);
+    newDx = -newDx;
+  }
+  if (newY < 0.0) {
+    newY = mod(newY, u_resolution.y);
+  }
+  if (newY > u_resolution.y) {
+    newY = u_resolution.y - (newY - u_resolution.y);
+    newDy = -newDy;
+  }
+
+  this.x = newX;
+  this.y = newY;
+  this.dirX = newDx;
+  this.dirY = newDy;
+}
+
+def bounce2(field) {
+  var nx = field.nx;
+  var ny = field.ny;
+  var dx = this.dirX;
+  var dy = this.dirY;
+  var dot = dx * nx + dy * ny;
+  var rx = dx - 2.0 * dot * nx;
+  var ry = dy - 2.0 * dot * ny;
+  var norm = sqrt(rx * rx + ry * ry);
+  rx = rx / norm;
+  ry = ry / norm;
+
+  var newX = this.x;
+  var newY = this.y;
+
+  if (newX < 0.0) {
+    newX = 0.0 - newX;
+    rx = -rx;
+  }
+  if (newX > u_resolution.x) {
+    newX = u_resolution.x - (newX - u_resolution.x);
+    rx = -rx;
+  }
+  if (newY < 0.0) {
+    newY = mod(newY, u_resolution.y);
+  }
+  if (newY > u_resolution.y) {
+    newY = u_resolution.y - (newY - u_resolution.y);
+    ry = -ry;
+  }
+
+  this.x = newX;
+  this.y = newY;
+  this.dirX = rx;
+  this.dirY = ry;
+}
 
 def forward(n, left, right, top, bottom) {
   var dx = this.dirX;
@@ -452,15 +558,16 @@ static setup() {
   Turtle.fillRandom("x", 0, 256);
   Turtle.fillRandom("y", 0, 256);
   Turtle.fillRandomDir("dirX", "dirY");
+  Turtle.fillRandom("v", 1, 2);
   Filler.fillSpace("x", "y", 256, 256);
+  Filler.fillRectangle(50, 50, 100, 100, Field);
   Turtle.setColor();
 }
 
 static loop() {
   Display.clear();
-  Turtle.forward(1.5, 1, 0, 1, 1);
-  Turtle.turn(0.05);
-  Turtle.setTrail(Patch, 1.0);
+  Turtle.maybeMove();
+  Turtle.bounce2(Field);
   Patch.draw();
   Turtle.draw();
 }
@@ -482,7 +589,8 @@ static loop() {
                    <textarea style="float: left" id="code"></textarea>
                 </div>
                 <br>
-                <button style="float: left" type="button" onclick="updateCode()">Load</button>
+                <button type="button" onclick="updateCode()">Load</button>
+                <button type="button" onclick="callSetup()">Setup</button>
                 <div style="clear: left" id="readout"></div>
                 <canvas id="debugCanvas1"></canvas>
         </body>

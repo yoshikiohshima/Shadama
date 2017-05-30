@@ -95,7 +95,9 @@ function initSemantics() {
                 var table = this.args.table;
                 var r = {["var." + n.sourceString]: ["var", null, n.sourceString]};
                 table.add("var", null, n.sourceString);
-                optI.children[0].symTable(table);
+                if (optI.children.length > 0) {
+                    optI.children[0].symTable(table);
+                }
                 return table;
             },
 
@@ -438,6 +440,13 @@ uniform sampler2D u_that_y;
                 vert.push(table.varying(["propOut", n.sourceString, f.sourceString]));
             },
 
+            ExpressionStatement(e ,_s) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                e.glsl(table, vert, frag);
+            },
+
             Expression(e) {
                 e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
@@ -472,6 +481,18 @@ uniform sampler2D u_that_y;
 
             RelationalExpression_ge(l, _, r) {
                 transBinOp(l, r, " >= ", this.args);
+            },
+
+	    LogicalExpression(e) {
+                e.glsl(this.args.table, this.args.vert, this.args.frag);
+            },
+
+	    LogicalExpression_and(l, _, r) {
+                transBinOp(l, r, " && ", this.args);
+            },
+
+	    LogicalExpression_or(l, _, r) {
+                transBinOp(l, r, " || ", this.args);
             },
 
             AddExpression(e) {
@@ -743,6 +764,18 @@ uniform sampler2D u_that_y;
             RelationalExpression_ge(l, _, r) {
                 staticTransBinOp(l, r, " >= ", this.args);
             },
+
+	    LogicalExpression(e) {
+                e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+	    },
+
+	    LogicalExpression_and(l, _, r) {
+                staticTransBinOp(l, r, " && ", this.args);
+	    },
+
+	    LogicalExpression_or(l, _, r) {
+                staticTransBinOp(l, r, " || ", this.args);
+	    },
 
             AddExpression(e) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);

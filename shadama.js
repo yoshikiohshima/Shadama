@@ -929,8 +929,12 @@ function updateCode() {
     loadShadama(null, code);
 };
 
-
-
+function callSetup() {
+    if (statics["setup"]) {
+	statics["setup"]();
+    }
+};
+    
 function runner() {
     var start = performance.now();
     step();
