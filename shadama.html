@@ -329,11 +329,11 @@ void main(void) {
 precision highp float;
 uniform sampler2D u_value;
 
-out vec4 fragColor;
+out float fragColor;
 
 void main(void) {
     ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-    fragColor = texelFetch(u_value, fc, 0);
+    fragColor = texelFetch(u_value, fc, 0).r;
 }
         </script>
 
@@ -368,7 +368,8 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
-breed Turtle (x, y, r, g, b, a)
+breed Turtle (x, y, dx, dy, r, g, b, a)
+patch Field (nx, ny, r, g, b, a)
 
 def setColor2() {
   this.r = this.x / 256.0;
@@ -377,14 +378,84 @@ def setColor2() {
   this.a = 1.0;
 }
 
+def setField(field) {
+  field.r = this.x / 256.0;
+  field.g = 1.0 - (this.x / 256.0);
+  field.b = this.y / 256.0;
+  field.a = 1.0;
+  field.nx = 1.0;
+  field.ny = 0.0;
+}
+
+def getField(field) {
+  this.dx = 1.0 + (field.x * 0.0);
+  this.dy = 0.0;
+}
+
+def forward(n, left, right, top, bottom) {
+  var dx = this.dx;
+  var dy = this.dy;
+  var maybeX = this.x + dx * n;
+  var maybeY = this.y + dy * n;
+           
+  if (maybeX < 0.0) {
+    if (left == 1.0) {
+      maybeX = 0.0 - maybeX;
+      dx = -dx;
+    } else if (left == 2.0) {
+      maybeX = 0.0;
+    } else {
+      maybeX = mod(maybeX, u_resolution.x);
+    }
+  }
+  if (maybeX > u_resolution.x) {
+    if (right == 1.0) {
+      maybeX = u_resolution.x - (maybeX - u_resolution.x);
+      dx = -dx;
+    } else if (right == 2.0) {
+      maybeX = u_resolution.x;
+    } else {
+      maybeX = mod(maybeX, u_resolution.x);
+    }
+  }
+  if (maybeY < 0.0) {
+    if (bottom == 1.0) {
+      maybeY = 0.0 - maybeY;
+      dy = -dy;
+    } else if (bottom == 2.0) {
+      maybeY = 0.0;
+    } else {
+      maybeY = mod(maybeY, u_resolution.y);
+    }
+  }
+  if (maybeY > u_resolution.y) {
+    if (top == 1.0) {
+      maybeY = u_resolution.y - (maybeY - u_resolution.y);
+      dy = -dy;
+    } else if (top == 2.0) {
+      maybeY = u_resolution.y;
+    } else {
+      maybeY = mod(maybeY, u_resolution.y);
+    }
+  }
+  this.dx = dx;
+  this.dy = dy;
+  this.x = maybeX;
+  this.y = maybeY;
+}
+
 static setup() {
-  Display.clear();
   Turtle.fillSpace("x", "y", 256, 256);
+  Turtle.setField(Field);
   Turtle.setColor2();
-  Turtle.draw();
+  Turtle.getField(Field);
+  Field.draw();
 }
 
 static loop() {
+   Display.clear();
+   Turtle.forward(1, 1, 1, 1, 1);
+   Turtle.draw();
 }
 
 </script>

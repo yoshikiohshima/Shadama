@@ -288,7 +288,7 @@ Breed.prototype.fillRandom = function(name, min, max) {
     if (this[name]) {
         gl.deleteTexture(this[name]);
     }
-    var ary = new Float32Array(T * T * 4);
+    var ary = new Float32Array(T * T);
     var range = max - min;
     for (var i = 0; i < ary.length; i++) {
         ary[i] = Math.random() * range + min;
@@ -304,8 +304,8 @@ Breed.prototype.fillRandomDir = function(xName, yName) {
         gl.deleteTexture(this[yName]);
     }
 
-    var x = new Float32Array(T * T * 4);
-    var y = new Float32Array(T * T * 4);
+    var x = new Float32Array(T * T);
+    var y = new Float32Array(T * T);
     for (var i = 0; i < x.length; i++) {
         var dir = Math.random() * Math.PI * 2.0;
         x[i] = Math.cos(dir);
@@ -344,13 +344,11 @@ function Patch() {
 };
 
 Patch.prototype.addOwnVariable = function(name) {
-    var ary = new Float32Array(FW * FH * 4);
+    var ary = new Float32Array(FW * FH);
     this.own[name] = name;
-    this[name] = createTexture(gl, ary, gl.R32F);
-    this["new"+name] = createTexture(gl, ary, gl.R32F);
+    this[name] = createTexture(gl, ary, gl.R32F, FW, FH);
+    this["new"+name] = createTexture(gl, ary, gl.R32F, FW, FH);
 };
-
-
 
 function makePrimitive(gl, name, uniforms, vao) {
     var vs = createShader(gl, name + ".vert");
@@ -561,7 +559,7 @@ function debugDisplay0(gl, breed, name) {
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
-function debugDisplay1(gl, breed, name) {
+function debugDisplay1(gl, patch, name) {
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById("debugCanvas1");
         debugCanvas1.width = T;
@@ -601,17 +599,19 @@ function debugDisplay1(gl, breed, name) {
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
-function debugDisplay2(gl, tex) {
+function debugDisplay2(gl, patch, name) {
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById("debugCanvas1");
         debugCanvas1.width = FW;
         debugCanvas1.height = FH;
     }
     var prog = programs["debugPatch"];
-    setTargetBuffer(gl, framebufferR, debugTexture2);
+    setTargetBuffer(gl, framebufferF, debugTexture2);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(patchVAO);
+
+    var tex = patch[name];
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -725,8 +725,8 @@ function programFromTable(table, vert, frag, name) {
         var vao = breedVAO;
         var uniLocations = {};
         
-        var viewportW = table.forPatch ? FW : T;
-        var viewportH = table.forPatch ? FH : T;
+        var viewportW = table.forBreed ? T : FW;
+        var viewportH = table.forBreed ? T : FH;
 
         var forBreed = table.forBreed;
 
@@ -752,6 +752,9 @@ function programFromTable(table, vert, frag, name) {
 	var debugName = name;
 
         return function(objects, outs, ins, params) {
+            if (debugName === "setField") {
+	    }
+
             // objects: {varName: object}
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
@@ -759,7 +762,11 @@ function programFromTable(table, vert, frag, name) {
             
             var object = objects["this"];
             var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
-            setTargetBuffers(gl, framebufferR, targets);
+	    if (forBreed) {
+		setTargetBuffers(gl, framebufferT, targets);
+	    } else {
+		setTargetBuffers(gl, framebufferR, targets);
+	    }
             
             gl.useProgram(prog);
             gl.bindVertexArray(vao);
@@ -809,11 +816,9 @@ function programFromTable(table, vert, frag, name) {
                 gl.clearColor(0.0, 0.0, 0.0, 0.0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
-            gl.drawArrays(gl.POINTS, 0, object.count);
+	    gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            if (debugName === "fillRectangle") {
-	    }
             for (var i = 0; i < outs.length; i++) {
                 var pair = outs[i];
                 var o = objects[pair[0]];
@@ -851,11 +856,11 @@ onload = function() {
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T), gl.R32F);
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
-    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.R32F, FW, FH);
+    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
-    var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
+    var tmp = createTexture(gl, new Float32Array(T * T), gl.R32F, T, T);
     framebufferT = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferT, tmp, gl.FLOAT, T, T);
+    initFramebuffer(gl, framebufferT, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
     var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
@@ -863,7 +868,7 @@ onload = function() {
     initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
 
-    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.R32F, FW, FH);
+    var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
     framebufferR = gl.createFramebuffer();
     initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
     gl.deleteTexture(tmp);
