@@ -296,7 +296,6 @@ Breed.prototype.fillRandom = function(name, min, max) {
     this[name] = createTexture(gl, ary, gl.R32F);
 };
 
-
 Breed.prototype.fillRandomDir = function(xName, yName) {
     if (this[xName]) {
         gl.deleteTexture(this[xName]);
@@ -325,15 +324,15 @@ Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
         gl.deleteTexture(this[yName]);
     }
 
-    var x = new Float32Array(T * T * 4);
-    var y = new Float32Array(T * T * 4);
+    var x = new Float32Array(T * T);
+    var y = new Float32Array(T * T);
 
     for (var j = 0; j < yDim; j++) {
         for (var i = 0; i < xDim; i++) {
 //          var ind = i * j;
             var ind = xDim * j + i;
-            x[ind*4] = i;
-            y[ind*4] = j;
+            x[ind] = i;
+            y[ind] = j;
         }
     }
     this[xName] = createTexture(gl, x, gl.R32F);
@@ -350,6 +349,8 @@ Patch.prototype.addOwnVariable = function(name) {
     this[name] = createTexture(gl, ary, gl.R32F);
     this["new"+name] = createTexture(gl, ary, gl.R32F);
 };
+
+
 
 function makePrimitive(gl, name, uniforms, vao) {
     var vs = createShader(gl, name + ".vert");
@@ -560,7 +561,7 @@ function debugDisplay0(gl, breed, name) {
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
 };
 
-function debugDisplay1(gl, tex) {
+function debugDisplay1(gl, breed, name) {
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById("debugCanvas1");
         debugCanvas1.width = T;
@@ -572,6 +573,8 @@ function debugDisplay1(gl, tex) {
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
+    var tex = breed[name];
+
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
@@ -580,7 +583,7 @@ function debugDisplay1(gl, tex) {
     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
     gl.uniform1i(prog.uniLocations["u_value"], 0);
 
-    gl.drawArrays(gl.POINTS, 0, myBreed.count);
+    gl.drawArrays(gl.POINTS, 0, breed.count);
     gl.flush();
 
     debugArray = new Float32Array(T * T * 4);
@@ -605,7 +608,7 @@ function debugDisplay2(gl, tex) {
         debugCanvas1.height = FH;
     }
     var prog = programs["debugPatch"];
-    setTargetBuffer(gl, framebufferF, debugTexture2);
+    setTargetBuffer(gl, framebufferR, debugTexture2);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(patchVAO);
@@ -746,6 +749,8 @@ function programFromTable(table, vert, frag, name) {
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
         });
 
+	var debugName = name;
+
         return function(objects, outs, ins, params) {
             // objects: {varName: object}
             // outs: [[varName, fieldName]]
@@ -807,7 +812,8 @@ function programFromTable(table, vert, frag, name) {
             gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            
+            if (debugName === "fillRectangle") {
+	    }
             for (var i = 0; i < outs.length; i++) {
                 var pair = outs[i];
                 var o = objects[pair[0]];
@@ -841,10 +847,11 @@ onload = function() {
     programs["drawBreed"] = drawBreedProgram(gl);
     programs["drawPatch"] = drawPatchProgram(gl);
     programs["debugBreed"] = debugBreedProgram(gl);
+    programs["debugPatch"] = debugPatchProgram(gl);
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T), gl.R32F);
     debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
-    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.R32F, FW, FH);
 
     var tmp = createTexture(gl, new Float32Array(T * T * 4), gl.FLOAT, T, T);
     framebufferT = gl.createFramebuffer();
@@ -856,9 +863,9 @@ onload = function() {
     initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
 
-    var tmp = createTexture(gl, new Float32Array(T*T), gl.R32F, T, T);
+    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.R32F, FW, FH);
     framebufferR = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferR, tmp, gl.R32F, T, T);
+    initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
     gl.deleteTexture(tmp);
 
     grammarUnitTests();
