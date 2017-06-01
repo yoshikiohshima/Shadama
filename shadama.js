@@ -694,7 +694,6 @@ function programFromTable(table, vert, frag, name) {
 
         return function(objects, outs, ins, params) {
             if (debugName === "getField") {
-		debugger;
 	    }
 
 
