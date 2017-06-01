@@ -33,6 +33,7 @@ var compilation;
 var debugCanvas1;
 
 var debugArray;
+var debugArray1;
 var debugArray2;
 
 var times = [];
@@ -44,7 +45,6 @@ var framebufferD;
 
 var debugTexture0;
 var debugTexture1;
-var debugTexture2;
 
 var g;
 var s;
@@ -518,24 +518,34 @@ Patch.prototype.diffuse = function() {
     this.values = tmp;
 };
 
-function debugDisplay0(gl, breed, name) {
+function debugDisplay(objName, name) {
+
+    var object = myObjects[objName];
+    var forBreed = object.constructor == Breed;
+    var width = forBreed ? T : FW;
+    var height = forBreed ? T : FH;
+
     if (!debugCanvas1) {
         debugCanvas1 = document.getElementById("debugCanvas1");
-        debugCanvas1.width = T;
-        debugCanvas1.height = T;
+        debugCanvas1.width = width;
+        debugCanvas1.height = height;
     }
     var prog = programs["debugPatch"];
-    setTargetBuffer(gl, framebufferD, debugTexture0);
+    if (forBreed) {
+	setTargetBuffer(gl, framebufferD, debugTexture0);
+    } else {
+	setTargetBuffer(gl, framebufferF, debugTexture1);
+    }
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
-    var tex = breed[name];
+    var tex = object[name];
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
-    gl.viewport(0, 0, T, T);
+    gl.viewport(0, 0, width, height);
 
     gl.uniform1i(prog.uniLocations["u_value"], 0);
 
@@ -545,60 +555,25 @@ function debugDisplay0(gl, breed, name) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
 
-    debugArray = new Float32Array(T * T * 4);
-    debugArray2 = new Uint8ClampedArray(T * T * 4);
-    gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, debugArray);
+    debugArray = new Float32Array(width * height * 4);
+    debugArray1 = new Float32Array(width * height);
+    debugArray2 = new Uint8ClampedArray(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray);
 
-    for (var i = 0; i < T * T; i++) {
+    for (var i = 0; i < width * height; i++) {
+        debugArray1[i] = debugArray[i * 4 + 0];
+    }
+
+    console.log(debugArray1);
+
+    for (var i = 0; i < width * height; i++) {
         debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
         debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
         debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
         debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
     }
 
-    var img = new ImageData(debugArray2, T, T);
-    debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-function debugDisplay2(gl, patch, name) {
-debugger;
-    if (!debugCanvas1) {
-        debugCanvas1 = document.getElementById("debugCanvas1");
-        debugCanvas1.width = FW;
-        debugCanvas1.height = FH;
-    }
-    var prog = programs["debugPatch"];
-    setTargetBuffer(gl, framebufferF, debugTexture2);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(patchVAO);
-
-    var tex = patch[name];
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.uniform1i(prog.uniLocations["u_value"], 0);
-
-    gl.viewport(0, 0, FW, FH);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-    gl.flush();
-
-    debugArray = new Float32Array(FW * FH * 4);
-    debugArray2 = new Uint8ClampedArray(FW * FH * 4);
-    gl.readPixels(0, 0, FW, FH, gl.RGBA, gl.FLOAT, debugArray);
-
-    for (var i = 0; i < FW * FH; i++) {
-        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
-        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
-        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
-        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
-    }
-
-    var img = new ImageData(debugArray2, FW, FH);
+    var img = new ImageData(debugArray2, width, height);
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
@@ -686,15 +661,16 @@ function updatePatch(name, fields) {
 
 function programFromTable(table, vert, frag, name) {
     return (function () {
+	var debugName = name;
         var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
                                  createShader(gl, name + ".frag", frag));
         var vao = breedVAO;
         var uniLocations = {};
-        
-        var viewportW = table.forBreed ? T : FW;
-        var viewportH = table.forBreed ? T : FH;
 
+        
         var forBreed = table.forBreed;
+        var viewportW = forBreed ? T : FW;
+        var viewportH = forBreed ? T : FH;
         var hasPatchInput = table.hasPatchInput;
 
         table.defaultUniforms.forEach(function(n) {
@@ -716,11 +692,11 @@ function programFromTable(table, vert, frag, name) {
             uniLocations[uni] = gl.getUniformLocation(prog, uni);
         });
 
-	var debugName = name;
-
         return function(objects, outs, ins, params) {
             if (debugName === "getField") {
+		debugger;
 	    }
+
 
             // objects: {varName: object}
             // outs: [[varName, fieldName]]
@@ -761,7 +737,7 @@ function programFromTable(table, vert, frag, name) {
                 var val = objects[pair[0]][k];
                 gl.activeTexture(glIndex);
                 gl.bindTexture(gl.TEXTURE_2D, val);
-                gl.uniform1i(uniLocations["u_this_" + k], ind + offset);
+                gl.uniform1i(uniLocations["u" + "_" + pair[0] + "_" + k], ind + offset);
             }
             
             for (var k in params) {
@@ -821,8 +797,7 @@ onload = function() {
     programs["debugPatch"] = debugPatchProgram(gl);
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
-    debugTexture1 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
-    debugTexture2 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+    debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
     var tmp = createTexture(gl, new Float32Array(T * T), gl.R32F, T, T);
     framebufferT = gl.createFramebuffer();

@@ -180,10 +180,13 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
 
-                var patchPrologue = `
+		var patchInput = `
   float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
   float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
   vec2 _pos = vec2(_x, _y);
+`;
+
+                var patchPrologue = `
   vec2 oneToOne = (_pos / u_resolution) * 2.0 - 1.0;
 `;
 
@@ -202,8 +205,16 @@ function initSemantics() {
 
                 vert.pushWithSpace("{\n");
                 vert.addTab();
+
+		if (table.hasPatchInput || !table.forBreed) {
+		    vert.push(patchInput);
+		}
                 
-                vert.push(table.forBreed && !table.hasPatchInput ? breedPrologue : patchPrologue);
+		if (table.forBreed) {
+		    vert.push(breedPrologue);
+		} else {
+		    vert.push(patchPrologue);
+		}
 
                 table.scalarParamTable.keysAndValuesDo((key, entry) => {
                     var e = entry[2];
@@ -1055,7 +1066,6 @@ class SymTable {
     add(tag, rcvr, name) {
         var entry = [tag, rcvr, name];
         var k = [tag, rcvr ? rcvr : "null", name].join(".");
-        var prior = this.otherOut.size() === 0;
 
         if (tag === "propOut" && rcvr === "this") {
             this.thisOut.add(k, entry);
@@ -1071,7 +1081,8 @@ class SymTable {
             this.local.add(k, entry);
         }
 
-        if (prior && (this.otherOut.size() !== 0)) {
+        if ((this.otherOut.size() > 0 || this.otherIn.size() > 0) &&
+	    this.defaultUniforms.indexOf("u_that_x") < 0) {
             this.defaultUniforms = this.defaultUniforms.concat(["u_that_x", "u_that_y"]);
         }
     }
