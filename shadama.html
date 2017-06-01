@@ -321,7 +321,7 @@ void main(void) {
 layout (location = 0) in vec2 a_position;
 
 void main(void) {
-    gl_Position = vec4(a_position, 0, 1.0);
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
         </script>
 
@@ -329,41 +329,11 @@ void main(void) {
 precision highp float;
 uniform sampler2D u_value;
 
-out float fragColor;
-
-void main(void) {
-    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-    fragColor = texelFetch(u_value, fc, 0).r;
-}
-        </script>
-
-        <script id="debugBreed.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_index;
-
-uniform float u_particleLength;
-uniform sampler2D u_value;
-
-out vec4 v_color;
-
-void main(void) {
-    vec2 zeroToOne = a_index / u_particleLength;
-    vec2 oneToOne = zeroToOne * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
-
-    v_color = texelFetch(u_value, ivec2(a_index), 0);
-    gl_Position = vec4(oneToOne, 0, 1.0);
-    gl_PointSize = 1.0;
-}
-        </script>
-
-        <script id="debugBreed.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-
-in vec4 v_color;
-
 out vec4 fragColor;
 
 void main(void) {
-    fragColor = v_color;
+    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+    fragColor = texelFetch(u_value, fc, 0);
 }
         </script>
 
@@ -388,8 +358,8 @@ def setField(field) {
 }
 
 def getField(field) {
-  this.dx = 1.0 + (field.x * 0.0);
-  this.dy = 0.0;
+  this.dx = field.nx;
+  this.dy = field.ny;
 }
 
 def forward(n, left, right, top, bottom) {

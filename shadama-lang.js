@@ -183,26 +183,27 @@ function initSemantics() {
                 var patchPrologue = `
   float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
   float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
-  vec2 clipPos = (vec2(_x, _y) / u_resolution) * 2.0 - 1.0;
+  vec2 _pos = vec2(_x, _y);
+  vec2 oneToOne = (_pos / u_resolution) * 2.0 - 1.0;
 `;
 
                 var breedPrologue = `
   vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;
 `;
 
-                var patchEpilogue = `
-  gl_Position = vec4(clipPos, 0.0, 1.0);
+                var epilogue = `
+  gl_Position = vec4(oneToOne, 0.0, 1.0);
   gl_PointSize = 1.0;
 `;
                 var breedEpilogue = `
-  gl_Position = vec4(oneToOne, 0, 1.0);
+  gl_Position = vec4(oneToOne, 0.0, 1.0);
   gl_PointSize = 1.0;
 `;
 
                 vert.pushWithSpace("{\n");
                 vert.addTab();
                 
-                vert.push(table.forBreed ? breedPrologue : patchPrologue);
+                vert.push(table.forBreed && !table.hasPatchInput ? breedPrologue : patchPrologue);
 
                 table.scalarParamTable.keysAndValuesDo((key, entry) => {
                     var e = entry[2];
@@ -213,7 +214,7 @@ function initSemantics() {
                 });
 
                 ss.glsl(table, vert, frag);
-                vert.push(table.forBreed ? breedEpilogue : patchEpilogue);
+                vert.push(table.forBreed ? epilogue : epilogue);
 
                 vert.decTab();
                 vert.tab();
@@ -237,7 +238,7 @@ uniform sampler2D u_that_x;
 uniform sampler2D u_that_y;
 `;
 
-                vert.push(table.forBreed ? breedPrologue : patchPrologue);
+                vert.push(table.forBreed && !table.hasPatchInput ? breedPrologue : patchPrologue);
 
                 table.uniforms().forEach(elem => {
                     vert.push(elem);
@@ -556,9 +557,15 @@ uniform sampler2D u_that_y;
                 if (table.isBuiltin(n.sourceString)) {
                     vert.push(n.sourceString + "." + f.sourceString);
                 } else {
-                    vert.push("texelFetch(" +
-                              table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                              ", ivec2(a_index), 0).r");
+		    if (n.sourceString === "this") {
+			vert.push("texelFetch(" +
+				  table.uniform(["propIn", n.sourceString, f.sourceString]) +
+				  ", ivec2(a_index), 0).r");
+		    } else {
+			vert.push("texelFetch(" +
+				  table.uniform(["propIn", n.sourceString, f.sourceString]) +
+				  ", ivec2(_pos), 0).r");
+		    }
                 }
             },
 
@@ -984,6 +991,8 @@ class OrderedPair {
 class SymTable {
     constructor(entries) {
         this.forBreed = true;
+        this.hasBreedInput = false;
+        this.hasPatchInput = false;
         this.defaultUniforms = null;
         this.defaultAttributes = null;
 
@@ -1017,6 +1026,13 @@ class SymTable {
     process() {
         this.uniformTable.addAll(this.thisIn);
         this.uniformTable.addAll(this.otherIn);
+
+	if (this.thisIn.size() > 0) {
+	    this.hasBreedInput = true;
+	}
+	if (this.otherIn.size() > 0) {
+	    this.hasPatchInput = true;
+	}
 
         if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
             throw "shadama cannot write into this and others from the same script."
