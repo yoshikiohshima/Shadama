@@ -1,6 +1,6 @@
 "use strict";
 
-var TEXTURE_SIZE = 512;
+var TEXTURE_SIZE = 1024;
 var FIELD_WIDTH = 256;
 var FIELD_HEIGHT = 256;
 var ENLARGE = 2;
@@ -693,7 +693,7 @@ function programFromTable(table, vert, frag, name) {
         });
 
         return function(objects, outs, ins, params) {
-            if (debugName === "getField") {
+            if (debugName === "fillCircle") {
 	    }
 
 
