@@ -24,14 +24,12 @@ var myObjects = {};
 var statics = {};
 
 var shadama;
-
 var editor;
 var parseErrorWidget;
-
 var compilation;
+var setupCode;
 
 var debugCanvas1;
-
 var debugArray;
 var debugArray1;
 var debugArray2;
@@ -45,9 +43,6 @@ var framebufferD;
 
 var debugTexture0;
 var debugTexture1;
-
-var g;
-var s;
 
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T * 2);
@@ -141,6 +136,8 @@ function createProgram(gl, vertexShader, fragmentShader) {
 };
 
 function loadShadama(id, source) {
+    var newSetupCode;
+    statics = {};
     if (!source) {
         var scriptElement = document.getElementById(id);
         if(!scriptElement){return;}
@@ -151,24 +148,29 @@ function loadShadama(id, source) {
     var result = translate(source, "TopLevel", syntaxError);
     compilation = result;
     for (var k in result) {
-	if (typeof result[k] === "string") { // static mathod case
-	    statics[k] = eval(result[k]);
+        if (typeof result[k] === "string") { // static mathod case
+            statics[k] = eval(result[k]);
             if (k === "setup") {
-		statics["setup"]();
-	    }
+		newSetupCode = result[k];
+            }
         } else {
             var entry = result[k];
             var js = entry[3];
             if (js[0] === "updateBreed") {
-                updateBreed(js[1], js[2]);
+                update(Breed, js[1], js[2]);
             } else if (js[0] === "updatePatch") {
-                updatePatch(js[1], js[2]);
+                update(Patch, js[1], js[2]);
             } else if (js[0] === "updateScript") {
                 var table = entry[0];
                 scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
                                   table.insAndParamsAndOuts()];
             }
         }
+    }
+
+    if (setupCode !== newSetupCode) {
+        callSetup();
+	setupCode = newSetupCode;
     }
 };
 
@@ -273,16 +275,37 @@ function randomPosition() {
     return [Math.random() * FW, Math.random() * FH];
 };
 
+var addOwnVariable = function(obj, name) {
+    var width;
+    var height;
+    if (obj.constructor === Breed) {
+        var width = T;
+        var height = T;
+    } else {
+        var width = FW;
+        var height = FH;
+    }
+    var ary = new Float32Array(width * height);
+    obj.own[name] = name;
+    obj[name] = createTexture(gl, ary, gl.R32F, width, height);
+    obj["new"+name] = createTexture(gl, ary, gl.R32F, width, height);
+};
+
+var removeOwnVariable = function(obj, name) {
+    delete obj.own[name];
+    if (obj[name]) {
+        gl.deleteTexture(obj[name]);
+        delete obj[name];
+    }
+    if (obj["new"+name]) {
+        gl.deleteTexture(obj["new"+name]);
+        delete obj["new"+name];
+    }
+};
+
 function Breed(count) {
     this.own = {};
     this.count = count;
-};
-
-Breed.prototype.addOwnVariable = function(name) {
-    var ary = new Float32Array(T * T);
-    this.own[name] = name;
-    this[name] = createTexture(gl, ary, gl.R32F, T, T);
-    this["new"+name] = createTexture(gl, ary, gl.R32F, T, T);
 };
 
 Breed.prototype.fillRandom = function(name, min, max) {
@@ -342,13 +365,6 @@ Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
 
 function Patch() {
    this.own = {};
-};
-
-Patch.prototype.addOwnVariable = function(name) {
-    var ary = new Float32Array(FW * FH);
-    this.own[name] = name;
-    this[name] = createTexture(gl, ary, gl.R32F, FW, FH);
-    this["new"+name] = createTexture(gl, ary, gl.R32F, FW, FH);
 };
 
 function makePrimitive(gl, name, uniforms, vao) {
@@ -532,9 +548,9 @@ function debugDisplay(objName, name) {
     }
     var prog = programs["debugPatch"];
     if (forBreed) {
-	setTargetBuffer(gl, framebufferD, debugTexture0);
+        setTargetBuffer(gl, framebufferD, debugTexture0);
     } else {
-	setTargetBuffer(gl, framebufferF, debugTexture1);
+        setTargetBuffer(gl, framebufferF, debugTexture1);
     }
 
     gl.useProgram(prog.program);
@@ -578,90 +594,69 @@ function debugDisplay(objName, name) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-function updateBreed(name, fields) {
-    var breed = myObjects[name];
-    if (!breed) {
-        breed = new Breed();
-        for (var i = 0; i < fields.length; i++) {
-            breed.addOwnVariable(fields[i]);
+function update(cls, name, fields) {
+    var stringify = (obj) => {
+        var type = Object.prototype.toString.call(obj);
+        if (type === "[object Object]") {
+            var pairs = [];
+            for (var k in obj) {
+                if (!obj.hasOwnProperty(k)) continue;
+                pairs.push([k, stringify(obj[k])]);
+            }
+            pairs.sort((a, b) => a[0] < b[0] ? -1 : 1);
+            pairs = pairs.map(v => '"' + v[0] + '":' + v[1]);
+            return "{" + pairs + "}";
         }
-        myObjects[name] = breed;
-        return breed;
+        if (type === "[object Array]") {
+            return "[" + obj.map(v => stringify(v)) + "]";
+        }
+        return JSON.stringify(obj);
+    };
+
+    var obj = myObjects[name];
+    if (!obj) {
+        obj = new cls();
+        for (var i = 0; i < fields.length; i++) {
+            addOwnVariable(obj, fields[i]);
+        }
+        myObjects[name] = obj;
+        return obj;
     }
 
-    // oldOwn = breed.own;
-    // var toBeDeleted = [];
-    // var toBeCreated = [];
-    // var newOwn = {};
+    var oldOwn = obj.own;
+    var toBeDeleted = [];  // [<str>]
+    var toBeCreated = [];  // [<str>]
+    var newOwn = {};
 
-    // for (var k in oldOwn) {
-    //     if (fields.indexOf(k) < 0) {
-    //         toBeDeleted.push(k)
-
-    //     }
-    // }
-
-    // for (var i = 0; i < fields.length; i++) {
-    //     var n = fields[i];
-    //     if (oldOwn[fields[i]]) {
-    //         newOwn[fields[i]] = oldOwn[fields[i]];
-    //     } else {
-    //         toBeCreated.push(fields[i]);
-    //     }
-    // }
-
-    // breed.own = newOwn;
-    // for (var i = 0; i < toBeCreated.length; i++) {
-    //     breed.addOwnVariable(toBeCreated[i]);
-    // }
-    // for (var i = 0; i < toBeDeleted.length; i++) {
-    //     // gl.destroyTexture(oldOwn[toBeDeleted[i]]);
-    // }
-};
-
-function updatePatch(name, fields) {
-    var patch = myObjects[name];
-    if (!patch) {
-        patch = new Patch();
-        for (var i = 0; i < fields.length; i++) {
-            patch.addOwnVariable(fields[i]);
-        }
-        myObjects[name] = patch;
-        return patch;
+    // common case: when the existing own and fields are the same
+    for (var i = 0; i < fields.length; i++) {
+        var k = fields[i];
+        newOwn[k] = k;
+    }
+    if (stringify(newOwn) === stringify(oldOwn)) {
+        return; obj;
     }
 
-    // oldOwn = patch.own;
-    // var toBeDeleted = [];
-    // var toBeCreated = [];
-    // var newOwn = {};
+    // other case: get things into toBeDeleted and toBeCreated, and toBeMoved
+    for (var k in oldOwn) {
+         if (fields.indexOf(k) < 0) {
+             toBeDeleted.push(k)
+        }
+    }
+    for (var i = 0; i < fields.length; i++) {
+        var k = fields[i];
+        if (!oldOwn[k]) {
+            toBeCreated.push(k);
+        }
+    }
 
-    // for (var k in oldOwn) {
-    //     if (fields.indexOf(k) < 0) {
-    //         toBeDeleted.push(k)
-    //     }
-    // }
-
-    // for (var i = 0; i < fields.length; i++) {
-    //     var n = fields[i];
-    //     if (oldOwn[fields[i]]) {
-    //         newOwn[fields[i]] = oldOwn[fields[i]];
-    //     } else {
-    //         toBeCreated.push(fields[i]);
-    //     }
-    // }
-
-    // patch.own = newOwn;
-    // for (var i = 0; i < toBeCreated.length; i++) {
-    //     breed.addOwnVariable(toBeCreated[i]);
-    // }
-    // for (var i = 0; i < toBeDeleted.length; i++) {
-    //     // gl.destroyTexture(oldOwn[toBeDeleted[i]]);
-    // }
+    toBeCreated.forEach((k) => addOwnVariable(obj, k));
+    toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
 };
 
 function programFromTable(table, vert, frag, name) {
     return (function () {
-	var debugName = name;
+        var debugName = name;
         var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
                                  createShader(gl, name + ".frag", frag));
         var vao = breedVAO;
@@ -694,7 +689,7 @@ function programFromTable(table, vert, frag, name) {
 
         return function(objects, outs, ins, params) {
             if (debugName === "fillCircle") {
-	    }
+            }
 
 
             // objects: {varName: object}
@@ -704,11 +699,11 @@ function programFromTable(table, vert, frag, name) {
             
             var object = objects["this"];
             var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
-	    if (forBreed) {
-		setTargetBuffers(gl, framebufferT, targets);
-	    } else {
-		setTargetBuffers(gl, framebufferR, targets);
-	    }
+            if (forBreed) {
+                setTargetBuffers(gl, framebufferT, targets);
+            } else {
+                setTargetBuffers(gl, framebufferR, targets);
+            }
             
             gl.useProgram(prog);
             gl.bindVertexArray(vao);
@@ -758,7 +753,7 @@ function programFromTable(table, vert, frag, name) {
 //                gl.clearColor(0.0, 0.0, 0.0, 0.0);
 //                gl.clear(gl.COLOR_BUFFER_BIT);
 //            }
-	    gl.drawArrays(gl.POINTS, 0, object.count);
+            gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             for (var i = 0; i < outs.length; i++) {
@@ -829,54 +824,54 @@ onload = function() {
 
     editor = CodeMirror.fromTextArea(document.getElementById("code"));
     editor.setOption("extraKeys", {
-	"Cmd-S": function(cm) {updateCode()},
-	});
+        "Cmd-S": function(cm) {updateCode()},
+        });
 
     runner();
 };
 
 function cleanUpEditorState() {
     if (editor) {
-	if (parseErrorWidget) {
-	    editor.removeLineWidget(parseErrorWidget);
-	    parseErrorWidget = undefined;
-	}
-	editor.getAllMarks().forEach(function(mark) { mark.clear(); });
+        if (parseErrorWidget) {
+            editor.removeLineWidget(parseErrorWidget);
+            parseErrorWidget = undefined;
+        }
+        editor.getAllMarks().forEach(function(mark) { mark.clear(); });
     }
 };
 
 function syntaxError(match, src) {
     function toDOM(x) {
-	if (x instanceof Array) {
-	    var xNode = document.createElement(x[0]);
-	    x.slice(1)
-		.map(toDOM)
-		.forEach(yNode => xNode.appendChild(yNode));
-	    return xNode;
-	} else {
-	    return document.createTextNode(x);
-	}
+        if (x instanceof Array) {
+            var xNode = document.createElement(x[0]);
+            x.slice(1)
+                .map(toDOM)
+                .forEach(yNode => xNode.appendChild(yNode));
+            return xNode;
+        } else {
+            return document.createTextNode(x);
+        }
     };
 
     if (editor) {
-	setTimeout(
-	    function() {
-		if (editor.getValue() === src && !parseErrorWidget) {
-		    function repeat(x, n) {
-			var xs = [];
-			while (n-- > 0) {
-			    xs.push(x);
-			}
-			return xs.join('');
-		    }
-		    var msg = 'Expected: ' + match.getExpectedText();
-		    var pos = editor.doc.posFromIndex(match.getRightmostFailurePosition());
-		    var error = toDOM(['parseerror', repeat(' ', pos.ch) + '^\n' + msg]);
-		    parseErrorWidget = editor.addLineWidget(pos.line, error);
-		}
-	    },
-	    2500
-	);
+        setTimeout(
+            function() {
+                if (editor.getValue() === src && !parseErrorWidget) {
+                    function repeat(x, n) {
+                        var xs = [];
+                        while (n-- > 0) {
+                            xs.push(x);
+                        }
+                        return xs.join('');
+                    }
+                    var msg = 'Expected: ' + match.getExpectedText();
+                    var pos = editor.doc.posFromIndex(match.getRightmostFailurePosition());
+                    var error = toDOM(['parseerror', repeat(' ', pos.ch) + '^\n' + msg]);
+                    parseErrorWidget = editor.addLineWidget(pos.line, error);
+                }
+            },
+            2500
+        );
     }
 };
 
@@ -888,7 +883,7 @@ function updateCode() {
 
 function callSetup() {
     if (statics["setup"]) {
-	statics["setup"]();
+        statics["setup"]();
     }
 };
     

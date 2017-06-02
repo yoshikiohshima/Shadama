@@ -36,10 +36,10 @@ function initSemantics() {
                 addDefaults(result);
                 for (var i = 0; i< ds.children.length; i++) {
                     var d = ds.children[i].symTable(null);
-		    var ctor = ds.children[i].ctorName;
+                    var ctor = ds.children[i].ctorName;
                     if (ctor == "Script" || ctor == "Static") {
                         addAsSet(result, d);
-		    }
+                    }
                 }
                 return result;
             },
@@ -66,12 +66,12 @@ function initSemantics() {
                 return {[n.sourceString]: table};
             },
 
-	    Static(_s, n, _o, ns, _c, b) {
-		var table = new SymTable();
-		ns.symTable(table);
-		table.process();
-		return {[n.sourceString]: table};
-	    },
+            Static(_s, n, _o, ns, _c, b) {
+                var table = new SymTable();
+                ns.symTable(table);
+                table.process();
+                return {[n.sourceString]: table};
+            },
 
             Formals_list(h, _c, r) {
                 var table = this.args.table;
@@ -180,7 +180,7 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
 
-		var patchInput = `
+                var patchInput = `
   float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
   float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
   vec2 _pos = vec2(_x, _y);
@@ -206,15 +206,15 @@ function initSemantics() {
                 vert.pushWithSpace("{\n");
                 vert.addTab();
 
-		if (table.hasPatchInput || !table.forBreed) {
-		    vert.push(patchInput);
-		}
+                if (table.hasPatchInput || !table.forBreed) {
+                    vert.push(patchInput);
+                }
                 
-		if (table.forBreed) {
-		    vert.push(breedPrologue);
-		} else {
-		    vert.push(patchPrologue);
-		}
+                if (table.forBreed) {
+                    vert.push(breedPrologue);
+                } else {
+                    vert.push(patchPrologue);
+                }
 
                 table.scalarParamTable.keysAndValuesDo((key, entry) => {
                     var e = entry[2];
@@ -317,16 +317,16 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var result = {};
                 for (var i = 0; i < ds.children.length; i++) {
-		    var child = ds.children[i];
-		    if (child.ctorName == "Static") {
-			var js = new CodeStream();
-			var val = child.static(table, js, null, false);
-			addAsSet(result, val);
-		    } else {
-			var val = child.glsl(table, null, null);
-			addAsSet(result, val);
+                    var child = ds.children[i];
+                    if (child.ctorName == "Static") {
+                        var js = new CodeStream();
+                        var val = child.static(table, js, null, false);
+                        addAsSet(result, val);
+                    } else {
+                        var val = child.glsl(table, null, null);
+                        addAsSet(result, val);
                     }
-		}
+                }
                 return result;
             },
 
@@ -358,7 +358,7 @@ uniform sampler2D u_that_y;
                 var vert = new CodeStream();
                 var frag = new CodeStream();
 
-		var prev = {[n.sourceString]: [table, vert.contents(), frag.contents(), []]};
+                var prev = {[n.sourceString]: [table, vert.contents(), frag.contents(), []]};
                 return this.glsl_helper(table, vert, frag);
             },
 
@@ -495,15 +495,15 @@ uniform sampler2D u_that_y;
                 transBinOp(l, r, " >= ", this.args);
             },
 
-	    LogicalExpression(e) {
+            LogicalExpression(e) {
                 e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
 
-	    LogicalExpression_and(l, _, r) {
+            LogicalExpression_and(l, _, r) {
                 transBinOp(l, r, " && ", this.args);
             },
 
-	    LogicalExpression_or(l, _, r) {
+            LogicalExpression_or(l, _, r) {
                 transBinOp(l, r, " || ", this.args);
             },
 
@@ -568,15 +568,15 @@ uniform sampler2D u_that_y;
                 if (table.isBuiltin(n.sourceString)) {
                     vert.push(n.sourceString + "." + f.sourceString);
                 } else {
-		    if (n.sourceString === "this") {
-			vert.push("texelFetch(" +
-				  table.uniform(["propIn", n.sourceString, f.sourceString]) +
-				  ", ivec2(a_index), 0).r");
-		    } else {
-			vert.push("texelFetch(" +
-				  table.uniform(["propIn", n.sourceString, f.sourceString]) +
-				  ", ivec2(_pos), 0).r");
-		    }
+                    if (n.sourceString === "this") {
+                        vert.push("texelFetch(" +
+                                  table.uniform(["propIn", n.sourceString, f.sourceString]) +
+                                  ", ivec2(a_index), 0).r");
+                    } else {
+                        vert.push("texelFetch(" +
+                                  table.uniform(["propIn", n.sourceString, f.sourceString]) +
+                                  ", ivec2(_pos), 0).r");
+                    }
                 }
             },
 
@@ -636,7 +636,7 @@ uniform sampler2D u_that_y;
 
                 function isOther(i) {
                     var realTable = table[method];
-		    if (!realTable) {return false}
+                    if (!realTable) {return false}
                     var r = realTable.usedAsOther(realTable.param.at(i)[2]);
                     return r;
                 };
@@ -651,7 +651,7 @@ uniform sampler2D u_that_y;
                 return result;
             },
 
-	    Formals_list(h, _c, r) {
+            Formals_list(h, _c, r) {
                 var table = this.args.table;
                 var result = [];
                 var js = new CodeStream();
@@ -659,9 +659,9 @@ uniform sampler2D u_that_y;
                 result.push(h.sourceString);
                 for (var i = 0; i < r.children.length; i++) {
                     var c = r.children[i];
-		    result.push(", ");
-		    result.push(c.sourceString);
-		}
+                    result.push(", ");
+                    result.push(c.sourceString);
+                }
                 return result;
             },
 
@@ -679,13 +679,13 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = this.args.method;
 
-		js.push("(function");
-		js.pushWithSpace(n.sourceString);
-		js.push("(");
-		js.push(fs.static_method_helper(table, null, null, null));
-		js.push(") ");
+                js.push("(function");
+                js.pushWithSpace(n.sourceString);
+                js.push("(");
+                js.push(fs.static_method_helper(table, null, null, null));
+                js.push(") ");
                 b.static(table, js, method, false);
-		js.push(")");
+                js.push(")");
                 return {[n.sourceString]: js.contents()};
             },
 
@@ -693,13 +693,13 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
-		js.pushWithSpace("{");
-		js.cr();
-		js.addTab();
+                js.pushWithSpace("{");
+                js.cr();
+                js.addTab();
                 ss.static(table, js, method, false);
-		js.decTab();
-		js.tab();
-		js.push("}");
+                js.decTab();
+                js.tab();
+                js.push("}");
             },
 
             StatementList(ss) {
@@ -708,7 +708,7 @@ uniform sampler2D u_that_y;
                 var method = this.args.method;
                 var isOther = this.args.isOther;
                 for (var i = 0; i < ss.children.length; i++) {
-		    js.tab();
+                    js.tab();
                     ss.children[i].static(table, js, method, isOther);
                 }
             },
@@ -783,17 +783,17 @@ uniform sampler2D u_that_y;
                 staticTransBinOp(l, r, " >= ", this.args);
             },
 
-	    LogicalExpression(e) {
+            LogicalExpression(e) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-	    },
+            },
 
-	    LogicalExpression_and(l, _, r) {
+            LogicalExpression_and(l, _, r) {
                 staticTransBinOp(l, r, " && ", this.args);
-	    },
+            },
 
-	    LogicalExpression_or(l, _, r) {
+            LogicalExpression_or(l, _, r) {
                 staticTransBinOp(l, r, " || ", this.args);
-	    },
+            },
 
             AddExpression(e) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
@@ -892,10 +892,10 @@ uniform sampler2D u_that_y;
 
                 var actuals = as.static_method_helper(table, null, method, false);
                 var myTable = table[n.sourceString];
-		var formals;
-		if (myTable) {
+                var formals;
+                if (myTable) {
                     formals = myTable.param;
-		}		    
+                }                   
 
                 if (formals && (actuals.length !== formals.size())) {
                     throw "number of arguments don't match.";
@@ -907,14 +907,14 @@ uniform sampler2D u_that_y;
                 objectsString.addTab();
                 for (var i = 0; i < actuals.length; i++) {
                     var actual = actuals[i];
-		    if (formals) {
-			var formal = formals.at(i);
-			var shortName = formal[2];
-			var isOther = myTable.usedAsOther(shortName);
-		    } else {
-			var shortName = "t" + i;
-			isOther = false;
-		    }
+                    if (formals) {
+                        var formal = formals.at(i);
+                        var shortName = formal[2];
+                        var isOther = myTable.usedAsOther(shortName);
+                    } else {
+                        var shortName = "t" + i;
+                        isOther = false;
+                    }
 
                     if (isOther) {
                         objectsString.tab();
@@ -1038,12 +1038,12 @@ class SymTable {
         this.uniformTable.addAll(this.thisIn);
         this.uniformTable.addAll(this.otherIn);
 
-	if (this.thisIn.size() > 0) {
-	    this.hasBreedInput = true;
-	}
-	if (this.otherIn.size() > 0) {
-	    this.hasPatchInput = true;
-	}
+        if (this.thisIn.size() > 0) {
+            this.hasBreedInput = true;
+        }
+        if (this.otherIn.size() > 0) {
+            this.hasPatchInput = true;
+        }
 
         if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
             throw "shadama cannot write into this and others from the same script."
@@ -1082,7 +1082,7 @@ class SymTable {
         }
 
         if ((this.otherOut.size() > 0 || this.otherIn.size() > 0) &&
-	    this.defaultUniforms.indexOf("u_that_x") < 0) {
+            this.defaultUniforms.indexOf("u_that_x") < 0) {
             this.defaultUniforms = this.defaultUniforms.concat(["u_that_x", "u_that_y"]);
         }
     }
@@ -1176,14 +1176,14 @@ class SymTable {
     }
 
     rawTable() {
-	var result = {};
-	this.thisIn.keysAndValuesDo((key, entry) => result[key] = entry);
-	this.thisOut.keysAndValuesDo((key, entry) => result[key] = entry);
-	this.otherIn.keysAndValuesDo((key, entry) => result[key] = entry);
-	this.otherOut.keysAndValuesDo((key, entry) => result[key] = entry);
-	this.param.keysAndValuesDo((key, entry) => result[key] = entry);
-	this.local.keysAndValuesDo((key, entry) => result[key] = entry);
-	return result;
+        var result = {};
+        this.thisIn.keysAndValuesDo((key, entry) => result[key] = entry);
+        this.thisOut.keysAndValuesDo((key, entry) => result[key] = entry);
+        this.otherIn.keysAndValuesDo((key, entry) => result[key] = entry);
+        this.otherOut.keysAndValuesDo((key, entry) => result[key] = entry);
+        this.param.keysAndValuesDo((key, entry) => result[key] = entry);
+        this.local.keysAndValuesDo((key, entry) => result[key] = entry);
+        return result;
     }
 };
 
@@ -1212,7 +1212,7 @@ class CodeStream {
     tab() {
         for (var i = 0; i < this.tabLevel; i++) {
             this.result.push("  ");
-	    this.hadSpace = true;
+            this.hadSpace = true;
         }
     }
 
@@ -1308,13 +1308,13 @@ function symTableTest(str, prod, sem, expected) {
     };
 
     var rawTable = function(table) {
-	var t;
-	if (table.constructor === SymTable) {
-	    t = table;
-	} else {
-	    t = table[Object.keys(table)[0]];
-	}
-	return t.rawTable();
+        var t;
+        if (table.constructor === SymTable) {
+            t = table;
+        } else {
+            t = table[Object.keys(table)[0]];
+        }
+        return t.rawTable();
     }
 
     var n = sem(match);
@@ -1335,7 +1335,7 @@ function translate(str, prod, errorCallback) {
     if (!match.succeeded()) {
         console.log(str);
         console.log("did not parse: " + str);
-	return errorCallback(match, str);
+        return errorCallback(match, str);
     }
 
     var n = s(match);
