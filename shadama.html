@@ -382,7 +382,7 @@ def maybeMove() {
   this.dy = dy - 0.01;
 }
  
-def bounce2(field) {
+def bounce(field) {
   var nx = field.nx;
   var ny = field.ny;
   var dx = this.dx;
@@ -439,9 +439,8 @@ static setup() {
 }
 
 static loop() {
-  Display.clear();
   Turtle.maybeMove();
-  Turtle.bounce2(Field);
+  Turtle.bounce(Field);
   Field.draw();
   Turtle.draw();
 }
@@ -457,13 +456,16 @@ static loop() {
      
         </head>
         <body>
-                <div>
-                    <canvas style="float: left" id="canvas"></canvas>
-                   <textarea style="float: left" id="code"></textarea>
+	  <h1>Shadama</h1>
+                <div style="float: left">
+                      <canvas id="canvas"></canvas>
+                    <div id="buttons">
+                      <button type="button" onclick="updateCode()">Load</button>
+                      <button type="button" onclick="callSetup()">Setup</button>
+                    </div>
                 </div>
+                <textarea style="float: left" id="code"></textarea>
                 <br>
-                <button type="button" onclick="updateCode()">Load</button>
-                <button type="button" onclick="callSetup()">Setup</button>
                 <div style="clear: left" id="readout"></div>
                 <canvas id="debugCanvas1"></canvas>
         </body>

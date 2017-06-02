@@ -754,10 +754,10 @@ function programFromTable(table, vert, frag, name) {
                 }
             }
             
-            if (forBreed) {
-                gl.clearColor(0.0, 0.0, 0.0, 0.0);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-            }
+//            if (forBreed) {
+//                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+//                gl.clear(gl.COLOR_BUFFER_BIT);
+//            }
 	    gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -817,8 +817,6 @@ onload = function() {
     framebufferD = gl.createFramebuffer();
     initFramebuffer(gl, framebufferD, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
-
-
 
     grammarUnitTests();
     symTableUnitTests();
