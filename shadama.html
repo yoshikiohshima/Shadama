@@ -21,7 +21,7 @@ Shadama {
 
   Formals
     = ident ("," ident)* -- list
-    | empty
+   | empty
 
   Block = "{" StatementList "}"
 
@@ -129,6 +129,10 @@ Shadama {
   static = "static" ~identifierPart
 
   empty =
+  space
+   += "//" (~nl any)* nl  -- cppComment
+    | "/*" (~"*/" any)* "*/" -- cComment
+  nl = "\n"
 }
     </script>
 
