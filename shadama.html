@@ -180,90 +180,11 @@ void main(void) {
   fragColor = v_color;
 }
         </script>
-        <script id="setPatch.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_index;
-
-uniform vec2 u_resolution;
-uniform float u_particleLength;
-uniform sampler2D u_position;
-
-void main(void) {
-    vec2 zeroToOne = a_index / u_particleLength;
-    vec4 val = texelFetch(u_position, ivec2(a_index), 0);
-    vec2 dPos = val.rg; // decodePos(val);   // (0-resolution, 0-resolution)
-    vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
-    vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
-
-    gl_Position = vec4(clipPos, 0, 1.0);
-    gl_PointSize = 1.0;
-}
-        </script>
-
-        <script id="setPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-uniform vec4 u_value;
-uniform int u_type; // 0 = Number, 1 = Color
-
-out vec4 fragColor;
-
-void main(void) {
-  if (u_type == 0) {
-    fragColor = u_value;
-  } else if(u_type == 1) {
-    fragColor = u_value;
-  } else {
-    discard;
-  }
-}
-        </script>
-        <script id="getPatch.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_index;
-
-uniform vec2 u_resolution;
-uniform float u_particleLength;
-uniform sampler2D u_position;
-
-out vec2 v_coord;
-
-void main(void) {
-    vec2 zeroToOne = a_index / u_particleLength;
-    vec2 oneToOne = zeroToOne * 2.0 - 1.0;
-
-    vec4 val = texelFetch(u_position, ivec2(a_index), 0);
-    vec2 dPos = val.rg; // decodePos(val);   // (0-resolution, 0-resolution)
-    vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
-
-    gl_Position = vec4(oneToOne, 0, 1);
-    v_coord = dPos;
-    gl_PointSize = 1.0;
-}
-        </script>
-
-        <script id="getPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-uniform sampler2D u_value;
-uniform int u_type; // 0 = Number, 1 = Color
-
-in vec2 v_coord;
-
-out vec4 fragColor;
-
-void main(void) {
-  if (u_type == 0) {
-    fragColor = texelFetch(u_value, ivec2(v_coord), 0);
-  } else if(u_type == 1) {
-    fragColor = texelFetch(u_value, ivec2(v_coord), 0);
-  } else {
-    discard;
-  }
-}
-        </script>
-
         <script id="drawPatch.vert" type="x-shader/x-vertex">#version 300 es
 layout (location = 0) in vec2 a_position;
 
 void main(void) {
-    gl_Position = vec4(a_position, 0, 1.0);
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
         </script>
 
@@ -290,13 +211,12 @@ void main(void) {
 layout (location = 0) in vec2 a_position;
 
 void main(void) {
-    gl_Position = vec4(a_position, 0, 1.0);
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
         </script>
 
         <script id="diffusePatch.frag" type="x-shader/x-fragment">#version 300 es
 precision highp float;
-uniform vec2      u_resolution;
 uniform sampler2D u_value;
 
 const float weight[9] = float[9](
@@ -305,20 +225,22 @@ const float weight[9] = float[9](
     0.077847, 0.123317, 0.077847
 );
 
-out vec4 fragColor;
+out float fragColor;
 
 void main(void) {
   ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-  vec4 v  = texelFetch(u_value, fc + ivec2(-1, -1), 0) * weight[0];
-       v += texelFetch(u_value, fc + ivec2(-1,  0), 0) * weight[1];
-       v += texelFetch(u_value, fc + ivec2(-1,  1), 0) * weight[2];
-       v += texelFetch(u_value, fc + ivec2( 0, -1), 0) * weight[3];
-       v += texelFetch(u_value, fc + ivec2( 0,  0), 0) * weight[4];
-       v += texelFetch(u_value, fc + ivec2( 0,  1), 0) * weight[5];
-       v += texelFetch(u_value, fc + ivec2( 1, -1), 0) * weight[6];
-       v += texelFetch(u_value, fc + ivec2( 1,  0), 0) * weight[7];
-       v += texelFetch(u_value, fc + ivec2( 1,  1), 0) * weight[8];
-       fragColor = v.r <= (1.0/256.0) ? vec4(0.0) : v;
+  float v;
+  v = texelFetch(u_value, fc + ivec2(-1, -1), 0).r * weight[0];
+  v += texelFetch(u_value, fc + ivec2(-1,  0), 0).r * weight[1];
+  v += texelFetch(u_value, fc + ivec2(-1,  1), 0).r * weight[2];
+  v += texelFetch(u_value, fc + ivec2( 0, -1), 0).r * weight[3];
+  v += texelFetch(u_value, fc + ivec2( 0,  0), 0).r * weight[4];
+  v += texelFetch(u_value, fc + ivec2( 0,  1), 0).r * weight[5];
+  v += texelFetch(u_value, fc + ivec2( 1, -1), 0).r * weight[6];
+  v += texelFetch(u_value, fc + ivec2( 1,  0), 0).r * weight[7];
+  v += texelFetch(u_value, fc + ivec2( 1,  1), 0).r * weight[8];
+  v = v <= (1.0/256.0) ? 0.0 : v;
+  fragColor = v;
 }
         </script>
         <script id="debugPatch.vert" type="x-shader/x-vertex">#version 300 es
@@ -342,118 +264,31 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
+
 breed Turtle (x, y, dx, dy, r, g, b, a)
-breed Filler (x, y)
-patch Field (nx, ny, r, g, b, a)
+patch Trail (r, g, b, a)
 
-def setColor() {
-  this.r = this.x / 256.0;
-  this.g = this.y / 256.0;
-  this.b = 0.0;
-  this.a = 1.0;
-}
-
-def fillCircle(cx, cy, r, field) {
-    var dx = this.x - cx;
-    var dy = this.y - cy;
-    var dr = sqrt(dx * dx + dy * dy);
-  if (dr < r) {
-    field.r = 0.2;
-    field.g = 0.2;
-    field.b = 0.8;
-    field.a = 1.0;
-    field.nx = dx / r;
-    field.ny = dy / r;
-  } else {
-    field.r = field.r;
-    field.g = field.g;
-    field.b = field.b;
-    field.a = field.a;
-    field.nx = field.nx;
-    field.ny = field.ny;
-  }
-}
-
-def maybeMove() {
-  var dx = this.dx;
-  var dy = this.dy;
-  this.x = this.x + dx;
-  this.y = this.y + dy;
-  this.dy = dy - 0.01;
-}
- 
-def bounce(field) {
-  var nx = field.nx;
-  var ny = field.ny;
-  var dx = this.dx;
-  var dy = this.dy;
-  var dot = dx * nx + dy * ny;
-  var rx = dx;
-  var ry = dy;
-
-  if (dot < 0.0) {
-    rx = dx - 2.0 * dot * nx;
-    ry = dy - 2.0 * dot * ny;
-  }
-
-  var norm = sqrt(rx * rx + ry * ry);
-  var normX = rx / norm;
-  var normY = ry / norm;
-
-  var newX = this.x;
-  var newY = this.y;
-
-  if (newX < 0.0) {
-    newX = 0.0 - newX;
-    rx = -rx * 0.9;
-  }
-  if (newX > u_resolution.x) {
-    newX = u_resolution.x - (newX - u_resolution.x);
-    rx = -rx * 0.9;
-  }
-  if (newY < 0.0) {
-    newY = mod(newY, u_resolution.y);
-    ry = -0.1;
-  }
-  if (newY > u_resolution.y) {
-    newY = u_resolution.y - (newY - u_resolution.y);
-    ry = -ry;
-  }
-
-  this.x = newX;
-  this.y = newY;
-  this.dx = rx;
-  this.dy = ry;
+def trail(trail) {
+  trail.b = 0.5;
+  trail.a = 1.0;
 }
 
 static setup() {
-  Filler.fillSpace("x", "y", 256, 256);
-  Filler.fillCircle(75, 75, 20, Field);
-  Filler.fillCircle(165, 95, 25, Field);
-
-  Turtle.setCount(10000);
+  Turtle.setCount(100);
   Turtle.fillRandom("x", 0, 256);
-  Turtle.fillRandom("y", 128, 256);
-  Turtle.fillRandomDir("dx", "dy");
-  Turtle.setColor();
+  Turtle.fillRandom("y", 0, 256);
+  Turtle.trail(Trail);
+  Trail.draw();
 }
 
 static loop() {
-  Turtle.maybeMove();
-  Turtle.bounce(Field);
-  Field.draw();
-  Turtle.draw();
+//  Display.clear();
+  Trail.diffuse("b");
+//  Trail.diffuse("a");
+  Trail.draw();
 }
 </script>
 
-<style>
-#code {
-  width: 800px;
-  height: 800px;
-};
-</style>
-
-     
         </head>
         <body>
           <h1>Shadama</h1>

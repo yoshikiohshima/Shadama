@@ -394,7 +394,7 @@ function debugPatchProgram(gl) {
 };
 
 function diffusePatchProgram(gl) {
-    return makePrimitive(gl, "diffusePatch", ["u_resolution", "u_value"], patchVAO);
+    return makePrimitive(gl, "diffusePatch", ["u_value"], patchVAO);
 };
 
 Breed.prototype.draw = function() {
@@ -505,37 +505,34 @@ Patch.prototype.draw = function() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
-Patch.prototype.diffuse = function() {
+Patch.prototype.diffuse = function(name) {
     var prog = programs["diffusePatch"];
 
-    setTargetBuffer(gl, framebufferF, this.newValues);
+    var target = this["new"+name];
+    var source = this[name];
+
+    setTargetBuffers(gl, framebufferR, [target]);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.values);
+    gl.bindTexture(gl.TEXTURE_2D, source);
 
     gl.viewport(0, 0, FW, FH);
 
     gl.uniform1i(prog.uniLocations["u_value"], 0);
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-    var tmp = this.newValues;
-    this.newValues = this.values;
-    this.values = tmp;
+    this["new"+name] = source;
+    this[name] = target;
 };
 
 function debugDisplay(objName, name) {
-
     var object = myObjects[objName];
     var forBreed = object.constructor == Breed;
     var width = forBreed ? T : FW;
@@ -688,10 +685,6 @@ function programFromTable(table, vert, frag, name) {
         });
 
         return function(objects, outs, ins, params) {
-            if (debugName === "fillCircle") {
-            }
-
-
             // objects: {varName: object}
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
@@ -789,6 +782,7 @@ onload = function() {
     programs["drawBreed"] = drawBreedProgram(gl);
     programs["drawPatch"] = drawPatchProgram(gl);
     programs["debugPatch"] = debugPatchProgram(gl);
+    programs["diffusePatch"] = diffusePatchProgram(gl);
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
     debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
@@ -798,14 +792,14 @@ onload = function() {
     initFramebuffer(gl, framebufferT, tmp, gl.R32F, T, T);
     gl.deleteTexture(tmp);
 
-    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
-    framebufferF = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
-    gl.deleteTexture(tmp);
-
     var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
     framebufferR = gl.createFramebuffer();
     initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
+    gl.deleteTexture(tmp);
+
+    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+    framebufferF = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
 
     var tmp = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, FW, FH);
