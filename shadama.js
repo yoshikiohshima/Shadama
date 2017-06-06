@@ -528,8 +528,8 @@ Patch.prototype.diffuse = function(name) {
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-    this["new"+name] = source;
-    this[name] = target;
+//    this["new"+name] = source;
+//    this[name] = target;
 };
 
 function debugDisplay(objName, name) {
