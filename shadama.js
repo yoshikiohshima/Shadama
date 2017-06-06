@@ -888,8 +888,8 @@ function runner() {
 
     times.push({start: start, step: now - start});
 
-    if (now - times[0].start > 1000 || times.length === 2) {
-        while (now - times[0].start > 500) { times.shift() };
+    if ((times.length > 0 && now - times[0].start > 1000) || times.length === 2) {
+        while (times.length > 1 && now - times[0].start > 500) { times.shift() };
         var frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
         var stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
         readout.innerHTML = "compute: " + stepTime.toFixed(3) + " msecs/step, real time: " + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";

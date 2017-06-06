@@ -264,27 +264,42 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
-
 breed Turtle (x, y, dx, dy, r, g, b, a)
-patch Trail (r, g, b, a)
+breed Filler (x, y)
+patch Trail (r, g, b, a, x)
 
 def trail(trail) {
-  trail.b = 0.5;
-  trail.a = 1.0;
+  trail.g = 1.0;
 }
 
+def setA(trail) {
+  trail.a = 1.0;
+  trail.b = 0.0;
+  trail.r = 0.0;
+}
+
+def maybeMove() {
+  var dx = this.dx;
+  var dy = this.dy;
+  this.x = this.x + dx;
+  this.y = this.y + dy;
+}
+ 
 static setup() {
+  Filler.fillSpace("x", "y", 256, 256);
+  Filler.setA(Trail);
   Turtle.setCount(100);
   Turtle.fillRandom("x", 0, 256);
   Turtle.fillRandom("y", 0, 256);
+  Turtle.fillRandomDir("dx", "dy");
   Turtle.trail(Trail);
-  Trail.draw();
 }
 
 static loop() {
-//  Display.clear();
-  Trail.diffuse("b");
-//  Trail.diffuse("a");
+  Display.clear();
+  Turtle.maybeMove();
+  Turtle.trail(Trail);
+  Trail.diffuse("g");
   Trail.draw();
 }
 </script>
