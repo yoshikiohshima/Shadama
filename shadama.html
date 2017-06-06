@@ -136,6 +136,28 @@ Shadama {
 }
     </script>
 
+        <script id="copy.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_position;
+
+void main(void) {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}
+        </script>
+
+        <script id="copy.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+uniform sampler2D u_value;
+
+out float fragColor;
+
+void main(void) {
+  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+  fragColor = texelFetch(u_value, fc, 0).r;
+}
+        </script>
+
+
         <script id="drawBreed.vert" type="x-shader/x-vertex">#version 300 es
 layout (location = 0) in vec2 a_index;
 
@@ -180,6 +202,7 @@ void main(void) {
   fragColor = v_color;
 }
         </script>
+
         <script id="drawPatch.vert" type="x-shader/x-vertex">#version 300 es
 layout (location = 0) in vec2 a_position;
 
@@ -266,7 +289,7 @@ void main(void) {
         <script id="forward.shadama" type="x-shadama">
 breed Turtle (x, y, dx, dy, r, g, b, a)
 breed Filler (x, y)
-patch Trail (r, g, b, a, x)
+patch Trail (r, g, b, a)
 
 def trail(trail) {
   trail.g = 1.0;
@@ -274,8 +297,6 @@ def trail(trail) {
 
 def setA(trail) {
   trail.a = 1.0;
-  trail.b = 0.0;
-  trail.r = 0.0;
 }
 
 def maybeMove() {
@@ -288,20 +309,23 @@ def maybeMove() {
 static setup() {
   Filler.fillSpace("x", "y", 256, 256);
   Filler.setA(Trail);
+
   Turtle.setCount(100);
   Turtle.fillRandom("x", 0, 256);
   Turtle.fillRandom("y", 0, 256);
   Turtle.fillRandomDir("dx", "dy");
   Turtle.trail(Trail);
+  Trail.diffuse("g");
+  Trail.draw();
 }
 
 static loop() {
-  Display.clear();
   Turtle.maybeMove();
   Turtle.trail(Trail);
   Trail.diffuse("g");
   Trail.draw();
 }
+
 </script>
 
         </head>

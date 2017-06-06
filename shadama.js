@@ -265,6 +265,39 @@ function clear() {
     gl.clear(gl.COLOR_BUFFER_BIT);
 };
 
+function textureCopy(obj, src, dst) {
+    var prog = programs["copy"];
+    var width;
+    var height;
+    var buffer;
+    if (obj.constructor === Breed) {
+	width = T;
+	height = T;
+	buffer = framebufferT;
+    } else {
+	width = FW;
+	height = FH;
+	buffer = framebufferR;
+    }
+
+    setTargetBuffers(gl, buffer, [dst]);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, src);
+
+    gl.viewport(0, 0, width, height);
+
+    gl.uniform1i(prog.uniLocations["u_value"], 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+};
+
 function randomDirection() {
     var r = Math.random();
     var r = r * Math.PI * 2.0;
@@ -395,6 +428,10 @@ function debugPatchProgram(gl) {
 
 function diffusePatchProgram(gl) {
     return makePrimitive(gl, "diffusePatch", ["u_value"], patchVAO);
+};
+
+function copyProgram(gl) {
+    return makePrimitive(gl, "copy", ["u_value"], patchVAO);
 };
 
 Breed.prototype.draw = function() {
@@ -528,8 +565,8 @@ Patch.prototype.diffuse = function(name) {
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-//    this["new"+name] = source;
-//    this[name] = target;
+    this["new"+name] = source;
+    this[name] = target;
 };
 
 function debugDisplay(objName, name) {
@@ -689,8 +726,15 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-            
+	    if (debugName == "setA") {
+	    }
             var object = objects["this"];
+
+	    outs.forEach((pair) => {
+		textureCopy(objects[pair[0]],
+			    objects[pair[0]][pair[1]],
+			    objects[pair[0]]["new" + pair[1]])});
+
             var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
             if (forBreed) {
                 setTargetBuffers(gl, framebufferT, targets);
@@ -783,6 +827,7 @@ onload = function() {
     programs["drawPatch"] = drawPatchProgram(gl);
     programs["debugPatch"] = debugPatchProgram(gl);
     programs["diffusePatch"] = diffusePatchProgram(gl);
+    programs["copy"] = copyProgram(gl);
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
     debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);

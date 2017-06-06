@@ -227,6 +227,13 @@ function initSemantics() {
                     vert.cr();
                 });
 
+                table.uniformDefaults().forEach(elem => {
+		    vert.tab();
+                    vert.push(elem);
+                    vert.cr();
+                });
+
+
                 ss.glsl(table, vert, frag);
                 vert.push(table.forBreed ? epilogue : epilogue);
 
@@ -1038,6 +1045,19 @@ class SymTable {
 
         
     process() {
+	// maybe a hack: look for outs that are not ins and add them to ins.  Those are use
+	this.thisOut.keysAndValuesDo((key, entry) => {
+	    var newEntry = ["propIn", "this", entry[2]];
+	    var newK = newEntry.join(".");
+	    this.thisIn.add(newK, newEntry);
+	});
+	this.otherOut.keysAndValuesDo((key, entry) => {
+	    var newEntry = ["propIn", entry[1], entry[2]];
+	    var newK = newEntry.join(".");
+	    this.otherIn.add(newK, newEntry);
+	});
+
+
         this.uniformTable.addAll(this.thisIn);
         this.uniformTable.addAll(this.otherIn);
 
@@ -1053,12 +1073,12 @@ class SymTable {
         } else {
             this.forBreed = this.thisOut.size() > 0;
         }
+
         if (this.forBreed) {
             this.varyingTable.addAll(this.thisOut);
         } else {
             this.varyingTable.addAll(this.otherOut);
         }
-
         this.param.keysAndValuesDo((key, entry) => {
             if (!this.usedAsOther(entry[2])) {
                 this.scalarParamTable.add(key, entry);
@@ -1145,6 +1165,14 @@ class SymTable {
     fragVaryings() {
         return this.varyingTable.keysAndValuesCollect((key, entry) => 
                                                  "in float " + this.varying(entry) + ";");
+    }
+
+    uniformDefaults() {
+        return this.varyingTable.keysAndValuesCollect((key, entry) => {
+	    var u_entry = ["propIn", entry[1], entry[2]];
+            var ind = entry[1] === "this" ? "ivec2(a_index)" : "ivec2(_pos)";
+            return `${this.varying(entry)} = texelFetch(${this.uniform(u_entry)}, ${ind}, 0).r;`;
+	})
     }
 
     outs() {
