@@ -289,14 +289,34 @@ void main(void) {
         <script id="forward.shadama" type="x-shadama">
 breed Turtle (x, y, dx, dy, r, g, b, a)
 breed Filler (x, y)
-patch Trail (r, g, b, a)
+patch Field (nx, ny, r, g, b, a)
 
-def trail(trail) {
-  trail.g = 1.0;
+def setColor() {
+  this.r = this.x / 256.0;
+  this.g = this.y / 256.0;
+  this.b = 0.0;
+  this.a = 1.0;
 }
 
-def setA(trail) {
-  trail.a = 1.0;
+def fillCircle(cx, cy, r, field) {
+    var dx = this.x - cx;
+    var dy = this.y - cy;
+    var dr = sqrt(dx * dx + dy * dy);
+  if (dr < r) {
+    field.r = 0.2;
+    field.g = 0.2;
+    field.b = 0.8;
+    field.a = 1.0;
+    field.nx = dx / r;
+    field.ny = dy / r;
+  } else {
+    field.r = field.r;
+    field.g = field.g;
+    field.b = field.b;
+    field.a = field.a;
+    field.nx = field.nx;
+    field.ny = field.ny;
+  }
 }
 
 def maybeMove() {
@@ -304,28 +324,71 @@ def maybeMove() {
   var dy = this.dy;
   this.x = this.x + dx;
   this.y = this.y + dy;
+  this.dy = dy - 0.01;
 }
  
+def bounce(field) {
+  var nx = field.nx;
+  var ny = field.ny;
+  var dx = this.dx;
+  var dy = this.dy;
+  var dot = dx * nx + dy * ny;
+  var rx = dx;
+  var ry = dy;
+
+  if (dot < 0.0) {
+    rx = dx - 2.0 * dot * nx;
+    ry = dy - 2.0 * dot * ny;
+  }
+
+  var norm = sqrt(rx * rx + ry * ry);
+  var normX = rx / norm;
+  var normY = ry / norm;
+
+  var newX = this.x;
+  var newY = this.y;
+
+  if (newX < 0.0) {
+    newX = 0.0 - newX;
+    rx = -rx * 0.9;
+  }
+  if (newX > u_resolution.x) {
+    newX = u_resolution.x - (newX - u_resolution.x);
+    rx = -rx * 0.9;
+  }
+  if (newY < 0.0) {
+    newY = mod(newY, u_resolution.y);
+    ry = -0.1;
+  }
+  if (newY > u_resolution.y) {
+    newY = u_resolution.y - (newY - u_resolution.y);
+    ry = -ry;
+  }
+
+  this.x = newX;
+  this.y = newY;
+  this.dx = rx;
+  this.dy = ry;
+}
+
 static setup() {
   Filler.fillSpace("x", "y", 256, 256);
-  Filler.setA(Trail);
+  Filler.fillCircle(75, 75, 20, Field);
+  Filler.fillCircle(165, 95, 25, Field);
 
-  Turtle.setCount(100);
+  Turtle.setCount(10000);
   Turtle.fillRandom("x", 0, 256);
-  Turtle.fillRandom("y", 0, 256);
+  Turtle.fillRandom("y", 128, 256);
   Turtle.fillRandomDir("dx", "dy");
-  Turtle.trail(Trail);
-  Trail.diffuse("g");
-  Trail.draw();
+  Turtle.setColor();
 }
 
 static loop() {
   Turtle.maybeMove();
-  Turtle.trail(Trail);
-  Trail.diffuse("g");
-  Trail.draw();
+  Turtle.bounce(Field);
+  Field.draw();
+  Turtle.draw();
 }
-
 </script>
 
         </head>

@@ -280,7 +280,7 @@ function textureCopy(obj, src, dst) {
 	buffer = framebufferR;
     }
 
-    setTargetBuffers(gl, buffer, [dst]);
+    setTargetBuffer(gl, buffer, dst);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
@@ -726,7 +726,7 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-	    if (debugName == "setA") {
+	    if (debugName == "bounce") {
 	    }
             var object = objects["this"];
 
