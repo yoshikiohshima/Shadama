@@ -864,15 +864,25 @@ function callSetup() {
 };
 
 function addListeners(aCanvas) {
+    var rect = aCanvas.getBoundingClientRect();
+    var left = rect.left;
+    var top = rect.top;
     aCanvas.addEventListener("mousemove", function(e) {
-	env.mousemove = e;
+	env.mousemove = {x: e.clientX - left, y: FH - (e.clientY - top)};
     });
     aCanvas.addEventListener("mousedown", function(e) {
-	env.mousedown = e;
+	env.mousedown = {x: e.clientX, y: FH - (e.clientY - top)};
     });
     aCanvas.addEventListener("mouseup", function(e) {
-	env.mouseup = e;
+	env.mouseup = {x: e.clientX, y: FH - (e.clientY - top)};
     });
+};
+
+function initEnv() {
+    env.mousedown = {x: 0, y: 0};
+    env.mousemove = {x: 0, y: 0};
+    env.width = FW;
+    env.height = FH;
 };
 
 onload = function() {
@@ -901,6 +911,8 @@ onload = function() {
     initPatchVAO(gl);
 
     initCompiler();
+
+    initEnv();
 
     programs["drawBreed"] = drawBreedProgram(gl);
     programs["drawPatch"] = drawPatchProgram(gl);
@@ -970,6 +982,7 @@ function runner() {
 };
 
 function step() {
+    env["time"] = performance.now() / 1000;
     if (statics["loop"]) {
         statics["loop"](env);
     }
