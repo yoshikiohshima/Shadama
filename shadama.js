@@ -13,7 +13,7 @@ var readout;
 
 var gl;
 
-var runTests = true;
+var runTests = false;
 
 var breedVAO;
 var patchVAO;
@@ -805,72 +805,6 @@ function programFromTable(table, vert, frag, name) {
     })();
 };
 
-onload = function() {
-    readout = document.getElementById("readout");
-
-    var c = document.getElementById("canvas");
-    c.width = FW;
-    c.height = FH;
-    c.style.width = (FW * ENLARGE) + "px";
-    c.style.height = (FH * ENLARGE) + "px";
-
-    gl = c.getContext("webgl2");
-
-    var ext = gl.getExtension("EXT_color_buffer_float");
-
-    initBreedVAO(gl);
-    initPatchVAO(gl);
-
-    initCompiler();
-
-    programs["drawBreed"] = drawBreedProgram(gl);
-    programs["drawPatch"] = drawPatchProgram(gl);
-    programs["debugPatch"] = debugPatchProgram(gl);
-    programs["diffusePatch"] = diffusePatchProgram(gl);
-    programs["copy"] = copyProgram(gl);
-
-    debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
-    debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
-
-    var tmp = createTexture(gl, new Float32Array(T * T), gl.R32F, T, T);
-    framebufferT = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferT, tmp, gl.R32F, T, T);
-    gl.deleteTexture(tmp);
-
-    var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
-    framebufferR = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
-    gl.deleteTexture(tmp);
-
-    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
-    framebufferF = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
-    gl.deleteTexture(tmp);
-
-    var tmp = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, FW, FH);
-    framebufferD = gl.createFramebuffer();
-    initFramebuffer(gl, framebufferD, tmp, gl.FLOAT, FW, FH);
-    gl.deleteTexture(tmp);
-
-    if (runTests) {
-	grammarUnitTests();
-	symTableUnitTests();
-	translateTests();
-    }
-
-    loadShadama("forward.shadama");
-
-    var code = document.getElementById("code");
-    code.value = shadama;
-
-    editor = CodeMirror.fromTextArea(document.getElementById("code"));
-    editor.setOption("extraKeys", {
-        "Cmd-S": function(cm) {updateCode()},
-        });
-
-    runner();
-};
-
 function cleanUpEditorState() {
     if (editor) {
         if (parseErrorWidget) {
@@ -916,7 +850,6 @@ function syntaxError(match, src) {
     }
 };
 
-
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
@@ -927,7 +860,82 @@ function callSetup() {
         statics["setup"]();
     }
 };
-    
+
+onload = function() {
+
+    runTests = /test.?=/.test(window.location.search);
+    if (runTests) {
+	setTestParams();
+	document.getElementById("bigTitle").innerHTML = "Shadama Tests";
+    }
+
+    readout = document.getElementById("readout");
+
+    var c = document.getElementById("canvas");
+    c.width = FW;
+    c.height = FH;
+    c.style.width = (FW * ENLARGE) + "px";
+    c.style.height = (FH * ENLARGE) + "px";
+
+    gl = c.getContext("webgl2");
+
+    var ext = gl.getExtension("EXT_color_buffer_float");
+
+    initBreedVAO(gl);
+    initPatchVAO(gl);
+
+    initCompiler();
+
+    programs["drawBreed"] = drawBreedProgram(gl);
+    programs["drawPatch"] = drawPatchProgram(gl);
+    programs["debugPatch"] = debugPatchProgram(gl);
+    programs["diffusePatch"] = diffusePatchProgram(gl);
+    programs["copy"] = copyProgram(gl);
+
+    debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+
+    var tmp = createTexture(gl, new Float32Array(T * T), gl.R32F, T, T);
+    framebufferT = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferT, tmp, gl.R32F, T, T);
+    gl.deleteTexture(tmp);
+
+    var tmp = createTexture(gl, new Float32Array(FW*FH), gl.R32F, FW, FH);
+    framebufferR = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferR, tmp, gl.R32F, FW, FH);
+    gl.deleteTexture(tmp);
+
+    var tmp = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+    framebufferF = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferF, tmp, gl.FLOAT, FW, FH);
+    gl.deleteTexture(tmp);
+
+    var tmp = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    framebufferD = gl.createFramebuffer();
+    initFramebuffer(gl, framebufferD, tmp, gl.FLOAT, FW, FH);
+    gl.deleteTexture(tmp);
+
+    if (runTests) {
+	grammarUnitTests();
+	symTableUnitTests();
+	translateTests();
+	test();
+	return;
+    }
+
+    loadShadama("forward.shadama");
+
+    var code = document.getElementById("code");
+    code.value = shadama;
+
+    editor = CodeMirror.fromTextArea(document.getElementById("code"));
+    editor.setOption("extraKeys", {
+        "Cmd-S": function(cm) {updateCode()},
+        });
+
+    runner();
+};
+
 function runner() {
     var start = performance.now();
     step();
