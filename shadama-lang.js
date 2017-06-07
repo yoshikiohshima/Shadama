@@ -1458,8 +1458,10 @@ function symTableUnitTests() {
         "propOut.this.y": ["propOut" ,"this", "y"]});
 
     symTableTest("def foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
-        "propOut.this.x": ["propOut" ,"this", "x"],
+        "propIn.this.x": ["propIn", "this", "x"],
+        "propIn.this.y": ["propIn", "this", "y"],
         "propIn.other.x": ["propIn", "other", "x"],
+        "propOut.this.x": ["propOut" ,"this", "x"],
         "propOut.this.y": ["propOut" ,"this", "y"],
         "param.null.a": ["param" , null, "a"],
         "param.null.b": ["param" , null, "b"],

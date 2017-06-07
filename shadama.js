@@ -1,9 +1,9 @@
 "use strict";
 
 var TEXTURE_SIZE = 1024;
-var FIELD_WIDTH = 256;
-var FIELD_HEIGHT = 256;
-var ENLARGE = 2;
+var FIELD_WIDTH = 512;
+var FIELD_HEIGHT = 512;
+var ENLARGE = 1;
 
 var T = TEXTURE_SIZE;
 var FW = FIELD_WIDTH;
@@ -12,8 +12,8 @@ var FH = FIELD_HEIGHT;
 var readout;
 
 var gl;
-var VAOExt;
-var floatExt;
+
+var runTests = true;
 
 var breedVAO;
 var patchVAO;
@@ -350,7 +350,7 @@ Breed.prototype.fillRandom = function(name, min, max) {
     for (var i = 0; i < ary.length; i++) {
         ary[i] = Math.random() * range + min;
     }
-    this[name] = createTexture(gl, ary, gl.R32F);
+    this[name] = createTexture(gl, ary, gl.R32F, T, T);
 };
 
 Breed.prototype.fillRandomDir = function(xName, yName) {
@@ -368,8 +368,8 @@ Breed.prototype.fillRandomDir = function(xName, yName) {
         x[i] = Math.cos(dir);
         y[i] = Math.sin(dir);
     }
-    this[xName] = createTexture(gl, x, gl.R32F);
-    this[yName] = createTexture(gl, y, gl.R32F);
+    this[xName] = createTexture(gl, x, gl.R32F, T, T);
+    this[yName] = createTexture(gl, y, gl.R32F, T, T);
 };
 
 Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
@@ -392,8 +392,8 @@ Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
             y[ind] = j;
         }
     }
-    this[xName] = createTexture(gl, x, gl.R32F);
-    this[yName] = createTexture(gl, y, gl.R32F);
+    this[xName] = createTexture(gl, x, gl.R32F, T, T);
+    this[yName] = createTexture(gl, y, gl.R32F, T, T);
 };
 
 function Patch() {
@@ -563,7 +563,7 @@ Patch.prototype.diffuse = function(name) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+ //   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     this["new"+name] = source;
     this[name] = target;
@@ -852,9 +852,11 @@ onload = function() {
     initFramebuffer(gl, framebufferD, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
 
-    grammarUnitTests();
-    symTableUnitTests();
-    translateTests();
+    if (runTests) {
+	grammarUnitTests();
+	symTableUnitTests();
+	translateTests();
+    }
 
     loadShadama("forward.shadama");
 

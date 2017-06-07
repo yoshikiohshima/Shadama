@@ -8,7 +8,6 @@
         <script src="ohm/ohm.min.js"></script>
         <script src="shadama-lang.js"></script>
         <script src="shadama.js" type="text/javascript"></script>
-
         <script type="text/ohm-js">
 Shadama {
   TopLevel
@@ -309,13 +308,6 @@ def fillCircle(cx, cy, r, field) {
     field.a = 1.0;
     field.nx = dx / r;
     field.ny = dy / r;
-  } else {
-    field.r = field.r;
-    field.g = field.g;
-    field.b = field.b;
-    field.a = field.a;
-    field.nx = field.nx;
-    field.ny = field.ny;
   }
 }
 
@@ -325,6 +317,11 @@ def maybeMove() {
   this.x = this.x + dx;
   this.y = this.y + dy;
   this.dy = dy - 0.01;
+}
+
+def fillD() {
+  this.dx = 0.0;
+  this.dy = 0.0;
 }
  
 def bounce(field) {
@@ -372,13 +369,15 @@ def bounce(field) {
 }
 
 static setup() {
-  Filler.fillSpace("x", "y", 256, 256);
+  Filler.fillSpace("x", "y", 512, 512);
   Filler.fillCircle(75, 75, 20, Field);
   Filler.fillCircle(165, 95, 25, Field);
+  Filler.fillCircle(320, 105, 45, Field);
 
-  Turtle.setCount(10000);
-  Turtle.fillRandom("x", 0, 256);
-  Turtle.fillRandom("y", 128, 256);
+
+  Turtle.setCount(300000);
+  Turtle.fillRandom("x", 0, 512);
+  Turtle.fillRandom("y", 128, 512);
   Turtle.fillRandomDir("dx", "dy");
   Turtle.setColor();
 }
