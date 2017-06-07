@@ -862,6 +862,7 @@ uniform sampler2D u_that_y;
             },
 
             PrimExpression_field(n, _p, f) {
+                var js = this.args.js;
                 js.push(n.sourceString + "." + f.sourceString);
             },
 

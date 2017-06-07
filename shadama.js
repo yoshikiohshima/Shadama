@@ -44,6 +44,8 @@ var framebufferD;
 var debugTexture0;
 var debugTexture1;
 
+var env = {};
+
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T * 2);
     for (var j = 0; j < T; j++) {
@@ -857,8 +859,20 @@ function updateCode() {
 
 function callSetup() {
     if (statics["setup"]) {
-        statics["setup"]();
+        statics["setup"](env);
     }
+};
+
+function addListeners(aCanvas) {
+    aCanvas.addEventListener("mousemove", function(e) {
+	env.mousemove = e;
+    });
+    aCanvas.addEventListener("mousedown", function(e) {
+	env.mousedown = e;
+    });
+    aCanvas.addEventListener("mouseup", function(e) {
+	env.mouseup = e;
+    });
 };
 
 onload = function() {
@@ -876,6 +890,8 @@ onload = function() {
     c.height = FH;
     c.style.width = (FW * ENLARGE) + "px";
     c.style.height = (FH * ENLARGE) + "px";
+
+    addListeners(c);
 
     gl = c.getContext("webgl2");
 
@@ -955,6 +971,6 @@ function runner() {
 
 function step() {
     if (statics["loop"]) {
-        statics["loop"]();
+        statics["loop"](env);
     }
 }
