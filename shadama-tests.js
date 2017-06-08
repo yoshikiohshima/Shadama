@@ -38,9 +38,10 @@ function setTestParams() {
 }
 
 function setUp() {
-    var ary = ["x", "y", "dx", "dy"];
-    update(Breed, "Test1", ary);
-    myObjects["Test1"].setCount(10);
+    var ary = ["x", "y", "dx", "dy", "r", "g", "b", "a"];
+    update(Breed, "Breed1", ary);
+    update(Patch, "Patch1", ary);
+    myObjects["Breed1"].setCount(10);
 }
 
 function test() {
@@ -49,11 +50,12 @@ function test() {
     test2();
     test3();
     test4();
+    count = 0;
     test5();
 }
 
 function test1() {
-    var obj = myObjects["Test1"];
+    var obj = myObjects["Breed1"];
     for (var k in obj.own) {
 	var elem = obj.own[k];
 	assert(obj[elem].constructor, WebGLTexture);
@@ -87,22 +89,22 @@ def set() {
 `;
 
     loadShadama(null, source);
-    caller("set", "Test1", {});
-    debugDisplay("Test1", "x");
+    caller("set", "Breed1", {});
+    debugDisplay("Breed1", "x");
     assert(debugArray1[0], 1);
     assert(debugArray1[10], 0);
 }
 
 function test3() {
-    myObjects["Test1"].fillSpace("x", "y", FW, FH);
-    debugDisplay("Test1", "x");
+    myObjects["Breed1"].fillSpace("x", "y", FW, FH);
+    debugDisplay("Breed1", "x");
     assert(debugArray1[0], 0);
     assert(debugArray1[9], 9);
     assert(debugArray1[10], 10);
     assert(debugArray1[FW-1], FW-1);
     assert(debugArray1[FW], 0);
 
-    debugDisplay("Test1", "y");
+    debugDisplay("Breed1", "y");
     assert(debugArray1[0], 0, "y1");
     assert(debugArray1[9], 0, "y2");
     assert(debugArray1[10], 0, "y3");
@@ -111,23 +113,53 @@ function test3() {
 }
 
 function test4() {
-    var obj = myObjects["Test1"];
-    debugDisplay("Test1", "newx");
+    var obj = myObjects["Breed1"];
+    debugDisplay("Breed1", "newx");
     var old = debugArray1.slice();
     textureCopy(obj, obj["x"], obj["new"+"x"]);
-    debugDisplay("Test1", "newx");
+    debugDisplay("Breed1", "newx");
     var now = debugArray1.slice();
     assert(old[10], 0);
     assert(now[10], 10);
 }
 
+var count = 0;
 function test5() {
-    var obj = myObjects["Test1"];
+    var b = myObjects["Patch1"];
+    var r = myObjects["Breed1"];
     for (var i = 0; i < 10; i++) {
-	textureCopy(obj, obj["x"], obj["new"+"x"]);
-	textureCopy(obj, obj["y"], obj["new"+"y"]);
-	textureCopy(obj, obj["dx"], obj["new"+"dx"]);
-	textureCopy(obj, obj["dy"], obj["new"+"dy"]);
+	textureCopy(b, b["x"], b["new"+"x"]);
+	textureCopy(r, r["x"], r["new"+"x"]);
+	textureCopy(b, b["y"], b["new"+"y"]);
+	textureCopy(r, r["y"], r["new"+"y"]);
+	textureCopy(b, b["dx"], b["new"+"dx"]);
+	textureCopy(r, r["dx"], r["new"+"dx"]);
+	textureCopy(b, b["dy"], b["new"+"dy"]);
+	textureCopy(r, r["dy"], r["new"+"dy"]);
+    }
+    count++;
+    if (count < 100) {
+	requestAnimationFrame(test5);
+    }
+}
+
+var count = 0;
+function test6() {
+    var b = myObjects["Patch1"];
+    var r = myObjects["Breed1"];
+    for (var i = 0; i < 10; i++) {
+	textureCopy(b, b["x"], b["new"+"x"]);
+	textureCopy(r, r["x"], r["new"+"x"]);
+	textureCopy(b, b["y"], b["new"+"y"]);
+	textureCopy(r, r["y"], r["new"+"y"]);
+	textureCopy(b, b["dx"], b["new"+"dx"]);
+	textureCopy(r, r["dx"], r["new"+"dx"]);
+	textureCopy(b, b["dy"], b["new"+"dy"]);
+	textureCopy(r, r["dy"], r["new"+"dy"]);
+    }
+    count++;
+    if (count < 100) {
+	requestAnimationFrame(test5);
     }
 }
 
