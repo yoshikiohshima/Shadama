@@ -338,7 +338,7 @@ def bounce(field) {
   var nx = field.nx;
   var ny = field.ny;
   var dx = this.dx;
-  var dy = this.dy;
+  var dy = this.dy - 0.01;
   var dot = dx * nx + dy * ny;
   var rx = dx;
   var ry = dy;
@@ -352,8 +352,8 @@ def bounce(field) {
   var normX = rx / norm;
   var normY = ry / norm;
 
-  var newX = this.x;
-  var newY = this.y;
+  var newX = this.x + dx;
+  var newY = this.y + dy;
 
   if (newX < 0.0) {
     newX = -newX;
@@ -391,7 +391,7 @@ static loop(env) {
   Filler.clear(Field);
   Filler.fillCircle(env.mousemove.x, env.mousemove.y, 60, Field);
   Filler.fillCircle(env.width - env.mousemove.x, env.mousemove.y, 60, Field);
-  Turtle.maybeMove();
+//  Turtle.maybeMove();
   Turtle.bounce(Field);
   Field.draw();
   Turtle.draw();
