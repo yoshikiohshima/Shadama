@@ -14,6 +14,7 @@ var readout;
 var gl;
 
 var runTests = false;
+var useLocalStorage = false;
 
 var breedVAO;
 var patchVAO;
@@ -23,7 +24,6 @@ var scripts = {};
 var myObjects = {};
 var statics = {};
 
-var shadama;
 var editor;
 var parseErrorWidget;
 var compilation;
@@ -142,10 +142,9 @@ function loadShadama(id, source) {
     statics = {};
     if (!source) {
         var scriptElement = document.getElementById(id);
-        if(!scriptElement){return;}
+        if(!scriptElement){return "";}
         source = scriptElement.text;
     }
-    shadama = source;
     cleanUpEditorState();
     var result = translate(source, "TopLevel", syntaxError);
     compilation = result;
@@ -174,6 +173,7 @@ function loadShadama(id, source) {
         callSetup();
 	setupCode = newSetupCode;
     }
+    return source;
 };
 
 function createTexture(gl, data, format, width, height) {
@@ -878,6 +878,7 @@ function syntaxError(match, src) {
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
+    localStorage.setItem("code.shadama", code);
 };
 
 function callSetup() {
@@ -948,8 +949,14 @@ function initEnv(callback) {
     document.body.appendChild(img);
 };
 
+function fsErrorHandler(e) {
+  console.log('Error: ' + e);
+};
+
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
+    useLocalStorage = /local.*=/.test(window.location.search);
+
     if (runTests) {
 	setTestParams();
 	document.getElementById("bigTitle").innerHTML = "Shadama Tests";
@@ -971,7 +978,6 @@ onload = function() {
 
     initBreedVAO(gl);
     initPatchVAO(gl);
-
     initCompiler();
 
     programs["drawBreed"] = drawBreedProgram(gl);
@@ -1012,7 +1018,12 @@ onload = function() {
     }
 
     initEnv(function() {
-	loadShadama("forward.shadama");
+	var shadama;
+	if (useLocalStorage) {
+	    shadama = loadShadama(null, localStorage.getItem("code.shadama"));
+	} else {
+	    shadama = loadShadama("forward.shadama");
+	}
 	var code = document.getElementById("code");
 	code.value = shadama;
 	
