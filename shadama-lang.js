@@ -887,7 +887,7 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = n.sourceString;
 
-                if (method === "clear") {
+                if (method === "clear" && r.sourceString === "Display") {
                     js.push("clear()");
                     return;
                 }
@@ -930,7 +930,6 @@ uniform sampler2D u_that_y;
                     if (isOther) {
                         objectsString.tab();
                         objectsString.push(`objects["${shortName}"] = ${actual};\n`);
-                        params.push(`params["${shortName}"] = objects["${shortName}"];\n`);
                     } else {
                         params.push(`params["${shortName}"] = ${actual};\n`);
                     }
@@ -1114,10 +1113,10 @@ class SymTable {
     usedAsOther(n) {
         var result = false;
         this.otherIn.keysAndValuesDo((k, entry) => {
-            result = result | (entry[1] === n);
+            result = result || (entry[1] === n);
         });
         this.otherOut.keysAndValuesDo((k, entry) => {
-            result = result | (entry[1] === n);
+            result = result || (entry[1] === n);
         });
         return result;
     }

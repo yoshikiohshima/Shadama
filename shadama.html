@@ -298,7 +298,7 @@ def setColor() {
   this.a = 1.0;
 }
 
-def reset(field) {
+def clear(field) {
   field.r = 0.0;
   field.g = 0.0;
   field.b = 0.0;
@@ -388,7 +388,7 @@ static setup() {
 }
 
 static loop(env) {
-  Filler.reset(Field);
+  Filler.clear(Field);
   Filler.fillCircle(env.mousemove.x, env.mousemove.y, 60, Field);
   Filler.fillCircle(env.width - env.mousemove.x, env.mousemove.y, 60, Field);
   Turtle.maybeMove();
