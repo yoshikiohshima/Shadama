@@ -26,6 +26,14 @@ function initSemantics() {
             ["param", null, "yName"],
             ["param", null, "x"],
             ["param", null, "y"]]);
+        obj["fillImage"] = new SymTable([
+            ["param", null, "xName"],
+            ["param", null, "yName"],
+            ["param", null, "rName"],
+            ["param", null, "gName"],
+            ["param", null, "bName"],
+            ["param", null, "aName"],
+            ["param", null, "imageData"]]);
         obj["diffuse"] = new SymTable([
             ["param", null, "name"],
 	]);
@@ -892,7 +900,7 @@ uniform sampler2D u_that_y;
                     return;
                 }
 
-                var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "diffuse"];
+                var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillImage", "diffuse"];
 
                 if (builtIns.indexOf(method) >= 0) {
                     var actuals = as.static_method_helper(table, null, method, false);

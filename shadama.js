@@ -310,9 +310,10 @@ function randomPosition() {
     return [Math.random() * FW, Math.random() * FH];
 };
 
-var addOwnVariable = function(obj, name) {
+var updateOwnVariable = function(obj, name, optData) {
     var width;
     var height;
+    var ary;
     if (obj.constructor === Breed) {
         var width = T;
         var height = T;
@@ -320,7 +321,20 @@ var addOwnVariable = function(obj, name) {
         var width = FW;
         var height = FH;
     }
-    var ary = new Float32Array(width * height);
+    
+    if (!optData) {
+	ary = new Float32Array(width * height);
+    } else {
+	ary = optData;
+    }
+
+    if (obj[name]) {
+        gl.deleteTexture(obj[name]);
+    }
+    if (obj["new"+name]) {
+        gl.deleteTexture(obj["new"+name]);
+    }
+
     obj.own[name] = name;
     obj[name] = createTexture(gl, ary, gl.R32F, width, height);
     obj["new"+name] = createTexture(gl, ary, gl.R32F, width, height);
@@ -344,25 +358,15 @@ function Breed(count) {
 };
 
 Breed.prototype.fillRandom = function(name, min, max) {
-    if (this[name]) {
-        gl.deleteTexture(this[name]);
-    }
     var ary = new Float32Array(T * T);
     var range = max - min;
     for (var i = 0; i < ary.length; i++) {
         ary[i] = Math.random() * range + min;
     }
-    this[name] = createTexture(gl, ary, gl.R32F, T, T);
+    updateOwnVariable(this, name, ary);
 };
 
 Breed.prototype.fillRandomDir = function(xName, yName) {
-    if (this[xName]) {
-        gl.deleteTexture(this[xName]);
-    }
-    if (this[yName]) {
-        gl.deleteTexture(this[yName]);
-    }
-
     var x = new Float32Array(T * T);
     var y = new Float32Array(T * T);
     for (var i = 0; i < x.length; i++) {
@@ -370,32 +374,50 @@ Breed.prototype.fillRandomDir = function(xName, yName) {
         x[i] = Math.cos(dir);
         y[i] = Math.sin(dir);
     }
-    this[xName] = createTexture(gl, x, gl.R32F, T, T);
-    this[yName] = createTexture(gl, y, gl.R32F, T, T);
+    updateOwnVariable(this, xName, x);
+    updateOwnVariable(this, yName, y);
 };
 
 Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
     this.count = xDim * yDim;
-    if (this[xName]) {
-        gl.deleteTexture(this[xName]);
-    }
-    if (this[yName]) {
-        gl.deleteTexture(this[yName]);
-    }
-
     var x = new Float32Array(T * T);
     var y = new Float32Array(T * T);
 
     for (var j = 0; j < yDim; j++) {
         for (var i = 0; i < xDim; i++) {
-//          var ind = i * j;
             var ind = xDim * j + i;
             x[ind] = i;
             y[ind] = j;
         }
     }
-    this[xName] = createTexture(gl, x, gl.R32F, T, T);
-    this[yName] = createTexture(gl, y, gl.R32F, T, T);
+    updateOwnVariable(this, xName, x);
+    updateOwnVariable(this, yName, y);
+};
+
+Breed.prototype.fillImage = function(xName, yName, rName, gName, bName, aName, imagedata) {
+    var xDim = imagedata.width;
+    var yDim = imagedata.height;
+    this.fillSpace(xName, yName, xDim, yDim);
+
+    var r = new Float32Array(T * T);
+    var g = new Float32Array(T * T);
+    var b = new Float32Array(T * T);
+    var a = new Float32Array(T * T);
+
+    for (var j = 0; j < yDim; j++) {
+	for (var i = 0; i < xDim; i++) {
+	    var src = j * xDim + i;
+	    var dst = (yDim - 1 - j) * xDim + i;
+	    r[dst] = imagedata.data[src * 4 + 0] / 255.0;
+	    g[dst] = imagedata.data[src * 4 + 1] / 255.0;
+	    b[dst] = imagedata.data[src * 4 + 2] / 255.0;
+	    a[dst] = imagedata.data[src * 4 + 3] / 255.0;
+	}
+    }
+    updateOwnVariable(this, rName, r);
+    updateOwnVariable(this, gName, g);
+    updateOwnVariable(this, bName, b);
+    updateOwnVariable(this, aName, a);
 };
 
 function Patch() {
@@ -653,7 +675,7 @@ function update(cls, name, fields) {
     if (!obj) {
         obj = new cls();
         for (var i = 0; i < fields.length; i++) {
-            addOwnVariable(obj, fields[i]);
+            updateOwnVariable(obj, fields[i]);
         }
         myObjects[name] = obj;
         return obj;
@@ -686,7 +708,7 @@ function update(cls, name, fields) {
         }
     }
 
-    toBeCreated.forEach((k) => addOwnVariable(obj, k));
+    toBeCreated.forEach((k) => updateOwnVariable(obj, k));
     toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
 };
 
@@ -728,6 +750,7 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
+//	    debugger;
 	    if (debugName == "bounce") {
 	    }
             var object = objects["this"];
@@ -878,15 +901,54 @@ function addListeners(aCanvas) {
     });
 };
 
-function initEnv() {
+function localImageData(width, height) {
+    var ary = new Uint8ClampedArray(width * height * 4);
+    for (var i = 0; i < width * height; i++) {
+	ary[i * 4 + 0] = i;
+	ary[i * 4 + 1] = 0;
+	ary[i * 4 + 2] = 0;
+	ary[i * 4 + 3] = 255;
+    }
+    return new ImageData(ary, 256, 256);
+};
+
+function initEnv(callback) {
     env.mousedown = {x: 0, y: 0};
     env.mousemove = {x: 0, y: 0};
     env.width = FW;
     env.height = FH;
+
+    var img = document.createElement("img");
+    var tmpCanvas = document.createElement("canvas");
+    var location = window.location.toString();
+
+    if (location.startsWith("http")) {
+	var slash = location.lastIndexOf("/");
+	var dir = location.slice(0, slash) + "/" + "ahiru.png";
+	img.src = dir;
+    } else {
+	img.crossOrigin = "Anonymous";
+	img.onerror = function() {
+	    console.log("no internet");
+	    document.body.removeChild(img);
+	    env.image = localImageData(256, 256);
+	    callback();
+	}
+	img.src = "http://tinlizzie.org/~ohshima/ahiru/ahiru.png";
+    }
+
+    img.onload = function() {
+	tmpCanvas.width = img.width;
+	tmpCanvas.height = img.height;
+	tmpCanvas.getContext('2d').drawImage(img, 0, 0);
+	env.image = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+	document.body.removeChild(img);
+	callback();
+    }
+    document.body.appendChild(img);
 };
 
 onload = function() {
-
     runTests = /test.?=/.test(window.location.search);
     if (runTests) {
 	setTestParams();
@@ -911,8 +973,6 @@ onload = function() {
     initPatchVAO(gl);
 
     initCompiler();
-
-    initEnv();
 
     programs["drawBreed"] = drawBreedProgram(gl);
     programs["drawPatch"] = drawPatchProgram(gl);
@@ -951,17 +1011,18 @@ onload = function() {
 	return;
     }
 
-    loadShadama("forward.shadama");
-
-    var code = document.getElementById("code");
-    code.value = shadama;
-
-    editor = CodeMirror.fromTextArea(document.getElementById("code"));
-    editor.setOption("extraKeys", {
-        "Cmd-S": function(cm) {updateCode()},
+    initEnv(function() {
+	loadShadama("forward.shadama");
+	var code = document.getElementById("code");
+	code.value = shadama;
+	
+	editor = CodeMirror.fromTextArea(document.getElementById("code"));
+	editor.setOption("extraKeys", {
+            "Cmd-S": function(cm) {updateCode()},
         });
-
-    runner();
+	
+	runner();
+    });
 };
 
 function runner() {
