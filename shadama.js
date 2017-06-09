@@ -146,6 +146,7 @@ function loadShadama(id, source) {
     var newSetupCode;
     statics = {};
     staticsList = [];
+    var oldProgramName = programName;
     if (!source) {
         var scriptElement = document.getElementById(id);
         if(!scriptElement){return "";}
@@ -156,6 +157,9 @@ function loadShadama(id, source) {
     compilation = result;
     programName = result["_programName"];
     delete result["_programName"];
+    if (oldProgramName != programName) {
+	resetSystem();
+    }
     for (var k in result) {
         if (typeof result[k] === "string") { // static mathod case
             statics[k] = eval(result[k]);
@@ -924,7 +928,7 @@ function updateCode() {
     loadShadama(null, code);
     if (!programName) {
 	programName = prompt("Enter the program name:", "My Cool Effect!");
-	editor.setValue("program " + '"' + programName + '"\n');
+	editor.setValue("program " + '"' + programName + '"\n' + code);
     }
     var code = editor.getValue();
     localStorage.setItem(programName + ".shadama", code);
