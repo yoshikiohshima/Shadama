@@ -128,6 +128,10 @@ function initSemantics() {
             },
             PrimExpression_field(n, _p, f) {
                 var table = this.args.table;
+		if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
+		    debugger;
+		    console.log("you can only use 'this' or incoming patch name");
+		}
                 var name = n.sourceString;
                 if (!table.isBuiltin(name)) {
                     table.add("propIn", n.sourceString, f.sourceString);
@@ -761,6 +765,33 @@ uniform sampler2D u_that_y;
                 optF.static(table, js, method, isOther);
             },
 
+            VariableStatement(_v, d, _s) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+                var isOther = this.args.isOther;
+		d.static(table, js, method, isOther);
+            },
+
+            VariableDeclaration(n, i) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+		var isOther = this.args.isOther;
+		js.push("env.");
+		js.push(n.sourceString);
+                js.pushWithSpace("= ");
+                if (i.children.length !== 0) {
+                    i.static(table, js, method, isOther);
+                } else {
+		    js.pushWithSpace("null;");
+		}
+            },
+
+            Initialiser(_a, e) {
+                e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
             ExpressionStatement(e, _s) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
             },
@@ -871,7 +902,9 @@ uniform sampler2D u_that_y;
 
             PrimExpression_field(n, _p, f) {
                 var js = this.args.js;
-                js.push(n.sourceString + "." + f.sourceString);
+		n.static(this.args.table, js, this.args.method, this.args.isOther);
+		js.push(".");
+                js.push(f.sourceString);
             },
 
             PrimExpression_variable(n) {
@@ -879,11 +912,7 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = this.args.method;
                 var isOther = this.args.isOther;
-                if (isOther) {
-                    js.push('myObjects["' + n.sourceString + '"]');
-                } else {
-                    js.push(n.sourceString);
-                }
+                js.push('env["' + n.sourceString + '"]');
             },
 
             PrimitiveCall(n, _o, as, _c) {
@@ -905,7 +934,7 @@ uniform sampler2D u_that_y;
                 if (builtIns.indexOf(method) >= 0) {
                     var actuals = as.static_method_helper(table, null, method, false);
                     var str = actuals.join(", ");
-                    js.push(`myObjects["${r.sourceString}"].${method}(${str})`);
+                    js.push(`env["${r.sourceString}"].${method}(${str})`);
                     return;
                 }
 
@@ -951,7 +980,7 @@ uniform sampler2D u_that_y;
     var formals = data[1][1];
     var outs = data[1][2]; //[[object, <fieldName>]]
     var objects = {};
-    objects.this = myObjects["${r.sourceString}"];
+    objects.this = env["${r.sourceString}"];
     ${objectsString.contents()}
     var params = {};
     ${params.contents()}
@@ -1370,11 +1399,17 @@ function symTableTest(str, prod, sem, expected) {
 };
 
 function translate(str, prod, errorCallback) {
-    var match = g.match(str, "TopLevel");
+    if (!prod) {
+	prod = "TopLevel";
+    }
+    var match = g.match(str, prod);
     if (!match.succeeded()) {
         console.log(str);
         console.log("did not parse: " + str);
-        return errorCallback(match, str);
+	if (errorCallback) {
+            return errorCallback(match, str);
+	}
+	return null;
     }
 
     var n = s(match);

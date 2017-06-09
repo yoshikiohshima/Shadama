@@ -41,7 +41,7 @@ function setUp() {
     var ary = ["x", "y", "dx", "dy", "r", "g", "b", "a"];
     update(Breed, "Breed1", ary);
     update(Patch, "Patch1", ary);
-    myObjects["Breed1"].setCount(10);
+    env["Breed1"].setCount(10);
 }
 
 function test() {
@@ -55,7 +55,7 @@ function test() {
 }
 
 function test1() {
-    var obj = myObjects["Breed1"];
+    var obj = env["Breed1"];
     for (var k in obj.own) {
 	var elem = obj.own[k];
 	assert(obj[elem].constructor, WebGLTexture);
@@ -71,7 +71,7 @@ function caller(scriptName, thisName, inParams) {
 	var formals = data[1][1];
 	var outs = data[1][2]; //[[object, <fieldName>]]
 	var objects = {};
-	objects.this = myObjects[thisName];
+	objects.this = env[thisName];
 	var params = {};
 	func(objects, outs, ins, params);
     })();
@@ -96,7 +96,7 @@ def set() {
 }
 
 function test3() {
-    myObjects["Breed1"].fillSpace("x", "y", FW, FH);
+    env["Breed1"].fillSpace("x", "y", FW, FH);
     debugDisplay("Breed1", "x");
     assert(debugArray1[0], 0);
     assert(debugArray1[9], 9);
@@ -113,7 +113,7 @@ function test3() {
 }
 
 function test4() {
-    var obj = myObjects["Breed1"];
+    var obj = env["Breed1"];
     debugDisplay("Breed1", "newx");
     var old = debugArray1.slice();
     textureCopy(obj, obj["x"], obj["new"+"x"]);
@@ -125,8 +125,8 @@ function test4() {
 
 var count = 0;
 function test5() {
-    var b = myObjects["Patch1"];
-    var r = myObjects["Breed1"];
+    var b = env["Patch1"];
+    var r = env["Breed1"];
     for (var i = 0; i < 10; i++) {
 	textureCopy(b, b["x"], b["new"+"x"]);
 	textureCopy(r, r["x"], r["new"+"x"]);
@@ -145,8 +145,8 @@ function test5() {
 
 var count = 0;
 function test6() {
-    var b = myObjects["Patch1"];
-    var r = myObjects["Breed1"];
+    var b = env["Patch1"];
+    var r = env["Breed1"];
     for (var i = 0; i < 10; i++) {
 	textureCopy(b, b["x"], b["new"+"x"]);
 	textureCopy(r, r["x"], r["new"+"x"]);

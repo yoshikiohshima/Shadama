@@ -594,7 +594,7 @@ Patch.prototype.diffuse = function(name) {
 };
 
 function debugDisplay(objName, name) {
-    var object = myObjects[objName];
+    var object = env[objName];
     var forBreed = object.constructor == Breed;
     var width = forBreed ? T : FW;
     var height = forBreed ? T : FH;
@@ -671,13 +671,13 @@ function update(cls, name, fields) {
         return JSON.stringify(obj);
     };
 
-    var obj = myObjects[name];
+    var obj = env[name];
     if (!obj) {
         obj = new cls();
         for (var i = 0; i < fields.length; i++) {
             updateOwnVariable(obj, fields[i]);
         }
-        myObjects[name] = obj;
+        env[name] = obj;
         return obj;
     }
 

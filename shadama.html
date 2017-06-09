@@ -388,17 +388,17 @@ def bounce(field, time) {
   this.dy = ry;
 }
 
-static setup() {
+static setup(env) {
   Filler.fillSpace("x", "y", 512, 512);
-  Turtle.fillImage("x", "y", "r", "g", "b", "a", env.image);
+  Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
   Turtle.remember();
   Turtle.fillD();
 }
 
 static loop(env) {
   Filler.clear(Field);
-  Filler.fillCircle(env.mousemove.x, env.mousemove.y, 20, Field);
-  Turtle.bounce(Field, env.time);
+  Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
+  Turtle.bounce(Field, time);
   Field.draw();
   Turtle.draw();
 }
