@@ -23,11 +23,15 @@ var programs = {};
 var scripts = {};
 var myObjects = {};
 var statics = {};
+var staticsList = []; // [name];
 
 var editor;
 var parseErrorWidget;
 var compilation;
 var setupCode;
+var programName = null;
+var watcherList;
+var elements;
 
 var debugCanvas1;
 var debugArray;
@@ -140,6 +144,7 @@ function createProgram(gl, vertexShader, fragmentShader) {
 function loadShadama(id, source) {
     var newSetupCode;
     statics = {};
+    staticsList = [];
     if (!source) {
         var scriptElement = document.getElementById(id);
         if(!scriptElement){return "";}
@@ -151,6 +156,7 @@ function loadShadama(id, source) {
     for (var k in result) {
         if (typeof result[k] === "string") { // static mathod case
             statics[k] = eval(result[k]);
+	    staticsList.push(k);
             if (k === "setup") {
 		newSetupCode = result[k];
             }
@@ -173,6 +179,7 @@ function loadShadama(id, source) {
         callSetup();
 	setupCode = newSetupCode;
     }
+    populateList(staticsList);
     return source;
 };
 
@@ -878,7 +885,10 @@ function syntaxError(match, src) {
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
-    localStorage.setItem("code.shadama", code);
+    if (!programName) {
+	programName = prompt("Enter the program name:", "Cool Effect!");
+    }
+    localStorage.setItem(programName + ".shadama", code);
 };
 
 function callSetup() {
@@ -949,8 +959,109 @@ function initEnv(callback) {
     document.body.appendChild(img);
 };
 
-function fsErrorHandler(e) {
-  console.log('Error: ' + e);
+function makeClock() {
+    var aClock = document.createElement("canvas");
+    aClock.width = 40;
+    aClock.height = 40;
+    drawClock(aClock, 0, false);
+
+    return aClock;
+};
+
+function drawClock(aClock, hand, ticking) {
+    function drawFace(ctx, radius, backColor) {
+	ctx.moveTo(0, 0);
+	ctx.beginPath();
+	ctx.arc(0, 0, radius, 0, 2*Math.PI);
+	ctx.fillStyle = backColor;
+	ctx.fill();
+	
+	ctx.strokeStyle = '#333';
+	ctx.lineWidth = radius*0.1;
+	ctx.stroke();
+	
+	ctx.beginPath();
+	ctx.arc(0, 0, radius*0.1, 0, 2*Math.PI);
+	ctx.fillStyle = "#333";
+	ctx.fill();
+    };
+
+    function drawHand(ctx, length, dir) {
+	ctx.beginPath();
+	ctx.lineWidth = 2;
+	ctx.lineCap = "round";
+	ctx.moveTo(0, 0);
+	ctx.rotate(dir);
+	ctx.lineTo(0, -length);
+	ctx.stroke();
+    };
+
+    var ctx = aClock.getContext('2d');
+    var backColor = ticking ? '#ffcccc' : '#ffffff';
+    var dir = hand / 360.0 * (Math.PI * 2.0);
+
+    ctx.transform(1, 0, 0, 1, 18, 18);
+    drawFace(aClock.getContext('2d'), 16, backColor);
+    drawHand(aClock.getContext('2d'), 10, dir);
+    ctx.resetTransform();
+};
+
+function makeEntry(name) {
+    var entry = document.createElement("div");
+    var aClock = makeClock();
+    entry.appendChild(aClock);
+    entry.clock = aClock;
+    var button = document.createElement("div");
+    button.innerHTML = name;
+    entry.appendChild(button);
+    entry.ticking = true;
+    entry.hand = 0;
+    return entry;
+};
+
+function detectEntry(name) {
+    for (var j = 0; j < watcherList.children.length; j++) {
+	var oldEntry = watcherList.children[j];
+	if (oldEntry.id === name) {return oldEntry;}
+    }
+    return null;
+};
+
+function removeAll() {
+    for (var j = 0; j < watcherList.children.length; j++) {
+	watcherList.removeChild(watcherList.children[j]);
+    }
+};
+
+function addAll(elems) {
+    for (var j = 0; j < elems.length; j++) {
+	watcherList.appendChild(elems[j]);
+    }
+};
+
+function updateClocks() {
+    for (var j = 0; j < watcherList.children.length; j++) {
+	var child = watcherList.children[j];
+	var aClock = child.clock;
+	if (child.ticking) {
+	    child.hand = (child.hand + 2) % 360;
+	    drawClock(aClock, child.hand, child.ticking);
+	}
+    }
+}
+
+function populateList(newList) {
+    var newElems = [];
+    for (var i = 0; i < newList.length; i++) {
+	var name = newList[i];
+	var entry = detectEntry(name);
+	if (!entry) {
+	    entry = makeEntry(name);
+	}
+	newElems.push(entry);
+    }
+    removeAll();
+    addAll(newElems);
 };
 
 onload = function() {
@@ -963,6 +1074,7 @@ onload = function() {
     }
 
     readout = document.getElementById("readout");
+    watcherList = document.getElementById("watcherList");
 
     var c = document.getElementById("canvas");
     c.width = FW;
@@ -1031,7 +1143,6 @@ onload = function() {
 	editor.setOption("extraKeys", {
             "Cmd-S": function(cm) {updateCode()},
         });
-	
 	runner();
     });
 };
@@ -1049,6 +1160,8 @@ function runner() {
         var stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
         readout.innerHTML = "compute: " + stepTime.toFixed(3) + " msecs/step, real time: " + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
     }
+
+    updateClocks();
 
     window.requestAnimationFrame(runner);
 };
