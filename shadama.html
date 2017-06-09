@@ -21,7 +21,7 @@ Shadama {
 
   Formals
     = ident ("," ident)* -- list
-   | empty
+    | empty
 
   Block = "{" StatementList "}"
 
@@ -388,14 +388,14 @@ def bounce(field, time) {
   this.dy = ry;
 }
 
-static setup(env) {
+static setup() {
   Filler.fillSpace("x", "y", 512, 512);
   Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
   Turtle.remember();
   Turtle.fillD();
 }
 
-static loop(env) {
+static loop() {
   Filler.clear(Field);
   Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
   Turtle.bounce(Field, time);
@@ -403,6 +403,19 @@ static loop(env) {
   Turtle.draw();
 }
 </script>
+
+<style>
+.CodeMirror {
+  float: left;
+  margin-right: 10px;
+}
+
+.staticName {
+  user-select: none;
+  display: inline-block;
+}
+
+</style>
 
         </head>
         <body>

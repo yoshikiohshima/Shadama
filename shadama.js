@@ -24,14 +24,15 @@ var scripts = {};
 var myObjects = {};
 var statics = {};
 var staticsList = []; // [name];
+var steppers = {};
 
 var editor;
 var parseErrorWidget;
 var compilation;
 var setupCode;
-var programName = null;
-var watcherList;
-var elements;
+var programName = "code";
+var watcherList;  // DOM
+var watcherElements = []; // [DOM]
 
 var debugCanvas1;
 var debugArray;
@@ -49,6 +50,7 @@ var debugTexture0;
 var debugTexture1;
 
 var env = {};
+
 
 function initBreedVAO(gl) {
     var allIndices = new Array(T * T * 2);
@@ -963,12 +965,46 @@ function makeClock() {
     var aClock = document.createElement("canvas");
     aClock.width = 40;
     aClock.height = 40;
+    aClock.ticking = false;
+    aClock.hand = 0;
     drawClock(aClock, 0, false);
+
+    aClock.onclick = function () {toggleScript(aClock.entry.scriptName)};
 
     return aClock;
 };
 
-function drawClock(aClock, hand, ticking) {
+function stopClock(aClock) {
+    aClock.ticking = false;
+    drawClock(aClock);
+};
+
+function startClock(aClock) {
+    aClock.ticking = true;
+    drawClock(aClock);
+};
+
+function stopScript(name) {
+    delete steppers[name];
+    stopClock(detectEntry(name).clock);
+};
+
+function startScript(name) {
+    steppers[name] = name;
+    startClock(detectEntry(name).clock);
+};
+
+function toggleScript(name) {
+    if (steppers[name]) {
+	stopScript(name);
+    } else {
+	startScript(name);
+    }
+}
+    
+function drawClock(aClock) {
+    var hand = aClock.hand;
+    var ticking = aClock.ticking;
     function drawFace(ctx, radius, backColor) {
 	ctx.moveTo(0, 0);
 	ctx.beginPath();
@@ -1009,20 +1045,21 @@ function drawClock(aClock, hand, ticking) {
 function makeEntry(name) {
     var entry = document.createElement("div");
     var aClock = makeClock();
+    entry.scriptName = name;
     entry.appendChild(aClock);
     entry.clock = aClock;
+    aClock.entry = entry;
     var button = document.createElement("div");
+    button.className = "staticName";
     button.innerHTML = name;
     entry.appendChild(button);
-    entry.ticking = true;
-    entry.hand = 0;
     return entry;
 };
 
 function detectEntry(name) {
     for (var j = 0; j < watcherList.children.length; j++) {
 	var oldEntry = watcherList.children[j];
-	if (oldEntry.id === name) {return oldEntry;}
+	if (oldEntry.scriptName === name) {return oldEntry;}
     }
     return null;
 };
@@ -1043,25 +1080,29 @@ function updateClocks() {
     for (var j = 0; j < watcherList.children.length; j++) {
 	var child = watcherList.children[j];
 	var aClock = child.clock;
-	if (child.ticking) {
-	    child.hand = (child.hand + 2) % 360;
-	    drawClock(aClock, child.hand, child.ticking);
+	if (aClock.ticking) {
+	    aClock.hand = (aClock.hand + 2) % 360;
 	}
+	drawClock(aClock);
     }
-}
+};
 
 function populateList(newList) {
-    var newElems = [];
+    watcherElements = [];
     for (var i = 0; i < newList.length; i++) {
 	var name = newList[i];
 	var entry = detectEntry(name);
 	if (!entry) {
 	    entry = makeEntry(name);
 	}
-	newElems.push(entry);
+	watcherElements.push(entry);
     }
     removeAll();
-    addAll(newElems);
+    addAll(watcherElements);
+
+    if (statics["loop"]) {
+	startScript("loop");
+    }
 };
 
 onload = function() {
@@ -1168,7 +1209,10 @@ function runner() {
 
 function step() {
     env["time"] = performance.now() / 1000;
-    if (statics["loop"]) {
-        statics["loop"](env);
+    for (var k in steppers) {
+	var func = statics[k];
+	if (func) {
+            func(env);
+	}
     }
 }
