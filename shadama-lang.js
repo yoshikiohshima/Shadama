@@ -42,9 +42,12 @@ function initSemantics() {
     s.addOperation(
         "symTable(table)", 
         {
-            TopLevel(ds) {
+            TopLevel(p, ds) {
                 var result = {};
                 addDefaults(result);
+		if (p.children.length > 0) {
+		    result = addAsSet(result, p.children[0].symTable(null));
+		}
                 for (var i = 0; i< ds.children.length; i++) {
                     var d = ds.children[i].symTable(null);
                     var ctor = ds.children[i].ctorName;
@@ -54,6 +57,10 @@ function initSemantics() {
                 }
                 return result;
             },
+
+	    ProgramDecl(_p, s) {
+		return {_programName: s.sourceString.slice(1, s.sourceString.length - 1)}
+	    },
 
             Breed(_b, n, _o, fs, _c) {
                 var table = new SymTable();
@@ -335,7 +342,7 @@ uniform sampler2D u_that_y;
     s.addOperation(
         "glsl(table, vert, frag)",
         {
-            TopLevel(ds) {
+            TopLevel(p, ds) {
                 var table = this.args.table;
                 var result = {};
                 for (var i = 0; i < ds.children.length; i++) {
@@ -349,6 +356,7 @@ uniform sampler2D u_that_y;
                         addAsSet(result, val);
                     }
                 }
+		result["_programName"] = table["_programName"];
                 return result;
             },
 

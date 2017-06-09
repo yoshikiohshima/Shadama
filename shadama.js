@@ -21,7 +21,6 @@ var patchVAO;
 
 var programs = {};
 var scripts = {};
-var myObjects = {};
 var statics = {};
 var staticsList = []; // [name];
 var steppers = {};
@@ -155,6 +154,8 @@ function loadShadama(id, source) {
     cleanUpEditorState();
     var result = translate(source, "TopLevel", syntaxError);
     compilation = result;
+    programName = result["_programName"];
+    delete result["_programName"];
     for (var k in result) {
         if (typeof result[k] === "string") { // static mathod case
             statics[k] = eval(result[k]);
@@ -182,6 +183,10 @@ function loadShadama(id, source) {
 	setupCode = newSetupCode;
     }
     populateList(staticsList);
+
+    if (editor) {
+	editor.doc.setValue(source);
+    }
     return source;
 };
 
@@ -884,12 +889,44 @@ function syntaxError(match, src) {
     }
 };
 
+function resetSystem() {
+    for (var s in steppers) {
+	stopClock(detectEntry(s).clock);
+    }
+    removeAll();
+
+    scripts = {};
+    statics = {};
+    staticsList = [];
+    steppers = {};
+    setupCode = null;
+    compilation = null;
+    programName = null;
+
+    for (var o in env) {
+	var obj = env[o];
+	if (obj.constructor == Breed || obj.constructor == Patch) {
+	    for (var k in obj.own) {
+		var tex = obj[k];
+		if (tex.constructor === WebGLTexture) {
+		    gl.deleteTexture(obj[k]);
+		}
+	    }
+	    delete env[o];
+	}
+    }
+
+}
+    
+
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
     if (!programName) {
-	programName = prompt("Enter the program name:", "Cool Effect!");
+	programName = prompt("Enter the program name:", "My Cool Effect!");
+	editor.setValue("program " + '"' + programName + '"\n');
     }
+    var code = editor.getValue();
     localStorage.setItem(programName + ".shadama", code);
 };
 
@@ -1052,6 +1089,11 @@ function makeEntry(name) {
     var button = document.createElement("div");
     button.className = "staticName";
     button.innerHTML = name;
+    button.onclick = function() {
+	if (statics[entry.scriptName]) {
+	    statics[entry.scriptName](env);
+	}
+    };
     entry.appendChild(button);
     return entry;
 };
@@ -1102,6 +1144,33 @@ function populateList(newList) {
 
     if (statics["loop"]) {
 	startScript("loop");
+    }
+};
+
+function fileElement(name) {
+    var elem = document.createElement("button");
+    elem.fileName = name;
+    elem.innerHTML = `<p style="white-space: nowrap">${name}</p>`;
+    elem.onclick = function() {
+	console.log("loading: " + name);
+	toggleFileList();
+	resetSystem();
+	loadShadama(null, localStorage.getItem(name));
+    };
+    return elem;
+};
+
+function toggleFileList() {
+    var dom = document.getElementById("myDropdown");
+    dom.classList.toggle("show");
+    if (localStorage) {
+	while (dom.firstChild) {
+	    dom.removeChild(dom.firstChild);
+	}
+	var list = Object.keys(localStorage).filter((k) => k.endsWith(".shadama"));
+	list.forEach((name) => {
+	    dom.appendChild(fileElement(name))
+	});
     }
 };
 
@@ -1170,20 +1239,17 @@ onload = function() {
 	return;
     }
 
-    initEnv(function() {
-	var shadama;
-	if (useLocalStorage) {
-	    shadama = loadShadama(null, localStorage.getItem("code.shadama"));
-	} else {
-	    shadama = loadShadama("forward.shadama");
-	}
+    if (!editor) {
 	var code = document.getElementById("code");
-	code.value = shadama;
 	
 	editor = CodeMirror.fromTextArea(document.getElementById("code"));
 	editor.setOption("extraKeys", {
-            "Cmd-S": function(cm) {updateCode()},
+	    "Cmd-S": function(cm) {updateCode()},
         });
+    }
+
+    initEnv(function() {
+	loadShadama("forward.shadama");
 	runner();
     });
 };

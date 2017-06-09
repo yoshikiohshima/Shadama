@@ -12,8 +12,9 @@
         <script type="text/ohm-js">
 Shadama {
   TopLevel
-    = (Breed | Patch | Script | Static)*
+    = ProgramDecl? (Breed | Patch | Script | Static)*
 
+  ProgramDecl = program string
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Script = def ident "(" Formals ")" Block
@@ -127,6 +128,7 @@ Shadama {
   this = "this" ~identifierPart
   self = "self" ~identifierPart
   static = "static" ~identifierPart
+  program = "program" ~identifierPart
 
   empty =
   space
@@ -287,6 +289,7 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
+program "Duck Bounce!"
 breed Turtle (x, y, dx, dy, r, g, b, a, origX, origY)
 breed Filler (x, y)
 patch Field (nx, ny, r, g, b, a)
@@ -413,7 +416,58 @@ static loop() {
 .staticName {
   user-select: none;
   display: inline-block;
+  border: solid #444444 1px;
 }
+
+.staticName:hover, .staticName:focus {
+  background-color: #cccccc;
+}
+
+/* Dropdown Button */
+.dropbtn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    font-size: 13px;
+    border: none;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+/* Dropdown button on hover & focus */
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #3e8e41;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    color: black;
+    padding: 2px 2px;
+    text-decoration: none;
+    display: block;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+/* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
+.show {display:block;}
 
 </style>
 
@@ -422,13 +476,18 @@ static loop() {
           <h1 id="bigTitle">Shadama</h1>
                 <div style="float: left">
                       <canvas id="canvas"></canvas>
-                    <div id="buttons">
-                      <button type="button" onclick="updateCode()">Load</button>
-                      <button type="button" onclick="callSetup()">Setup</button>
-                    </div>
                 </div>
                 <textarea style="float: left" id="code"></textarea>
-		<div style="float: left" id="watcherList"></div>
+                <div style="float: left" id="controlBox">
+ 		  <div class="dropdown" id="programs">
+                     <button onclick="toggleFileList()" class="dropbtn">Programs</button>
+                     <div id="myDropdown" class="dropdown-content">
+                     </div>
+                  </div>
+
+		  <hr>
+ 		  <div id="watcherList"></div>
+                </div>
                 <br>
                 <div style="clear: left" id="readout"></div>
                 <canvas id="debugCanvas1"></canvas>
