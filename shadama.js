@@ -1046,8 +1046,8 @@ function toggleScript(name) {
     } else {
         startScript(name);
     }
-}
-    
+};
+
 function drawClock(aClock) {
     var hand = aClock.hand;
     var ticking = aClock.ticking;

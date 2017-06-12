@@ -329,14 +329,6 @@ def fillCircle(cx, cy, r, field) {
   }
 }
 
-def maybeMove() {
-  var dx = this.dx;
-  var dy = this.dy;
-  this.x = this.x + dx;
-  this.y = this.y + dy;
-  this.dy = dy - 0.01;
-}
-
 def fillD() {
   this.dx = 0.0;
   this.dy = 0.0;
@@ -351,14 +343,15 @@ def bounce(field, time) {
   var rx = dx;
   var ry = dy;
 
+  var origV = sqrt(dx * dx + dy * dy);
+
   if (dot < 0.0) {
     rx = dx - 2.0 * dot * nx;
     ry = dy - 2.0 * dot * ny;
+    var norm = sqrt(rx * rx + ry * ry);
+    rx = rx / (norm / origV);
+    ry = ry / (norm / origV);
   }
-
-  var norm = sqrt(rx * rx + ry * ry);
-  var normX = rx / norm;
-  var normY = ry / norm;
 
   var newX = this.x + dx;
   var newY = this.y + dy;
@@ -406,25 +399,6 @@ static loop() {
   Turtle.draw();
 }
 </script>
-
-<style>
-.CodeMirror {
-  float: left;
-  margin-right: 10px;
-}
-
-.staticName {
-  user-select: none;
-  display: inline-block;
-  border: solid #444444 1px;
-}
-
-.staticName:hover, .staticName:focus {
-  background-color: #cccccc;
-}
-
-</style>
-
         </head>
         <body>
           <h1 id="bigTitle">Shadama</h1>

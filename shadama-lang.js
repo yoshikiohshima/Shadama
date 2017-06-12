@@ -796,6 +796,17 @@ uniform sampler2D u_that_y;
 		}
             },
 
+	    AssignmentStatement(l, _a, e, _) {
+                var table = this.args.table;
+                var js = this.args.js;
+                var method = this.args.method;
+		var isOther = this.args.isOther;
+		js.push("env.");
+		js.push(l.sourceString);
+                js.pushWithSpace("= ");
+                e.static(table, js, method, isOther);
+	    },
+
             Initialiser(_a, e) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
             },
