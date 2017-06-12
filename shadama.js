@@ -14,7 +14,6 @@ var readout;
 var gl;
 
 var runTests = false;
-var useLocalStorage = false;
 
 var breedVAO;
 var patchVAO;
@@ -29,7 +28,7 @@ var editor;
 var parseErrorWidget;
 var compilation;
 var setupCode;
-var programName = "code";
+var programName = null;
 var watcherList;  // DOM
 var watcherElements = []; // [DOM]
 
@@ -144,9 +143,9 @@ function createProgram(gl, vertexShader, fragmentShader) {
 
 function loadShadama(id, source) {
     var newSetupCode;
+    var oldProgramName = programName;
     statics = {};
     staticsList = [];
-    var oldProgramName = programName;
     if (!source) {
         var scriptElement = document.getElementById(id);
         if(!scriptElement){return "";}
@@ -155,11 +154,9 @@ function loadShadama(id, source) {
     cleanUpEditorState();
     var result = translate(source, "TopLevel", syntaxError);
     compilation = result;
-    if (!result) {
-	return "";
-    }
+    if (!result) {return "";}
     if (oldProgramName != result["_programName"]) {
-	resetSystem();
+        resetSystem();
     }
     programName = result["_programName"];
     delete result["_programName"];
@@ -167,9 +164,9 @@ function loadShadama(id, source) {
     for (var k in result) {
         if (typeof result[k] === "string") { // static mathod case
             statics[k] = eval(result[k]);
-	    staticsList.push(k);
+            staticsList.push(k);
             if (k === "setup") {
-		newSetupCode = result[k];
+                newSetupCode = result[k];
             }
         } else {
             var entry = result[k];
@@ -188,12 +185,12 @@ function loadShadama(id, source) {
 
     if (setupCode !== newSetupCode) {
         callSetup();
-	setupCode = newSetupCode;
+        setupCode = newSetupCode;
     }
     populateList(staticsList);
 
     if (editor) {
-	editor.doc.setValue(source);
+        editor.doc.setValue(source);
     }
     return source;
 };
@@ -295,13 +292,13 @@ function textureCopy(obj, src, dst) {
     var height;
     var buffer;
     if (obj.constructor === Breed) {
-	width = T;
-	height = T;
-	buffer = framebufferT;
+        width = T;
+        height = T;
+        buffer = framebufferT;
     } else {
-	width = FW;
-	height = FH;
-	buffer = framebufferR;
+        width = FW;
+        height = FH;
+        buffer = framebufferR;
     }
 
     setTargetBuffer(gl, buffer, dst);
@@ -345,9 +342,9 @@ var updateOwnVariable = function(obj, name, optData) {
     }
     
     if (!optData) {
-	ary = new Float32Array(width * height);
+        ary = new Float32Array(width * height);
     } else {
-	ary = optData;
+        ary = optData;
     }
 
     if (obj[name]) {
@@ -427,14 +424,14 @@ Breed.prototype.fillImage = function(xName, yName, rName, gName, bName, aName, i
     var a = new Float32Array(T * T);
 
     for (var j = 0; j < yDim; j++) {
-	for (var i = 0; i < xDim; i++) {
-	    var src = j * xDim + i;
-	    var dst = (yDim - 1 - j) * xDim + i;
-	    r[dst] = imagedata.data[src * 4 + 0] / 255.0;
-	    g[dst] = imagedata.data[src * 4 + 1] / 255.0;
-	    b[dst] = imagedata.data[src * 4 + 2] / 255.0;
-	    a[dst] = imagedata.data[src * 4 + 3] / 255.0;
-	}
+        for (var i = 0; i < xDim; i++) {
+            var src = j * xDim + i;
+            var dst = (yDim - 1 - j) * xDim + i;
+            r[dst] = imagedata.data[src * 4 + 0] / 255.0;
+            g[dst] = imagedata.data[src * 4 + 1] / 255.0;
+            b[dst] = imagedata.data[src * 4 + 2] / 255.0;
+            a[dst] = imagedata.data[src * 4 + 3] / 255.0;
+        }
     }
     updateOwnVariable(this, rName, r);
     updateOwnVariable(this, gName, g);
@@ -772,15 +769,15 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-//	    debugger;
-	    if (debugName == "bounce") {
-	    }
+//          debugger;
+            if (debugName == "bounce") {
+            }
             var object = objects["this"];
 
-	    outs.forEach((pair) => {
-		textureCopy(objects[pair[0]],
-			    objects[pair[0]][pair[1]],
-			    objects[pair[0]]["new" + pair[1]])});
+            outs.forEach((pair) => {
+                textureCopy(objects[pair[0]],
+                            objects[pair[0]][pair[1]],
+                            objects[pair[0]]["new" + pair[1]])});
 
             var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
             if (forBreed) {
@@ -899,7 +896,7 @@ function syntaxError(match, src) {
 
 function resetSystem() {
     for (var s in steppers) {
-	stopClock(detectEntry(s).clock);
+        stopClock(detectEntry(s).clock);
     }
     removeAll();
 
@@ -912,34 +909,34 @@ function resetSystem() {
     programName = null;
 
     for (var o in env) {
-	var obj = env[o];
-	if (obj.constructor == Breed || obj.constructor == Patch) {
-	    for (var k in obj.own) {
-		var tex = obj[k];
-		if (tex.constructor === WebGLTexture) {
-		    gl.deleteTexture(obj[k]);
-		}
-	    }
-	    delete env[o];
-	}
+        var obj = env[o];
+        if (obj.constructor == Breed || obj.constructor == Patch) {
+            for (var k in obj.own) {
+                var tex = obj[k];
+                if (tex.constructor === WebGLTexture) {
+                    gl.deleteTexture(obj[k]);
+                }
+            }
+            delete env[o];
+        }
     }
 
-}
-    
+};
 
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
     if (!programName) {
-	programName = prompt("Enter the program name:", "My Cool Effect!");
-	if (!programName) {
-	    alert("program not saved");
-	    return;
-	}
-	editor.setValue("program " + '"' + programName + '"\n' + code);
+        programName = prompt("Enter the program name:", "My Cool Effect!");
+        if (!programName) {
+            alert("program not saved");
+            return;
+        }
+        editor.setValue("program " + '"' + programName + '"\n' + code);
     }
     var code = editor.getValue();
     localStorage.setItem(programName + ".shadama", code);
+    initFileList(programName);
 };
 
 function callSetup() {
@@ -953,23 +950,23 @@ function addListeners(aCanvas) {
     var left = rect.left;
     var top = rect.top;
     aCanvas.addEventListener("mousemove", function(e) {
-	env.mousemove = {x: e.clientX - left, y: FH - (e.clientY - top)};
+        env.mousemove = {x: e.clientX - left, y: FH - (e.clientY - top)};
     });
     aCanvas.addEventListener("mousedown", function(e) {
-	env.mousedown = {x: e.clientX, y: FH - (e.clientY - top)};
+        env.mousedown = {x: e.clientX, y: FH - (e.clientY - top)};
     });
     aCanvas.addEventListener("mouseup", function(e) {
-	env.mouseup = {x: e.clientX, y: FH - (e.clientY - top)};
+        env.mouseup = {x: e.clientX, y: FH - (e.clientY - top)};
     });
 };
 
 function localImageData(width, height) {
     var ary = new Uint8ClampedArray(width * height * 4);
     for (var i = 0; i < width * height; i++) {
-	ary[i * 4 + 0] = i;
-	ary[i * 4 + 1] = 0;
-	ary[i * 4 + 2] = 0;
-	ary[i * 4 + 3] = 255;
+        ary[i * 4 + 0] = i;
+        ary[i * 4 + 1] = 0;
+        ary[i * 4 + 2] = 0;
+        ary[i * 4 + 3] = 255;
     }
     return new ImageData(ary, 256, 256);
 };
@@ -985,27 +982,27 @@ function initEnv(callback) {
     var location = window.location.toString();
 
     if (location.startsWith("http")) {
-	var slash = location.lastIndexOf("/");
-	var dir = location.slice(0, slash) + "/" + "ahiru.png";
-	img.src = dir;
+        var slash = location.lastIndexOf("/");
+        var dir = location.slice(0, slash) + "/" + "ahiru.png";
+        img.src = dir;
     } else {
-	img.crossOrigin = "Anonymous";
-	img.onerror = function() {
-	    console.log("no internet");
-	    document.body.removeChild(img);
-	    env.image = localImageData(256, 256);
-	    callback();
-	}
-	img.src = "http://tinlizzie.org/~ohshima/ahiru/ahiru.png";
+        img.crossOrigin = "Anonymous";
+        img.onerror = function() {
+            console.log("no internet");
+            document.body.removeChild(img);
+            env.image = localImageData(256, 256);
+            callback();
+        }
+        img.src = "http://tinlizzie.org/~ohshima/ahiru/ahiru.png";
     }
 
     img.onload = function() {
-	tmpCanvas.width = img.width;
-	tmpCanvas.height = img.height;
-	tmpCanvas.getContext('2d').drawImage(img, 0, 0);
-	env.image = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
-	document.body.removeChild(img);
-	callback();
+        tmpCanvas.width = img.width;
+        tmpCanvas.height = img.height;
+        tmpCanvas.getContext('2d').drawImage(img, 0, 0);
+        env.image = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+        document.body.removeChild(img);
+        callback();
     }
     document.body.appendChild(img);
 };
@@ -1045,9 +1042,9 @@ function startScript(name) {
 
 function toggleScript(name) {
     if (steppers[name]) {
-	stopScript(name);
+        stopScript(name);
     } else {
-	startScript(name);
+        startScript(name);
     }
 }
     
@@ -1055,30 +1052,30 @@ function drawClock(aClock) {
     var hand = aClock.hand;
     var ticking = aClock.ticking;
     function drawFace(ctx, radius, backColor) {
-	ctx.moveTo(0, 0);
-	ctx.beginPath();
-	ctx.arc(0, 0, radius, 0, 2*Math.PI);
-	ctx.fillStyle = backColor;
-	ctx.fill();
-	
-	ctx.strokeStyle = '#333';
-	ctx.lineWidth = radius*0.1;
-	ctx.stroke();
-	
-	ctx.beginPath();
-	ctx.arc(0, 0, radius*0.1, 0, 2*Math.PI);
-	ctx.fillStyle = "#333";
-	ctx.fill();
+        ctx.moveTo(0, 0);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, 2*Math.PI);
+        ctx.fillStyle = backColor;
+        ctx.fill();
+        
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = radius*0.1;
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, radius*0.1, 0, 2*Math.PI);
+        ctx.fillStyle = "#333";
+        ctx.fill();
     };
 
     function drawHand(ctx, length, dir) {
-	ctx.beginPath();
-	ctx.lineWidth = 2;
-	ctx.lineCap = "round";
-	ctx.moveTo(0, 0);
-	ctx.rotate(dir);
-	ctx.lineTo(0, -length);
-	ctx.stroke();
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.moveTo(0, 0);
+        ctx.rotate(dir);
+        ctx.lineTo(0, -length);
+        ctx.stroke();
     };
 
     var ctx = aClock.getContext('2d');
@@ -1102,9 +1099,9 @@ function makeEntry(name) {
     button.className = "staticName";
     button.innerHTML = name;
     button.onclick = function() {
-	if (statics[entry.scriptName]) {
-	    statics[entry.scriptName](env);
-	}
+        if (statics[entry.scriptName]) {
+            statics[entry.scriptName](env);
+        }
     };
     entry.appendChild(button);
     return entry;
@@ -1112,82 +1109,97 @@ function makeEntry(name) {
 
 function detectEntry(name) {
     for (var j = 0; j < watcherList.children.length; j++) {
-	var oldEntry = watcherList.children[j];
-	if (oldEntry.scriptName === name) {return oldEntry;}
+        var oldEntry = watcherList.children[j];
+        if (oldEntry.scriptName === name) {return oldEntry;}
     }
     return null;
 };
 
 function removeAll() {
     for (var j = 0; j < watcherList.children.length; j++) {
-	watcherList.removeChild(watcherList.children[j]);
+        watcherList.removeChild(watcherList.children[j]);
     }
 };
 
 function addAll(elems) {
     for (var j = 0; j < elems.length; j++) {
-	watcherList.appendChild(elems[j]);
+        watcherList.appendChild(elems[j]);
     }
 };
 
 function updateClocks() {
     for (var j = 0; j < watcherList.children.length; j++) {
-	var child = watcherList.children[j];
-	var aClock = child.clock;
-	if (aClock.ticking) {
-	    aClock.hand = (aClock.hand + 2) % 360;
-	}
-	drawClock(aClock);
+        var child = watcherList.children[j];
+        var aClock = child.clock;
+        if (aClock.ticking) {
+            aClock.hand = (aClock.hand + 2) % 360;
+        }
+        drawClock(aClock);
     }
 };
 
 function populateList(newList) {
     watcherElements = [];
     for (var i = 0; i < newList.length; i++) {
-	var name = newList[i];
-	var entry = detectEntry(name);
-	if (!entry) {
-	    entry = makeEntry(name);
-	}
-	watcherElements.push(entry);
+        var name = newList[i];
+        var entry = detectEntry(name);
+        if (!entry) {
+            entry = makeEntry(name);
+        }
+        watcherElements.push(entry);
     }
     removeAll();
     addAll(watcherElements);
 
     if (statics["loop"]) {
-	startScript("loop");
+        startScript("loop");
     }
 };
 
 function selectFile(dom) {
-    console.log(dom.selectedIndex);
-    var option = dom.options[dom.selectedIndex];
-    var name = option.label;
-    console.log("loading: " + name);
-    resetSystem();
-    loadShadama(null, localStorage.getItem(name));
+    if (dom.selectedIndex > 0) {// 0 is for the default label
+        var option = dom.options[dom.selectedIndex];
+        var name = option.label;
+        var item = localStorage.getItem(name);
+        if (item) {
+            console.log("loading: " + name);
+            resetSystem();
+            loadShadama(null, item);
+        }
+    }
 };
 
-function initFileList() {
+function initFileList(optSelection) {
+    if (optSelection) {
+        if (!optSelection.endsWith(".shadama")) {
+            optSelection = optSelection + ".shadama";
+        }
+    }
     var dom = document.getElementById("myDropdown");
     dom.onchange = function() {selectFile(dom);};
+    var selectIndex = null;
     if (localStorage) {
-	var list = Object.keys(localStorage).filter((k) => k.endsWith(".shadama"));
-	dom.options.length = 0;
-	dom.options[0] = new Option("Choose a File:", 0);
-	for(var i = 0; i < list.length; i++) {
-	    dom.options[dom.options.length] = new Option(list[i], i + 1);
-	}
+        var list = Object.keys(localStorage).filter((k) => k.endsWith(".shadama"));
+        dom.options.length = 0;
+        dom.options[0] = new Option("Choose a File:", 0);
+        for(var i = 0; i < list.length; i++) {
+            dom.options[dom.options.length] = new Option(list[i], i + 1);
+            if (optSelection && list[i] === optSelection) {
+                selectIndex = i + 1;
+            }
+        }
+        if (selectIndex) {
+            dom.selectedIndex = selectIndex;
+        }
     }
 };
 
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
-    useLocalStorage = /local.*=/.test(window.location.search);
 
     if (runTests) {
-	setTestParams();
-	document.getElementById("bigTitle").innerHTML = "Shadama Tests";
+        setTestParams();
+        document.getElementById("bigTitle").innerHTML = "Shadama Tests";
     }
 
     readout = document.getElementById("readout");
@@ -1240,25 +1252,25 @@ onload = function() {
     gl.deleteTexture(tmp);
 
     if (runTests) {
-	grammarUnitTests();
-	symTableUnitTests();
-	translateTests();
-	test();
-	return;
+        grammarUnitTests();
+        symTableUnitTests();
+        translateTests();
+        test();
+        return;
     }
 
     if (!editor) {
-	var code = document.getElementById("code");
-	
-	editor = CodeMirror.fromTextArea(document.getElementById("code"));
-	editor.setOption("extraKeys", {
-	    "Cmd-S": function(cm) {updateCode()},
+        var code = document.getElementById("code");
+        
+        editor = CodeMirror.fromTextArea(document.getElementById("code"));
+        editor.setOption("extraKeys", {
+            "Cmd-S": function(cm) {updateCode()},
         });
     }
 
     initEnv(function() {
-	loadShadama("forward.shadama");
-	runner();
+        loadShadama("forward.shadama");
+        runner();
     });
 };
 
@@ -1284,9 +1296,9 @@ function runner() {
 function step() {
     env["time"] = performance.now() / 1000;
     for (var k in steppers) {
-	var func = statics[k];
-	if (func) {
+        var func = statics[k];
+        if (func) {
             func(env);
-	}
+        }
     }
 }
