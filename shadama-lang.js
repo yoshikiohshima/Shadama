@@ -561,6 +561,10 @@ uniform sampler2D u_that_y;
                 transBinOp(l, r, " / ", this.args);
             },
 
+            MulExpression_mod(l, _, r) {
+                transBinOp(l, r, " % ", this.args);
+            },
+
             UnaryExpression(e) {
                 e.glsl(this.args.table, this.args.vert, this.args.frag);
             },
@@ -574,6 +578,14 @@ uniform sampler2D u_that_y;
                 var vert = this.args.vert;
                 var frag = this.args.frag;
                 vert.pushWithSpace("-");
+                e.glsl(table, vert, frag);
+            },
+
+            UnaryExpression_not(_p, e) {
+                var table = this.args.table;
+                var vert = this.args.vert;
+                var frag = this.args.frag;
+                vert.pushWithSpace("!");
                 e.glsl(table, vert, frag);
             },
 
@@ -887,6 +899,10 @@ uniform sampler2D u_that_y;
                 staticTransBinOp(l, r, " / ", this.args);
             },
 
+            MulExpression_mod(l, _, r) {
+                staticTransBinOp(l, r, " % ", this.args);
+            },
+
             UnaryExpression(e) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
             },
@@ -898,6 +914,12 @@ uniform sampler2D u_that_y;
             UnaryExpression_minus(_p, e) {
                 var js = this.args.js;
                 js.pushWithSpace("-");
+                e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+            },
+
+            UnaryExpression_not(_p, e) {
+                var js = this.args.js;
+                js.pushWithSpace("!");
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
             },
 
@@ -935,7 +957,15 @@ uniform sampler2D u_that_y;
             },
 
             PrimitiveCall(n, _o, as, _c) {
-                js.push("'nop'");
+                var table = this.args.table;
+                var js = this.args.js;
+
+		var str = n.sourceString;
+		if (str ==="floor") {
+		    js.push("Math.floor(");
+		    as.children[0].children[0].static(table, js, this.args.method, this.args.isOther);
+		    js.push(")");
+		}
             },
 
             MethodCall(r, _p, n, _o, as, _c) {

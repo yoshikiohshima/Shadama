@@ -77,11 +77,13 @@ Shadama {
   MulExpression
     = MulExpression "*" PrimExpression  -- times
     | MulExpression "/" PrimExpression  -- divide
+    | MulExpression "%" PrimExpression  -- mod
     | UnaryExpression
 
   UnaryExpression
     = "+" PrimExpression -- plus
     | "-" PrimExpression -- minus
+    | "!" PrimExpression -- not
     | PrimExpression
 
   PrimExpression
@@ -289,7 +291,7 @@ void main(void) {
         </script>
 
         <script id="forward.shadama" type="x-shadama">
-program "Duck Bounce"
+program "Back and Forth"
 
 breed Turtle (x, y, dx, dy, r, g, b, a, origX, origY)
 breed Filler (x, y)
@@ -327,8 +329,15 @@ def fillD() {
   this.dx = 0.0;
   this.dy = 0.0;
 }
- 
-def bounce(field, time) {
+
+def goIn() {
+  var diffX = this.origX - this.x;
+  var diffY = this.origY - this.y;
+  this.x = this.x + (diffX * 0.04);
+  this.y = this.y + (diffY * 0.02);
+}
+
+def bounce(field) {
   var nx = field.nx;
   var ny = field.ny;
   var dx = this.dx;
@@ -366,13 +375,8 @@ def bounce(field, time) {
     ry = -ry;
   }
 
-  if (mod(floor(time), 10.0) == 0.0) {
-    this.x = this.origX;
-    this.y = this.origY;
-  } else {
-    this.x = newX;
-    this.y = newY;
-  }
+  this.x = newX;
+  this.y = newY;
   this.dx = rx;
   this.dy = ry;
 }
@@ -382,12 +386,19 @@ static setup() {
   Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
   Turtle.remember();
   Turtle.fillD();
+  var goOut = true;
 }
 
-static loop() {
+static loop(env) {
+  goOut = (floor(time / 10.0) % 2) == 0;
+
   Filler.clear(Field);
   Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
-  Turtle.bounce(Field, time);
+  if (goOut) {
+    Turtle.bounce(Field);
+  } else {
+    Turtle.goIn();
+  }
   Field.draw();
   Turtle.draw();
 }
