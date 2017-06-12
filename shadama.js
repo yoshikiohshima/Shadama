@@ -1116,8 +1116,8 @@ function detectEntry(name) {
 };
 
 function removeAll() {
-    for (var j = 0; j < watcherList.children.length; j++) {
-        watcherList.removeChild(watcherList.children[j]);
+    while (watcherList.firstChild) {
+	watcherList.removeChild(watcherList.firstChild);
     }
 };
 
