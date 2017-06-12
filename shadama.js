@@ -155,11 +155,15 @@ function loadShadama(id, source) {
     cleanUpEditorState();
     var result = translate(source, "TopLevel", syntaxError);
     compilation = result;
-    programName = result["_programName"];
-    delete result["_programName"];
-    if (oldProgramName != programName) {
+    if (!result) {
+	return "";
+    }
+    if (oldProgramName != result["_programName"]) {
 	resetSystem();
     }
+    programName = result["_programName"];
+    delete result["_programName"];
+
     for (var k in result) {
         if (typeof result[k] === "string") { // static mathod case
             statics[k] = eval(result[k]);
@@ -928,6 +932,10 @@ function updateCode() {
     loadShadama(null, code);
     if (!programName) {
 	programName = prompt("Enter the program name:", "My Cool Effect!");
+	if (!programName) {
+	    alert("program not saved");
+	    return;
+	}
 	editor.setValue("program " + '"' + programName + '"\n' + code);
     }
     var code = editor.getValue();
@@ -1151,30 +1159,25 @@ function populateList(newList) {
     }
 };
 
-function fileElement(name) {
-    var elem = document.createElement("button");
-    elem.fileName = name;
-    elem.innerHTML = `<p style="white-space: nowrap">${name}</p>`;
-    elem.onclick = function() {
-	console.log("loading: " + name);
-	toggleFileList();
-	resetSystem();
-	loadShadama(null, localStorage.getItem(name));
-    };
-    return elem;
+function selectFile(dom) {
+    console.log(dom.selectedIndex);
+    var option = dom.options[dom.selectedIndex];
+    var name = option.label;
+    console.log("loading: " + name);
+    resetSystem();
+    loadShadama(null, localStorage.getItem(name));
 };
 
-function toggleFileList() {
+function initFileList() {
     var dom = document.getElementById("myDropdown");
-    dom.classList.toggle("show");
+    dom.onchange = function() {selectFile(dom);};
     if (localStorage) {
-	while (dom.firstChild) {
-	    dom.removeChild(dom.firstChild);
-	}
 	var list = Object.keys(localStorage).filter((k) => k.endsWith(".shadama"));
-	list.forEach((name) => {
-	    dom.appendChild(fileElement(name))
-	});
+	dom.options.length = 0;
+	dom.options[0] = new Option("Choose a File:", 0);
+	for(var i = 0; i < list.length; i++) {
+	    dom.options[dom.options.length] = new Option(list[i], i + 1);
+	}
     }
 };
 
@@ -1205,6 +1208,7 @@ onload = function() {
     initBreedVAO(gl);
     initPatchVAO(gl);
     initCompiler();
+    initFileList();
 
     programs["drawBreed"] = drawBreedProgram(gl);
     programs["drawPatch"] = drawPatchProgram(gl);
