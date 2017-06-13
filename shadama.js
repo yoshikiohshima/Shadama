@@ -909,7 +909,7 @@ function resetSystem() {
 
     for (var o in env) {
         var obj = env[o];
-        if (obj.constructor == Breed || obj.constructor == Patch) {
+        if (typeof obj == "object" && (obj.constructor == Breed || obj.constructor == Patch)) {
             for (var k in obj.own) {
                 var tex = obj[k];
                 if (tex.constructor === WebGLTexture) {
@@ -919,7 +919,6 @@ function resetSystem() {
             delete env[o];
         }
     }
-
 };
 
 function updateCode() {
@@ -1160,7 +1159,7 @@ function selectFile(dom) {
         var option = dom.options[dom.selectedIndex];
         var name = option.label;
         var source = localStorage.getItem(name);
-        if (item) {
+        if (source) {
             console.log("loading: " + name);
             resetSystem();
             loadShadama(null, source);
