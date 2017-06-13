@@ -188,10 +188,6 @@ function loadShadama(id, source) {
         setupCode = newSetupCode;
     }
     populateList(staticsList);
-
-    if (editor) {
-        editor.doc.setValue(source);
-    }
     return source;
 };
 
@@ -855,7 +851,10 @@ function cleanUpEditorState() {
             editor.removeLineWidget(parseErrorWidget);
             parseErrorWidget = undefined;
         }
-        editor.getAllMarks().forEach(function(mark) { mark.clear(); });
+	var cursor = editor.doc.getCursor();
+        //editor.getAllMarks().forEach(function(mark) { mark.clear(); });
+        console.log(cursor);
+	editor.doc.setCursor(cursor);
     }
 };
 
@@ -932,9 +931,9 @@ function updateCode() {
             alert("program not saved");
             return;
         }
-        editor.setValue("program " + '"' + programName + '"\n' + code);
+	code = "program " + '"' + programName + '"\n' + code;
+        editor.setValue(code);
     }
-    var code = editor.getValue();
     localStorage.setItem(programName + ".shadama", code);
     initFileList(programName);
 };
@@ -1160,11 +1159,14 @@ function selectFile(dom) {
     if (dom.selectedIndex > 0) {// 0 is for the default label
         var option = dom.options[dom.selectedIndex];
         var name = option.label;
-        var item = localStorage.getItem(name);
+        var source = localStorage.getItem(name);
         if (item) {
             console.log("loading: " + name);
             resetSystem();
-            loadShadama(null, item);
+            loadShadama(null, source);
+	    if (editor) {
+		editor.doc.setValue(source);
+	    }
         }
     }
 };
@@ -1269,7 +1271,10 @@ onload = function() {
     }
 
     initEnv(function() {
-        loadShadama("forward.shadama");
+        var source = loadShadama("forward.shadama");
+	if (editor) {
+            editor.doc.setValue(source);
+	}
         runner();
     });
 };
