@@ -23,6 +23,7 @@ var scripts = {};
 var statics = {};
 var staticsList = []; // [name];
 var steppers = {};
+var loadTime = 0.0;
 
 var editor;
 var parseErrorWidget;
@@ -851,10 +852,7 @@ function cleanUpEditorState() {
             editor.removeLineWidget(parseErrorWidget);
             parseErrorWidget = undefined;
         }
-	var cursor = editor.doc.getCursor();
-        //editor.getAllMarks().forEach(function(mark) { mark.clear(); });
-        console.log(cursor);
-	editor.doc.setCursor(cursor);
+        editor.getAllMarks().forEach(function(mark) { mark.clear(); });
     }
 };
 
@@ -904,7 +902,6 @@ function resetSystem() {
     staticsList = [];
     steppers = {};
     setupCode = null;
-    compilation = null;
     programName = null;
 
     for (var o in env) {
@@ -938,6 +935,8 @@ function updateCode() {
 };
 
 function callSetup() {
+    loadTime = performance.now() / 1000.0;
+    env["time"] = 0.0;
     if (statics["setup"]) {
         statics["setup"](env);
     }
@@ -1097,6 +1096,7 @@ function makeEntry(name) {
     button.className = "staticName";
     button.innerHTML = name;
     button.onclick = function() {
+        env["time"] = (performance.now() / 1000) - loadTime;
         if (statics[entry.scriptName]) {
             statics[entry.scriptName](env);
         }
@@ -1298,7 +1298,7 @@ function runner() {
 };
 
 function step() {
-    env["time"] = performance.now() / 1000;
+    env["time"] = (performance.now() / 1000) - loadTime;
     for (var k in steppers) {
         var func = statics[k];
         if (func) {

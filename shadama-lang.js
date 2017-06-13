@@ -37,6 +37,9 @@ function initSemantics() {
         obj["diffuse"] = new SymTable([
             ["param", null, "name"],
 	]);
+        obj["random"] = new SymTable([
+            ["param", null, "seed"],
+	]);
     }
 
     s.addOperation(
@@ -151,6 +154,7 @@ function initSemantics() {
             },
 
             PrimitiveCall(n, _o, as, _c) {
+		this.args.table.maybePrimitive(n.sourceString);
                 return as.symTable(this.args.table);
             },
 
@@ -296,6 +300,11 @@ uniform sampler2D u_that_y;
                 });
 
                 vert.crIfNeeded();
+
+		table.primitives().forEach((n) => {
+		    vert.push(n);
+		});
+
                 vert.push("void main()");
 
                 // fragment head
@@ -319,7 +328,6 @@ uniform sampler2D u_that_y;
                 b.glsl_helper(table, vert, frag);
 
                 vert.crIfNeeded();
-                vert.tab();
 
                 frag.pushWithSpace("{");
                 frag.cr();
@@ -388,7 +396,6 @@ uniform sampler2D u_that_y;
                 var vert = new CodeStream();
                 var frag = new CodeStream();
 
-                var prev = {[n.sourceString]: [table, vert.contents(), frag.contents(), []]};
                 return this.glsl_helper(table, vert, frag);
             },
 
@@ -1107,6 +1114,7 @@ class SymTable {
         this.hasPatchInput = false;
         this.defaultUniforms = null;
         this.defaultAttributes = null;
+	this.usedPrimitives = {};
 
         // - from source (extensional)
         // I use this term because I want to remember which is which)
@@ -1134,7 +1142,6 @@ class SymTable {
         this.defaultAttributes = ["a_index"];
     }
 
-        
     process() {
 	// maybe a hack: look for outs that are not ins and add them to ins.  Those are use
 	this.thisOut.keysAndValuesDo((key, entry) => {
@@ -1307,8 +1314,31 @@ class SymTable {
         this.local.keysAndValuesDo((key, entry) => result[key] = entry);
         return result;
     }
-};
 
+    maybePrimitive(aString) {
+	this.usedPrimitives[aString] = aString;
+    }
+
+    primitives() {
+	var result = [];
+	for (var n in this.usedPrimitives) {
+	    if (n === "random") {
+		result.push(
+`
+highp float random(float seed) {
+   highp float a  = 12.9898;
+   highp float b  = 78.233;
+   highp float c  = 43758.5453;
+   highp float dt = seed * a + b;
+   highp float sn = mod(dt, 3.14159);
+   return fract(sin(sn) * c);
+}
+`);
+	    }
+	};
+	return result;
+    }
+};
 
 class CodeStream {
     constructor() {
