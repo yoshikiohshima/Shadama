@@ -599,7 +599,12 @@ uniform sampler2D u_that_y;
 
             PrimExpression_number(e) {
                 var vert = this.args.vert;
-                vert.push(e.sourceString);
+                var ind = e.sourceString.indexOf(".");
+		if (ind < 0) {
+                    vert.push(e.sourceString + ".0");
+		} else {
+                    vert.push(e.sourceString);
+		}
             },
 
             PrimExpression_field(n, _p, f) {
