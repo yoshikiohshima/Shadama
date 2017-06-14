@@ -1,0 +1,30 @@
+program "Two Circles"
+breed Filler (x, y)
+patch Field (r, g, b, a)
+
+def clear(field) {
+    field.r = 0.0;
+    field.g = 0.0;
+    field.b = 0.0;
+    field.a = 0.0;
+}
+
+def fillCircle(cx, cy, r, field) {
+  var dx = this.x - cx;
+  var dy = this.y - cy;
+  var dr = sqrt(dx * dx + dy * dy);
+  if (dr < r) {
+    field.r = 0.2;
+    field.g = 0.2;
+    field.b = 0.8;
+    field.a = 1.0;
+  }
+}
+
+static setup() {
+  Filler.fillSpace("x", "y", width, height);
+  Filler.clear(Field);
+  Filler.fillCircle(75, 75, 20, Field);
+  Filler.fillCircle(300, 95, 25, Field);
+  Field.draw();
+}
