@@ -410,6 +410,15 @@ Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
     updateOwnVariable(this, yName, y);
 };
 
+Breed.prototype.fill = function(name, value) {
+    var x = new Float32Array(T * T);
+
+    for (var j = 0; j < this.count; j++) {
+        x[j] = value;
+    }
+    updateOwnVariable(this, name, x);
+};
+
 Breed.prototype.fillImage = function(xName, yName, rName, gName, bName, aName, imagedata) {
     var xDim = imagedata.width;
     var yDim = imagedata.height;
@@ -474,6 +483,10 @@ function copyProgram(gl) {
     return makePrimitive(gl, "copy", ["u_value"], patchVAO);
 };
 
+function debugFrameProgram(gl) {
+    return makePrimitive(gl, "debugFrame", ["u_this_r", "u_this_g", "u_this_b", "u_this_a"], breedVAO);
+};
+
 Breed.prototype.draw = function() {
     var prog = programs["drawBreed"];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -516,6 +529,51 @@ Breed.prototype.draw = function() {
 
     gl.flush();
     gl.disable(gl.BLEND);
+};
+
+Breed.prototype.debugFrame = function() {
+    var prog = programs["debugFrame"];
+
+    var targets = ["r", "g", "b", "a"].map((n) => this["new" + n]);
+    setTargetBuffers(gl, framebufferT, targets);
+
+    gl.useProgram(prog.program);
+    gl.bindVertexArray(prog.vao);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    //    gl.blendFunc(gl.ONE, gl.ONE);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.r);
+    gl.uniform1i(prog.uniLocations["u_this_r"], 0);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.g);
+    gl.uniform1i(prog.uniLocations["u_this_g"], 1);
+
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.b);
+    gl.uniform1i(prog.uniLocations["u_this.b"], 2);
+
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, this.a);
+    gl.uniform1i(prog.uniLocations["u_this_a"], 3);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+
+    gl.drawArrays(gl.POINTS, 0, this.count);
+
+    gl.flush();
+    gl.disable(gl.BLEND);
+
+    ["r", "g", "b", "a"].forEach((n) => {
+	var tmp = this["new"+n];
+	this["new"+n] = this[n];
+	this[n] = tmp;
+    });
 };
 
 Breed.prototype.increasePatch = function(patch, value) {
@@ -957,7 +1015,7 @@ function addListeners(aCanvas) {
     });
 };
 
-function localImageData(width, height) {
+function emptyImageData(width, height) {
     var ary = new Uint8ClampedArray(width * height * 4);
     for (var i = 0; i < width * height; i++) {
         ary[i * 4 + 0] = i;
@@ -987,7 +1045,7 @@ function initEnv(callback) {
         img.onerror = function() {
             console.log("no internet");
             document.body.removeChild(img);
-            env.image = localImageData(256, 256);
+            env.image = emptyImageData(256, 256);
             callback();
         }
         img.src = "http://tinlizzie.org/~ohshima/ahiru/ahiru.png";
@@ -1228,6 +1286,7 @@ onload = function() {
     programs["debugPatch"] = debugPatchProgram(gl);
     programs["diffusePatch"] = diffusePatchProgram(gl);
     programs["copy"] = copyProgram(gl);
+    programs["debugFrame"] = debugFrameProgram(gl);
 
     debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
     debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);

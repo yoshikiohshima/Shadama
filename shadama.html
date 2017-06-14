@@ -291,6 +291,52 @@ void main(void) {
 }
         </script>
 
+        <script id="debugFrame.vert" type="x-shader/x-vertex">#version 300 es
+layout (location = 0) in vec2 a_index;
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+uniform sampler2D u_this_r;
+uniform sampler2D u_this_g;
+uniform sampler2D u_this_b;
+uniform sampler2D u_this_a;
+out float v_this_r;
+out float v_this_g;
+out float v_this_b;
+out float v_this_a;
+void main() {
+
+  vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;
+  v_this_r = texelFetch(u_this_r, ivec2(a_index), 0).r;
+  v_this_g = texelFetch(u_this_g, ivec2(a_index), 0).r;
+  v_this_b = texelFetch(u_this_b, ivec2(a_index), 0).r;
+  v_this_a = texelFetch(u_this_a, ivec2(a_index), 0).r;
+  v_this_r = 1.0;
+  v_this_g = 0.0;
+  v_this_b = 1.0;
+  v_this_a = 1.0;
+
+  gl_Position = vec4(oneToOne, 0.0, 1.0);
+  gl_PointSize = 1.0;
+}
+
+        </script>
+        <script id="debugFrame.frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+in float v_this_r;
+in float v_this_g;
+in float v_this_b;
+in float v_this_a;
+layout (location = 0) out float o_this_r;
+layout (location = 1) out float o_this_g;
+layout (location = 2) out float o_this_b;
+layout (location = 3) out float o_this_a;
+void main() {
+  o_this_r = v_this_r;
+  o_this_g = v_this_g;
+  o_this_b = v_this_b;
+  o_this_a = v_this_a;
+}
+        </script>
         <script id="forward.shadama" type="x-shadama">
 program "Back and Forth"
 
