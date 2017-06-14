@@ -5,6 +5,7 @@
         <link href="shadama.css" rel="stylesheet">
         <link rel="stylesheet" href="codemirror/codemirror.css">
         <script src="codemirror/codemirror.js"></script>
+        <script src="codemirror/clike.js"></script>
         <script src="ohm/ohm.min.js"></script>
         <script src="shadama-lang.js"></script>
         <script src="shadama.js" type="text/javascript"></script>
@@ -114,7 +115,7 @@ Shadama {
 
   string = "\"" doubleStringCharacter* "\""
 
-  doubleStringCharacter 
+  doubleStringCharacter
     = "\\" any           -- escaped
     | ~"\"" any          -- nonEscaped
 

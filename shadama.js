@@ -337,7 +337,7 @@ var updateOwnVariable = function(obj, name, optData) {
         var width = FW;
         var height = FH;
     }
-    
+
     if (!optData) {
         ary = new Float32Array(width * height);
     } else {
@@ -736,7 +736,7 @@ function programFromTable(table, vert, frag, name) {
         var vao = breedVAO;
         var uniLocations = {};
 
-        
+
         var forBreed = table.forBreed;
         var viewportW = forBreed ? T : FW;
         var viewportH = forBreed ? T : FH;
@@ -782,26 +782,26 @@ function programFromTable(table, vert, frag, name) {
             } else {
                 setTargetBuffers(gl, framebufferR, targets);
             }
-            
+
             gl.useProgram(prog);
             gl.bindVertexArray(vao);
-            
+
             gl.viewport(0, 0, viewportW, viewportH);
             gl.uniform2f(uniLocations["u_resolution"], FW, FH);
             gl.uniform1f(uniLocations["u_particleLength"], T);
-            
+
             var offset = 0;
             if (!forBreed || hasPatchInput) {
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, object.x);
                 gl.uniform1i(uniLocations["u_that_x"], 0);
-                
+
                 gl.activeTexture(gl.TEXTURE1);
                 gl.bindTexture(gl.TEXTURE_2D, object.y);
                 gl.uniform1i(uniLocations["u_that_y"], 1);
                 offset = 2;
             }
-            
+
             for (var ind = 0; ind < ins.length; ind++) {
                 var pair = ins[ind];
                 var glIndex = gl.TEXTURE0 + ind + offset;
@@ -811,7 +811,7 @@ function programFromTable(table, vert, frag, name) {
                 gl.bindTexture(gl.TEXTURE_2D, val);
                 gl.uniform1i(uniLocations["u" + "_" + pair[0] + "_" + k], ind + offset);
             }
-            
+
             for (var k in params) {
                 var val = params[k];
                 if (val.constructor == WebGLTexture) {
@@ -826,7 +826,7 @@ function programFromTable(table, vert, frag, name) {
                     gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
                 }
             }
-            
+
 //            if (forBreed) {
 //                gl.clearColor(0.0, 0.0, 0.0, 0.0);
 //                gl.clear(gl.COLOR_BUFFER_BIT);
@@ -1054,11 +1054,11 @@ function drawClock(aClock) {
         ctx.arc(0, 0, radius, 0, 2*Math.PI);
         ctx.fillStyle = backColor;
         ctx.fill();
-        
+
         ctx.strokeStyle = '#333';
         ctx.lineWidth = radius*0.1;
         ctx.stroke();
-        
+
         ctx.beginPath();
         ctx.arc(0, 0, radius*0.1, 0, 2*Math.PI);
         ctx.fillStyle = "#333";
@@ -1261,19 +1261,27 @@ onload = function() {
     }
 
     if (!editor) {
-        var code = document.getElementById("code");
-        
-        editor = CodeMirror.fromTextArea(document.getElementById("code"));
-        editor.setOption("extraKeys", {
-            "Cmd-S": function(cm) {updateCode()},
+        function words(str) { let o = {}; str.split(" ").forEach((s) => o[s] = true); return o; }
+        CodeMirror.defineMIME("text/shadama", {
+            name: "clike",
+            keywords: words("program breed patch def static var if else"),
+            atoms: words("true false this self width height image mousedown mousemove mouseup"),
+        });
+
+        editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+            mode: "text/shadama",
+            matchBrackets: true,
+            "extraKeys": {
+                "Cmd-S": function(cm) {updateCode()},
+            },
         });
     }
 
     initEnv(function() {
         var source = loadShadama("forward.shadama");
-	if (editor) {
+        if (editor) {
             editor.doc.setValue(source);
-	}
+        }
         runner();
     });
 };
