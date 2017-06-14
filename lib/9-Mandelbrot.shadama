@@ -1,0 +1,61 @@
+program "Mandelbrot"
+breed Turtle (x, y, c)
+patch Field (re, im, r, g, b, a)
+
+def reset() {
+  this.c = 1.0;
+}
+
+def incr() {
+  var c = this.c;
+  c = c - (1.0/32.0);
+  if (c < 0.0) {
+    c = 1.0;
+  }
+  this.c = c;
+}
+
+def fill(field) {
+  field.re = 0.0;
+  field.im = 0.0;
+}
+
+def step(field) {
+  var r = field.re;
+  var i = field.im;
+  var newR;
+  var newI;
+  newR = r * r - i * i;
+  var halfW = u_resolution.x / 2.0;
+  newR = newR + (this.x - halfW * 1.5) / halfW;
+  newI = r * i * 2.0;
+  newI = newI + (this.y - halfW) / halfW;
+
+  field.re = newR;
+  field.im = newI;
+  if (newR * newR + newI * newI < 4.0) {
+    field.r = 1.0;
+    field.g = 1.0;
+    field.b = 1.0;
+    field.a = 1.0;
+  } else {
+    if (r * r + i * i < 4.0) {
+      field.r = this.c;
+    }
+    field.g = 0.0;
+    field.b = 1.0;
+    field.a = 1.0;
+  }
+}
+
+static setup(env) {
+  Turtle.fillSpace("x", "y", width, height);
+  Turtle.fill(Field);
+  Turtle.reset();
+}
+
+static loop() {
+  Turtle.step(Field);
+  Turtle.incr();
+  Field.draw();
+}

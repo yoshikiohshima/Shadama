@@ -1,0 +1,13 @@
+program "Picture"
+breed Turtle (x, y, dx, dy, r, g, b, a)
+
+def move() {
+  this.x = this.x + this.dx;
+  this.y = this.y + this.dy;
+}
+
+static setup() {
+  Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
+  Turtle.fillRandomDir("dx", "dy");
+  Turtle.draw();
+}

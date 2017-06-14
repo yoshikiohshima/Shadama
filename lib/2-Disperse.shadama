@@ -1,0 +1,31 @@
+program "Disperse"
+breed Turtle (x, y, dx, dy, r, g, b, a)
+
+def setColor() {
+  this.r = this.x / 512.0;
+  this.g = this.y / 512.0;
+  this.b = 0.0;
+  this.a = 1.0;
+}
+
+def move() {
+  var dx = this.dx;
+  var dy = this.dy;
+  this.x = this.x + dx;
+  this.y = this.y + dy;
+//  this.dy = dy - 0.01;
+}
+
+static setup() {
+  Turtle.setCount(300000);
+//  Turtle.fillSpace("x", "y", 512, 512);
+  Turtle.fillRandom("x", 0, 512);
+  Turtle.fillRandom("y", 0, 512);
+  Turtle.fillRandomDir("dx", "dy");
+  Turtle.setColor();
+}
+
+static step() {
+  Turtle.move();
+  Turtle.draw();
+}
