@@ -55,6 +55,11 @@ function setUp() {
 // }
 
 function test() {
+    directTest();
+}
+
+
+function directTest() {
     setUp();
     var r = env["Breed1"];
     r.fillSpace("x", "y", FW, FH);
@@ -72,7 +77,6 @@ function test() {
 	    
 	}
     }
-    
     f();
 }
 

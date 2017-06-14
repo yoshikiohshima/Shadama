@@ -231,7 +231,7 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
     if (!height) {
         height = T;
     }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
     if (format == gl.R32F) {
@@ -243,13 +243,13 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
 };
 
 function setTargetBuffer(gl, buffer, tex) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 };
 
 function setTargetBuffers(gl, buffer, tex) {
     var list = [];
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
     for (var i = 0; i < tex.length; i++) {
         var val = gl.COLOR_ATTACHMENT0 + i;
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, val, gl.TEXTURE_2D, tex[i], 0);
@@ -277,7 +277,7 @@ function createIBO (gl, data) {
 };
 
 function clear() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -313,7 +313,7 @@ function textureCopy(obj, src, dst) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 };
 
 function randomDirection() {
@@ -357,6 +357,9 @@ var updateOwnVariable = function(obj, name, optData) {
 };
 
 var removeOwnVariable = function(obj, name) {
+    if (name  === "a") {
+	debugger;
+    }
     delete obj.own[name];
     if (obj[name]) {
         gl.deleteTexture(obj[name]);
@@ -489,7 +492,7 @@ function debugFrameProgram(gl) {
 
 Breed.prototype.draw = function() {
     var prog = programs["drawBreed"];
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
@@ -596,7 +599,7 @@ Breed.prototype.increasePatch = function(patch, value) {
 
     gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.disable(gl.BLEND);
 };
 
@@ -612,7 +615,7 @@ Breed.prototype.setCount = function(n) {
 Patch.prototype.draw = function() {
     var prog = programs["drawPatch"];
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
@@ -637,7 +640,7 @@ Patch.prototype.draw = function() {
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 };
 
 Patch.prototype.diffuse = function(name) {
@@ -646,7 +649,7 @@ Patch.prototype.diffuse = function(name) {
     var target = this["new"+name];
     var source = this[name];
 
-    setTargetBuffers(gl, framebufferR, [target]);
+    setTargetBuffer(gl, framebufferR, target);
 
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
@@ -661,7 +664,7 @@ Patch.prototype.diffuse = function(name) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
- //   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
     this["new"+name] = source;
     this[name] = target;
@@ -723,7 +726,7 @@ function debugDisplay(objName, name) {
 
     var img = new ImageData(debugArray2, width, height);
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 };
 
 function update(cls, name, fields) {
@@ -789,6 +792,9 @@ function update(cls, name, fields) {
 function programFromTable(table, vert, frag, name) {
     return (function () {
         var debugName = name;
+	if (debugName === "cream") {
+	    debugger;
+	}
         var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
                                  createShader(gl, name + ".frag", frag));
         var vao = breedVAO;
@@ -824,9 +830,9 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-//          debugger;
-            if (debugName == "bounce") {
-            }
+	    if (debugName === "cream") {
+		debugger;
+	    }
             var object = objects["this"];
 
             outs.forEach((pair) => {
@@ -838,7 +844,7 @@ function programFromTable(table, vert, frag, name) {
             if (forBreed) {
                 setTargetBuffers(gl, framebufferT, targets);
             } else {
-                setTargetBuffers(gl, framebufferR, targets);
+                setTargetBuffers(gl, framebufferF, targets);
             }
 
             gl.useProgram(prog);
@@ -891,7 +897,7 @@ function programFromTable(table, vert, frag, name) {
 //            }
             gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
             for (var i = 0; i < outs.length; i++) {
                 var pair = outs[i];
                 var o = objects[pair[0]];
