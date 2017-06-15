@@ -357,9 +357,6 @@ var updateOwnVariable = function(obj, name, optData) {
 };
 
 var removeOwnVariable = function(obj, name) {
-    if (name  === "a") {
-	debugger;
-    }
     delete obj.own[name];
     if (obj[name]) {
         gl.deleteTexture(obj[name]);
@@ -793,7 +790,6 @@ function programFromTable(table, vert, frag, name) {
     return (function () {
         var debugName = name;
 	if (debugName === "cream") {
-	    debugger;
 	}
         var prog = createProgram(gl, createShader(gl, name + ".vert", vert),
                                  createShader(gl, name + ".frag", frag));
@@ -831,7 +827,6 @@ function programFromTable(table, vert, frag, name) {
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
 	    if (debugName === "cream") {
-		debugger;
 	    }
             var object = objects["this"];
 

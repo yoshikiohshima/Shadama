@@ -342,14 +342,14 @@ void main() {
 program "Diffuse"
 
 breed Turtle (x, y, dx, dy, r, g, b, a)
-patch Field (n, m, l, k)
+patch Field (r, g, b, a)
 breed Filler (x, y)
   
 def cream(field) {
-  field.n = 1.0;
-  field.m = 1.0;
-  field.l = 1.0;
-  field.k = 1.0;
+  field.r = 1.0;
+  field.g = 0.0;
+  field.b = 0.0;
+  field.a = 1.0;
 }
 
 def trail(field) {
@@ -369,8 +369,14 @@ def move() {
 }
 
 static setup() {
-  Filler.fillSpace("x", "y", 10, 10);
+  Filler.fillSpace("x", "y", width, height);
   Filler.cream(Field);
+}
+
+static loop() {
+  Field.diffuse("r");
+  Field.diffuse("a");
+  Field.draw();
 }
 </script>
         </head>
