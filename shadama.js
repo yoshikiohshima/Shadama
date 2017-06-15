@@ -1027,6 +1027,36 @@ function emptyImageData(width, height) {
     return new ImageData(ary, 256, 256);
 };
 
+function initServerFiles() {
+    var location = window.location.toString();
+    var examples = [
+	"1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picutre.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama"
+    ];
+
+    if (!location.startsWith("http")) {return;}
+
+    var slash = location.lastIndexOf("/");
+    var dir = location.slice(0, slash) + "/" + "examples";
+    examples.forEach((n) => {
+	var file = dir + "/" + encodeURIComponent(n);
+	console.log(file);
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+	    if (this.readyState == 4 && this.status == 200) {
+		// Typical action to be performed when the document is ready:
+		var serverCode = xhttp.responseText;
+		var localCode = localStorage.getItem(n);
+		if (!localCode) {
+		    localStorage.setItem(n, serverCode);
+		}
+		initFileList();
+	    }
+	};
+	xhttp.open("GET", file, true);
+	xhttp.send();
+    });
+};
+
 function initEnv(callback) {
     env.mousedown = {x: 0, y: 0};
     env.mousemove = {x: 0, y: 0};
@@ -1280,6 +1310,7 @@ onload = function() {
     initBreedVAO(gl);
     initPatchVAO(gl);
     initCompiler();
+    initServerFiles();
     initFileList();
 
     programs["drawBreed"] = drawBreedProgram(gl);
