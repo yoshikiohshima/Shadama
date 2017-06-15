@@ -339,43 +339,95 @@ void main() {
 }
         </script>
         <script id="forward.shadama" type="x-shadama">
-program "Diffuse"
+program "Life"
+breed Turtle (n, c, x, y)
+patch Field (c, r, g, b, a)
 
-breed Turtle (x, y, dx, dy, r, g, b, a)
-patch Field (r, g, b, a)
-breed Filler (x, y)
-  
-def cream(field) {
-  field.r = 1.0;
+def reset(field) {
+  var rand = random(this.x * 1341.2 + this.y);
+  if (rand > 0.1) {
+    field.c = 1;
+  } else {
+    field.c = 0;
+  }
+}
+
+def add(field) {
+  this.c = this.c + field.c;
+}
+
+def move(x, y) {
+  this.x = this.x + x;
+  this.y = this.y + y;
+}
+
+def zero(field) {
+  this.c = 0;
+  this.n = field.c;
+}
+
+def comp(field) {
+  var c = this.c;
+  var n = this.n;
+  if (n == 0) {
+    if (c == 3) {
+      field.c = 1;
+    } else {
+      field.c = 0;
+    }
+  } else {
+    if ((c == 3) || (c == 2)) {
+       field.c = 1;
+    } else {
+       field.c = 0;
+    }
+  }   
+}
+
+def color(field) {
+  field.r = 0.0;
   field.g = 0.0;
-  field.b = 0.0;
   field.a = 1.0;
+  if (field.c > 0) {
+    field.b = 0.0;
+  } else {
+    field.b = 1.0;
+  }
 }
 
-def trail(field) {
-  field.r = 1.0;
-  field.a = 1.0;
-  field.g = 0.0;
-  field.b = 0.0;
+static setup(env) {
+  Turtle.fillSpace("x", "y", width, height);
+  Turtle.reset(Field);
+  Turtle.color(Field);
+  Field.draw();
 }
 
-def move() {
-  var newX = this.x + this.dx;
-  var newY = this.y + this.dy;
-  newX = mod(newX, u_resolution.x);
-  newY = mod(newY, u_resolution.y);
-  this.x = newX;
-  this.y = newY;
-}
+static step() {
+  Turtle.zero(Field);
+  Turtle.move(-1, 1);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
 
-static setup() {
-  Filler.fillSpace("x", "y", width, height);
-  Filler.cream(Field);
-}
+  Turtle.move(-2, -1);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
 
-static loop() {
-  Field.diffuse("r");
-  Field.diffuse("a");
+  Turtle.move(-2, -1);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+
+  Turtle.move(-1, 1);
+  Turtle.comp(Field);
+  Turtle.color(Field);
   Field.draw();
 }
 </script>

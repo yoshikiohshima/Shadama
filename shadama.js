@@ -192,9 +192,9 @@ function loadShadama(id, source) {
     return source;
 };
 
-function createTexture(gl, data, format, width, height) {
-    if (!format) {
-        format = gl.UNSIGNED_BYTE;
+function createTexture(gl, data, type, width, height) {
+    if (!type) {
+        type = gl.UNSIGNED_BYTE;
     }
     if (!width) {
         width = T;
@@ -205,12 +205,12 @@ function createTexture(gl, data, format, width, height) {
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
-    if (format == gl.UNSIGNED_BYTE) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, format, data);
-    } else if (format == gl.R32F) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, gl.RED, gl.FLOAT, data);
+    if (type == gl.UNSIGNED_BYTE) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, data);
+    } else if (type == gl.R32F) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, gl.RED, gl.FLOAT, data);
     } else {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, data);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, type, data);
     }
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -668,6 +668,7 @@ Patch.prototype.diffuse = function(name) {
 };
 
 function debugDisplay(objName, name) {
+    debugger;
     var object = env[objName];
     var forBreed = object.constructor == Breed;
     var width = forBreed ? T : FW;
@@ -679,6 +680,7 @@ function debugDisplay(objName, name) {
         debugCanvas1.height = height;
     }
     var prog = programs["debugPatch"];
+
     if (forBreed) {
         setTargetBuffer(gl, framebufferD, debugTexture0);
     } else {
@@ -706,7 +708,7 @@ function debugDisplay(objName, name) {
     debugArray = new Float32Array(width * height * 4);
     debugArray1 = new Float32Array(width * height);
     debugArray2 = new Uint8ClampedArray(width * height * 4);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray);
+    gl.readPixels(0, 0, width, height, gl.R32F, gl.FLOAT, debugArray);
 
     for (var i = 0; i < width * height; i++) {
         debugArray1[i] = debugArray[i * 4 + 0];
@@ -1320,7 +1322,7 @@ onload = function() {
     programs["copy"] = copyProgram(gl);
     programs["debugFrame"] = debugFrameProgram(gl);
 
-    debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
+    debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T)
     debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
     var tmp = createTexture(gl, new Float32Array(T * T), gl.R32F, T, T);
@@ -1342,6 +1344,8 @@ onload = function() {
     framebufferD = gl.createFramebuffer();
     initFramebuffer(gl, framebufferD, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
+
+
 
     if (runTests) {
         grammarUnitTests();
