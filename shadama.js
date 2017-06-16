@@ -148,6 +148,7 @@ function loadShadama(id, source) {
     var oldProgramName = programName;
     statics = {};
     staticsList = [];
+    scripts = {};
     if (!source) {
         var scriptElement = document.getElementById(id);
         if(!scriptElement){return "";}
@@ -958,9 +959,6 @@ function resetSystem() {
     }
     removeAll();
 
-    scripts = {};
-    statics = {};
-    staticsList = [];
     steppers = {};
     setupCode = null;
     programName = null;
