@@ -18,11 +18,11 @@ var runTests = false;
 var breedVAO;
 var patchVAO;
 
-var programs = {};
-var scripts = {};
-var statics = {};
+var programs = {};  // {name: {prog: shader, vao: VAO, uniLocations: uniformLocs}}
+var scripts = {};   // {name: [function, inOutParam]}
+var statics = {};   // {name: function}
 var staticsList = []; // [name];
-var steppers = {};
+var steppers = {};    // {name: name}
 var loadTime = 0.0;
 
 var editor;
