@@ -1226,11 +1226,16 @@ function updateClocks() {
 };
 
 function updateEnv() {
+    function printNum(obj) {
+        if (typeof obj !== "number") return obj;
+        let str = Math.abs(obj) < 1 ? obj.toPrecision(3) : obj.toFixed(3);
+        return str.replace(/\.0*$/, "");
+    }
     function print(obj) {
-        if (typeof obj !== "object") return obj;
+        if (typeof obj !== "object") return printNum(obj);
         let props = Object.getOwnPropertyNames(obj)
                     .filter((k)=>typeof obj[k] !== "object")
-                    .map((k)=>`${k}:${obj[k]}`);
+                    .map((k)=>`${k}:${printNum(obj[k])}`);
         return `{${props.join(' ')}}`;
     }
     let list = Object.getOwnPropertyNames(env)
@@ -1406,11 +1411,10 @@ function runner() {
         var frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
         var stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
         readout.innerHTML = "compute: " + stepTime.toFixed(3) + " msecs/step, real time: " + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
+        updateEnv();
     }
 
     updateClocks();
-    updateEnv();
-
     window.requestAnimationFrame(runner);
 };
 
