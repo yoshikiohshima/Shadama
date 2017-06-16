@@ -340,15 +340,23 @@ void main() {
         </script>
         <script id="forward.shadama" type="x-shadama">
 program "Life"
-breed Turtle (n, c, x, y)
+breed Turtle (n, x, y, c)
 patch Field (c, r, g, b, a)
 
 def reset(field) {
-  var rand = random(this.x * 1341.2 + this.y);
-  if (rand > 0.1) {
+  var rand = random(this.x * 1233.1 + this.y * 0.2);
+  if (rand > 0.3) {
     field.c = 1;
   } else {
     field.c = 0;
+  }
+}
+
+def put(field, x, y) {
+  var dx = this.x - x;
+  var dy = this.y - y;
+  if ((dx * dx + dy * dy) < 2) {
+    field.c = 1;
   }
 }
 
@@ -385,13 +393,14 @@ def comp(field) {
 }
 
 def color(field) {
-  field.r = 0.0;
-  field.g = 0.0;
+  field.b = 0.0;
   field.a = 1.0;
   if (field.c > 0) {
-    field.b = 0.0;
+    field.r = 1.0;
+    field.g = 1.0;
   } else {
-    field.b = 1.0;
+    field.r = 0.0;
+    field.g = 0.0;
   }
 }
 
@@ -402,10 +411,12 @@ static setup(env) {
   Field.draw();
 }
 
-static step() {
+static loop() {
+  Turtle.put(Field, mousemove.x, mousemove.y);
   Turtle.zero(Field);
   Turtle.move(-1, 1);
   Turtle.add(Field);
+
   Turtle.move(1, 0);
   Turtle.add(Field);
   Turtle.move(1, 0);
@@ -414,10 +425,10 @@ static step() {
   Turtle.move(-2, -1);
   Turtle.add(Field);
   Turtle.move(1, 0);
-  Turtle.add(Field);
+//  Turtle.add(Field);
+
   Turtle.move(1, 0);
   Turtle.add(Field);
-
   Turtle.move(-2, -1);
   Turtle.add(Field);
   Turtle.move(1, 0);
@@ -426,6 +437,7 @@ static step() {
   Turtle.add(Field);
 
   Turtle.move(-1, 1);
+
   Turtle.comp(Field);
   Turtle.color(Field);
   Field.draw();

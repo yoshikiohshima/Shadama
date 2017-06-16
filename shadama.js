@@ -231,7 +231,7 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
     if (!height) {
         height = T;
     }
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.bindTexture(gl.TEXTURE_2D, tex);
 
     if (format == gl.R32F) {
@@ -243,8 +243,8 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
 };
 
 function setTargetBuffer(gl, buffer, tex) {
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, buffer);
-    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 };
 
 function setTargetBuffers(gl, buffer, tex) {
@@ -277,7 +277,7 @@ function createIBO (gl, data) {
 };
 
 function clear() {
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -313,7 +313,7 @@ function textureCopy(obj, src, dst) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
 function randomDirection() {
@@ -489,7 +489,7 @@ function debugFrameProgram(gl) {
 
 Breed.prototype.draw = function() {
     var prog = programs["drawBreed"];
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
@@ -596,7 +596,7 @@ Breed.prototype.increasePatch = function(patch, value) {
 
     gl.drawArrays(gl.POINTS, 0, this.count);
     gl.flush();
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.disable(gl.BLEND);
 };
 
@@ -612,7 +612,7 @@ Breed.prototype.setCount = function(n) {
 Patch.prototype.draw = function() {
     var prog = programs["drawPatch"];
 
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
@@ -637,7 +637,7 @@ Patch.prototype.draw = function() {
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
 Patch.prototype.diffuse = function(name) {
@@ -661,14 +661,13 @@ Patch.prototype.diffuse = function(name) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.flush();
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     this["new"+name] = source;
     this[name] = target;
 };
 
 function debugDisplay(objName, name) {
-    debugger;
     var object = env[objName];
     var forBreed = object.constructor == Breed;
     var width = forBreed ? T : FW;
@@ -708,7 +707,7 @@ function debugDisplay(objName, name) {
     debugArray = new Float32Array(width * height * 4);
     debugArray1 = new Float32Array(width * height);
     debugArray2 = new Uint8ClampedArray(width * height * 4);
-    gl.readPixels(0, 0, width, height, gl.R32F, gl.FLOAT, debugArray);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray);
 
     for (var i = 0; i < width * height; i++) {
         debugArray1[i] = debugArray[i * 4 + 0];
@@ -725,7 +724,7 @@ function debugDisplay(objName, name) {
 
     var img = new ImageData(debugArray2, width, height);
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 };
 
 function update(cls, name, fields) {

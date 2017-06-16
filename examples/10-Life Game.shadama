@@ -1,0 +1,103 @@
+program "Life"
+breed Turtle (n, x, y, c)
+patch Field (c, r, g, b, a)
+
+def reset(field) {
+  var rand = random(this.x * 1233.1 + this.y * 0.2);
+  if (rand > 0.3) {
+    field.c = 1;
+  } else {
+    field.c = 0;
+  }
+}
+
+def put(field, x, y) {
+  var dx = this.x - x;
+  var dy = this.y - y;
+  if ((dx * dx + dy * dy) < 2) {
+    field.c = 1;
+  }
+}
+
+def add(field) {
+  this.c = this.c + field.c;
+}
+
+def move(x, y) {
+  this.x = this.x + x;
+  this.y = this.y + y;
+}
+
+def zero(field) {
+  this.c = 0;
+  this.n = field.c;
+}
+
+def comp(field) {
+  var c = this.c;
+  var n = this.n;
+  if (n == 0) {
+    if (c == 3) {
+      field.c = 1;
+    } else {
+      field.c = 0;
+    }
+  } else {
+    if ((c == 3) || (c == 2)) {
+       field.c = 1;
+    } else {
+       field.c = 0;
+    }
+  }   
+}
+
+def color(field) {
+  field.b = 0.0;
+  field.a = 1.0;
+  if (field.c > 0) {
+    field.r = 1.0;
+    field.g = 1.0;
+  } else {
+    field.r = 0.0;
+    field.g = 0.0;
+  }
+}
+
+static setup(env) {
+  Turtle.fillSpace("x", "y", width, height);
+  Turtle.reset(Field);
+  Turtle.color(Field);
+  Field.draw();
+}
+
+static loop() {
+  Turtle.put(Field, mousemove.x, mousemove.y);
+  Turtle.zero(Field);
+  Turtle.move(-1, 1);
+  Turtle.add(Field);
+
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+
+  Turtle.move(-2, -1);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+//  Turtle.add(Field);
+
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+  Turtle.move(-2, -1);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+  Turtle.move(1, 0);
+  Turtle.add(Field);
+
+  Turtle.move(-1, 1);
+
+  Turtle.comp(Field);
+  Turtle.color(Field);
+  Field.draw();
+}
