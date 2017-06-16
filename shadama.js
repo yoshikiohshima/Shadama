@@ -32,6 +32,7 @@ var setupCode;
 var programName = null;
 var watcherList;  // DOM
 var watcherElements = []; // [DOM]
+var envList; // DOM
 
 var debugCanvas1;
 var debugArray;
@@ -1226,6 +1227,20 @@ function updateClocks() {
     }
 };
 
+function updateEnv() {
+    function print(obj) {
+        if (typeof obj !== "object") return obj;
+        let props = Object.getOwnPropertyNames(obj)
+                    .filter((k)=>typeof obj[k] !== "object")
+                    .map((k)=>`${k}:${obj[k]}`);
+        return `{${props.join(' ')}}`;
+    }
+    let list = Object.getOwnPropertyNames(env)
+               .sort()
+               .map((k)=>`${k}: ${print(env[k])}`);
+    envList.innerHTML = `<pre>${list.join('\n')}</pre>`;
+};
+
 function populateList(newList) {
     watcherElements = [];
     for (var i = 0; i < newList.length; i++) {
@@ -1295,6 +1310,7 @@ onload = function() {
 
     readout = document.getElementById("readout");
     watcherList = document.getElementById("watcherList");
+    envList = document.getElementById("envList");
 
     var c = document.getElementById("canvas");
     c.width = FW;
@@ -1359,7 +1375,7 @@ onload = function() {
         CodeMirror.defineMIME("text/shadama", {
             name: "clike",
             keywords: words("program breed patch def static var if else"),
-            atoms: words("true false this self width height image mousedown mousemove mouseup"),
+            atoms: words("true false this self width height image mousedown mousemove mouseup time"),
         });
 
         editor = CodeMirror.fromTextArea(document.getElementById("code"), {
@@ -1395,6 +1411,7 @@ function runner() {
     }
 
     updateClocks();
+    updateEnv();
 
     window.requestAnimationFrame(runner);
 };
