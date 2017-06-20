@@ -278,12 +278,21 @@ function createIBO (gl, data) {
     return ibo;
 };
 
-function clear() {
+function Display() {
+
+};
+
+Display.prototype.clear = function() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 };
+
+Display.prototype.playSound = function(name) {
+    var dom = document.getElementById(name);
+    if (dom) {dom.play()}
+}
 
 function textureCopy(obj, src, dst) {
     var prog = programs["copy"];
@@ -1057,11 +1066,48 @@ function initServerFiles() {
     });
 };
 
+function initAudio(callback) {
+    var location = window.location.toString();
+
+    var audio = document.createElement("audio");
+    audio.id = "degauss";
+    audio.style = "display: none;";
+    audio.setAttribute("preload", "auto");
+
+    if (location.startsWith("http")) {
+        var slash = location.lastIndexOf("/");
+        var dir = location.slice(0, slash) + "/" + "degauss.mp3";
+        audio.src = dir;
+    } else {
+        audio.crossOrigin = "Anonymous";
+        audio.onerror = function() {
+            console.log("no internet");
+            document.body.removeChild(audio);
+            env.audio = null;
+	    if (callback) {
+		callback();
+	    }
+        }
+        audio.src = "http://tinlizzie.org/~ohshima/ahiru/degauss.mp3";
+    }
+
+    audio.onload = function() {
+	if (callback) {
+            callback();
+	}
+    }
+    document.body.appendChild(audio);
+}
+
 function initEnv(callback) {
     env.mousedown = {x: 0, y: 0};
     env.mousemove = {x: 0, y: 0};
     env.width = FW;
     env.height = FH;
+
+    env["Display"] = new Display();
+
+    initAudio();
 
     var img = document.createElement("img");
     var tmpCanvas = document.createElement("canvas");

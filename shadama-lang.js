@@ -11,6 +11,7 @@ function initCompiler() {
 
 function initSemantics() {
     function addDefaults(obj) {
+        obj["clear"] = new SymTable([]);
         obj["setCount"] = new SymTable([
             ["param", null, "num"]]);
         obj["draw"] = new SymTable([]);
@@ -39,6 +40,9 @@ function initSemantics() {
 	]);
         obj["random"] = new SymTable([
             ["param", null, "seed"],
+	]);
+        obj["playSound"] = new SymTable([
+            ["param", null, "name"],
 	]);
     }
 
@@ -985,12 +989,23 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = n.sourceString;
 
-                if (method === "clear" && r.sourceString === "Display") {
-                    js.push("clear()");
+                // if (method === "clear" && r.sourceString === "Display") {
+                //     js.push("clear()");
+                //     return;
+                // }
+
+                var displayBuiltIns = ["clear", "playSound"];
+
+		var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillImage", "diffuse"];
+                var myTable = table[n.sourceString];
+
+
+                if (r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) {
+                    var actuals = as.static_method_helper(table, null, method, false);
+                    var str = actuals.join(", ");
+                    js.push(`env["${r.sourceString}"].${method}(${str})`);
                     return;
                 }
-
-                var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillImage", "diffuse"];
 
                 if (builtIns.indexOf(method) >= 0) {
                     var actuals = as.static_method_helper(table, null, method, false);
