@@ -1097,7 +1097,42 @@ function initAudio(callback) {
 	}
     }
     document.body.appendChild(audio);
-}
+};
+
+function initImage(name, callback) {
+    var img = document.createElement("img");
+    var tmpCanvas = document.createElement("canvas");
+    var location = window.location.toString();
+
+    if (location.startsWith("http")) {
+        var slash = location.lastIndexOf("/");
+        var dir = location.slice(0, slash) + "/" + name;
+        img.src = dir;
+    } else {
+        img.crossOrigin = "Anonymous";
+        img.onerror = function() {
+            console.log("no internet");
+            document.body.removeChild(img);
+            env.image = emptyImageData(256, 256);
+	    if (callback) {
+		callback();
+	    }
+        }
+        img.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
+    }
+
+    img.onload = function() {
+        tmpCanvas.width = img.width;
+        tmpCanvas.height = img.height;
+        tmpCanvas.getContext('2d').drawImage(img, 0, 0);
+        env.image = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+        document.body.removeChild(img);
+	if (callback) {
+            callback();
+	}
+    }
+    document.body.appendChild(img);
+};
 
 function initEnv(callback) {
     env.mousedown = {x: 0, y: 0};
@@ -1108,35 +1143,7 @@ function initEnv(callback) {
     env["Display"] = new Display();
 
     initAudio();
-
-    var img = document.createElement("img");
-    var tmpCanvas = document.createElement("canvas");
-    var location = window.location.toString();
-
-    if (location.startsWith("http")) {
-        var slash = location.lastIndexOf("/");
-        var dir = location.slice(0, slash) + "/" + "ahiru.png";
-        img.src = dir;
-    } else {
-        img.crossOrigin = "Anonymous";
-        img.onerror = function() {
-            console.log("no internet");
-            document.body.removeChild(img);
-            env.image = emptyImageData(256, 256);
-            callback();
-        }
-        img.src = "http://tinlizzie.org/~ohshima/ahiru/ahiru.png";
-    }
-
-    img.onload = function() {
-        tmpCanvas.width = img.width;
-        tmpCanvas.height = img.height;
-        tmpCanvas.getContext('2d').drawImage(img, 0, 0);
-        env.image = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
-        document.body.removeChild(img);
-        callback();
-    }
-    document.body.appendChild(img);
+    initImage("ahiru.png", callback);
 };
 
 function makeClock() {

@@ -1,0 +1,109 @@
+program "DeGauss"
+breed Turtle (x, y, r, g, b, a, origX, origY, origR, origG, origB, origA)
+patch Field (nx, ny, nr, r, g, b, a)
+
+def fillCircle(cx, cy, r, field) {
+  var dx = this.x - cx;
+  var dy = this.y - cy;
+  var dr = sqrt(dx * dx + dy * dy);
+  if (dr < r) {
+    field.nx = 1.0 - (dx / r);
+    field.ny = 1.0 - (dy / r);
+    field.nr = 1.0 - (dr / r);
+  } else {
+    field.nx = 0.0;
+    field.ny = 0.0;
+  }
+}
+
+def clear(field) {
+ field.r = 0;
+  field.g = 0;
+  field.b = 0;
+  field.a = 0;
+}  
+
+def setColorInField(field) {
+  field.r = this.a;
+  field.g = this.g;
+  field.b = this.b;
+  field.a = this.a;
+}
+
+def remember1() {
+  this.origX = this.x;
+  this.origY = this.y;
+  this.origR = this.r;
+  this.origG = this.g;
+  this.origB = this.b;
+  this.origA = this.a;
+}
+
+def colorize1(field) {
+  var nx = field.nx;
+  var ny = field.ny;
+  this.x = this.x + nx;
+  this.y = this.y + ny;
+}
+
+def colorize2(field) {
+  var nx = field.nx;
+  var ny = field.ny;
+  if (abs(nx) > 0.0 || abs(ny) > 0.0) {
+    var p = field.nr;
+    this.r = field.g * p + field.r * (1.0 - p);
+    this.g = field.g * (1.0 - p);
+    this.b = field.b;
+    this.a = field.a;
+  } else {
+    this.a = field.a;
+    this.g = field.g;
+    this.b = field.b;
+    this.a = field.a;
+  }
+}
+
+def colorize3() {
+  this.x = this.origX;
+  this.y = this.origY;
+}
+
+def degauss(step, begin) {
+  var x = step * 50.0;
+  x = x + (this.origY - 128) / 100.0 + (this.origX -128) / 100.0 * sin(step) * 3;
+  var c = cos(x) * exp(-1 - (step - begin));
+  var s = sin(x) * exp(-1 - (step - begin));
+  
+  this.x = this.origX + (this.origX - 128) * c;
+  this.y = this.origY + (this.origY - 128) * s;
+}
+
+def degaussColor(step, begin) {
+  this.r = this.r - (this.r - this.origR) * 0.02;
+  this.g = this.g - (this.g - this.origG) * 0.02;
+}
+  
+static setup() {
+  Turtle.fillImage("x", "y", "r", "g", "b", "a", image); 
+  Turtle.remember1();
+  Turtle.clear(Field);
+  Turtle.setColorInField(Field);
+//  Turtle.colorize1(Field);
+  Turtle.colorize2(Field);
+//  Turtle.colorize3();
+  Turtle.draw();
+  var begin = null;
+}
+
+static loop(env) {
+
+  if (mousemove.x > 510) {
+    if (begin == null) {
+      begin = time;
+      Display.playSound("degauss");
+    }
+    Turtle.degauss(time, begin);
+    Turtle.degaussColor(time, begin);
+  }
+  Turtle.draw();
+}
