@@ -727,10 +727,10 @@ function debugDisplay(objName, name) {
     console.log(debugArray1);
 
     for (var i = 0; i < width * height; i++) {
-        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0];
-        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1];
-        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2];
-        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3];
+        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 256;
+        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 256;
+        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 256;
+        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 256;
     }
 
     var img = new ImageData(debugArray2, width, height);
@@ -1066,7 +1066,7 @@ function initServerFiles() {
     });
 };
 
-function initAudio(callback) {
+function initAudio(name, keyName, callback) {
     var location = window.location.toString();
 
     var audio = document.createElement("audio");
@@ -1076,19 +1076,19 @@ function initAudio(callback) {
 
     if (location.startsWith("http")) {
         var slash = location.lastIndexOf("/");
-        var dir = location.slice(0, slash) + "/" + "degauss.mp3";
+        var dir = location.slice(0, slash) + "/" + name;
         audio.src = dir;
     } else {
         audio.crossOrigin = "Anonymous";
         audio.onerror = function() {
             console.log("no internet");
             document.body.removeChild(audio);
-            env.audio = null;
+            env[keyName] = null;
 	    if (callback) {
 		callback();
 	    }
         }
-        audio.src = "http://tinlizzie.org/~ohshima/ahiru/degauss.mp3";
+        audio.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
     }
 
     audio.onload = function() {
@@ -1099,7 +1099,7 @@ function initAudio(callback) {
     document.body.appendChild(audio);
 };
 
-function initImage(name, callback) {
+function initImage(name, keyName, callback) {
     var img = document.createElement("img");
     var tmpCanvas = document.createElement("canvas");
     var location = window.location.toString();
@@ -1113,7 +1113,7 @@ function initImage(name, callback) {
         img.onerror = function() {
             console.log("no internet");
             document.body.removeChild(img);
-            env.image = emptyImageData(256, 256);
+            env[keyName] = emptyImageData(256, 256);
 	    if (callback) {
 		callback();
 	    }
@@ -1125,7 +1125,7 @@ function initImage(name, callback) {
         tmpCanvas.width = img.width;
         tmpCanvas.height = img.height;
         tmpCanvas.getContext('2d').drawImage(img, 0, 0);
-        env.image = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+        env[keyName] = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
         document.body.removeChild(img);
 	if (callback) {
             callback();
@@ -1142,8 +1142,9 @@ function initEnv(callback) {
 
     env["Display"] = new Display();
 
-    initAudio();
-    initImage("ahiru.png", callback);
+    initAudio("degauss.mp3", "degauss");
+    initImage("mask.png", "mask");
+    initImage("ahiru.png", "image", callback);
 };
 
 function makeClock() {
