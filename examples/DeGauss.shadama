@@ -1,34 +1,7 @@
 program "DeGauss"
 breed Pict (x, y, r, g, b, a, origX, origY, origR, origG, origB, origA)
-patch Field (nx, ny, nr, r, g, b, a)
-
-def fillCircle(cx, cy, r, field) {
-  var dx = this.x - cx;
-  var dy = this.y - cy;
-  var dr = sqrt(dx * dx + dy * dy);
-  if (dr < r) {
-    field.nx = 1.0 - (dx / r);
-    field.ny = 1.0 - (dy / r);
-    field.nr = 1.0 - (dr / r);
-  } else {
-    field.nx = 0.0;
-    field.ny = 0.0;
-  }
-}
-
-def clear(field) {
- field.r = 0;
-  field.g = 0;
-  field.b = 0;
-  field.a = 0;
-}  
-
-def setColorInField(field) {
-  field.r = this.a;
-  field.g = this.g;
-  field.b = this.b;
-  field.a = this.a;
-}
+breed Filler (x, y, r, g, b, a)
+patch Blur (level)
 
 def remember1() {
   this.origX = this.x;
@@ -39,28 +12,25 @@ def remember1() {
   this.origA = this.a;
 }
 
-def colorize1(field) {
-  var nx = field.nx;
-  var ny = field.ny;
-  this.x = this.x + nx;
-  this.y = this.y + ny;
+def storeBlur(blur) {
+  blur.level = this.r;
 }
 
-def colorize2(field) {
-  var nx = field.nx;
-  var ny = field.ny;
-  if (abs(nx) > 0.0 || abs(ny) > 0.0) {
-    var p = field.nr;
-    this.r = field.g * p + field.r * (1.0 - p);
-    this.g = field.g * (1.0 - p);
-    this.b = field.b;
-    this.a = field.a;
-  } else {
-    this.a = field.a;
-    this.g = field.g;
-    this.b = field.b;
-    this.a = field.a;
-  }
+def restore() {
+  this.x = this.origX;
+  this.y = this.origY;
+  this.r = this.origR;
+  this.g = this.origG;
+  this.b = this.origB;
+  this.a = this.origA;
+}
+
+def colorize2(blur) {
+  var p = blur.level;
+  this.r = this.origG * p + this.origR * (1.0 - p);
+  this.g = this.origB;
+  this.b = this.origG * p + this.origB * (1.0 - p);
+  this.a = this.origA;
 }
 
 def colorize3() {
@@ -84,20 +54,22 @@ def degaussColor(step, begin) {
 }
   
 static setup() {
-  Pict.fillImage("x", "y", "r", "g", "b", "a", image); 
+  Pict.fillImage("x", "y", "r", "g", "b", "a", image);
   Pict.remember1();
-  Pict.clear(Field);
-  Pict.setColorInField(Field);
-//  Pict.colorize1(Field);
-  Pict.colorize2(Field);
-//  Pict.colorize3();
+  Filler.fillImage("x", "y", "r", "g", "b", "a", blur);
+  Filler.storeBlur(Blur);
+  Pict.colorize2(Blur);
   Pict.draw();
   var begin = null;
 }
 
-static loop(env) {
+static rrestore() {
+  Pict.restore();
+}
 
-  if (mousemove.x > 510) {
+static step() {
+
+  if (mousemove.x > 505) {
     if (begin == null) {
       begin = time;
       Display.playSound("degauss");

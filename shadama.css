@@ -14,7 +14,7 @@
   border: solid #444444 1px;
 }
 
-#canvas {
+#shadamaCanvas {
     image-rendering: -moz-crisp-edges;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: pixelated;
