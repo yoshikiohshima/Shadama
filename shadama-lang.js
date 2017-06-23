@@ -1105,11 +1105,21 @@ uniform sampler2D u_that_y;
             PrimitiveCall(n, _o, as, _c) {
                 var table = this.args.table;
                 var js = this.args.js;
-
-                var str = n.sourceString;
-                if (str === "floor") {
-                    js.push("Math.floor(");
-                    as.children[0].children[0].static(table, js, this.args.method, this.args.isOther);
+                var prim = n.sourceString;
+                var math = ["random", // 0 arg
+                            "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh",
+                            "cbrt", "ceil", "cos", "cosh", "exp", "expm1", "floor",
+                            "log", "log1p", "log10", "log2", "round", "sign", "sin",
+                            "sinh", "sqrt", "tan", "tanh", "trunc", // 1 arg
+                            "atan2", "log2", "max", "min", "pow" // 2 args
+                           ];
+                if (math.indexOf(prim) >= 0) {
+                    var actuals = as.static_method_helper(table, null, null, false);
+                    var str = actuals.join(", ");
+                    js.push("Math.");
+                    js.push(prim);
+                    js.push("(");
+                    js.push(str);
                     js.push(")");
                 }
             },
