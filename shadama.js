@@ -12,6 +12,9 @@ var FH = FIELD_HEIGHT;
 var readout;
 
 var gl;
+var targetTexture;
+var readPixelArray;
+var readPixelCallback;
 
 var runTests = false;
 
@@ -33,6 +36,11 @@ var programName = null;
 var watcherList;  // DOM
 var watcherElements = []; // [DOM]
 var envList; // DOM
+
+var shadamaCanvas;
+
+var keepGoing = true;
+var animationRequested = false;
 
 var debugCanvas1;
 var debugArray;
@@ -75,7 +83,7 @@ function initBreedVAO(gl) {
 
     set_buffer_attribute(gl, [positionBuffer], [allIndices], attrLocations, attrStrides);
     gl.bindVertexArray(null);
-};
+}
 
 function initPatchVAO(gl) {
     patchVAO = gl.createVertexArray();
@@ -99,7 +107,7 @@ function initPatchVAO(gl) {
 
     set_buffer_attribute(gl, [positionBuffer], [rect], attrLocations, attrStrides);
     gl.bindVertexArray(null);
-};
+}
 
 function createShader(gl, id, source) {
     var type;
@@ -126,7 +134,7 @@ function createShader(gl, id, source) {
     console.log(gl.getShaderInfoLog(shader));
     alert(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
-};
+}
 
 function createProgram(gl, vertexShader, fragmentShader) {
     var program = gl.createProgram();
@@ -141,7 +149,13 @@ function createProgram(gl, vertexShader, fragmentShader) {
     console.log(gl.getProgramInfoLog(program));
     alert(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
-};
+}
+
+function evalShadama(source, /*become "dynamically" scoped =>*/env, scripts) {
+  // evaluates ohm compiled shadama code (js code) so that variables are
+  // accessible inside the eval
+  return eval(source);
+}
 
 function loadShadama(id, source) {
     var newSetupCode;
@@ -165,8 +179,8 @@ function loadShadama(id, source) {
     delete result["_programName"];
 
     for (var k in result) {
-        if (typeof result[k] === "string") { // static mathod case
-            statics[k] = eval(result[k]);
+        if (typeof result[k] === "string") { // static function case
+            statics[k] = evalShadama(result[k], env, scripts);
             staticsList.push(k);
             if (k === "setup") {
                 newSetupCode = result[k];
@@ -191,8 +205,9 @@ function loadShadama(id, source) {
         setupCode = newSetupCode;
     }
     populateList(staticsList);
+    runLoop();
     return source;
-};
+}
 
 function createTexture(gl, data, type, width, height) {
     if (!type) {
@@ -221,7 +236,7 @@ function createTexture(gl, data, type, width, height) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
     return tex;
-};
+}
 
 function initFramebuffer(gl, buffer, tex, format, width, height) {
     if (!format) {
@@ -242,12 +257,12 @@ function initFramebuffer(gl, buffer, tex, format, width, height) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
     }
     gl.bindTexture(gl.TEXTURE_2D, null);
-};
+}
 
 function setTargetBuffer(gl, buffer, tex) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-};
+}
 
 function setTargetBuffers(gl, buffer, tex) {
     var list = [];
@@ -258,7 +273,7 @@ function setTargetBuffers(gl, buffer, tex) {
         list.push(val);
     }
     gl.drawBuffers(list);
-};
+}
 
 function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
     for (var i in buffers) {
@@ -268,7 +283,7 @@ function set_buffer_attribute(gl, buffers, data, attrL, attrS) {
         gl.enableVertexAttribArray(attrL[i]);
         gl.vertexAttribPointer(attrL[i], attrS[i], gl.FLOAT, false, 0, 0);
     }
-};
+}
 
 function createIBO (gl, data) {
     var ibo = gl.createBuffer();
@@ -276,18 +291,24 @@ function createIBO (gl, data) {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int32Array(data), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     return ibo;
-};
+}
 
 function Display() {
-
-};
+}
 
 Display.prototype.clear = function() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (targetTexture) {
+	setTargetBuffer(gl, framebufferF, targetTexture);
+    } else {
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-};
+    if (!targetTexture) {
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+}
 
 Display.prototype.playSound = function(name) {
     var dom = document.getElementById(name);
@@ -325,17 +346,7 @@ function textureCopy(obj, src, dst) {
 
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
-
-function randomDirection() {
-    var r = Math.random();
-    var r = r * Math.PI * 2.0;
-    return [Math.cos(r), Math.sin(r)];
-};
-
-function randomPosition() {
-    return [Math.random() * FW, Math.random() * FH];
-};
+}
 
 var updateOwnVariable = function(obj, name, optData) {
     var width;
@@ -365,7 +376,7 @@ var updateOwnVariable = function(obj, name, optData) {
     obj.own[name] = name;
     obj[name] = createTexture(gl, ary, gl.R32F, width, height);
     obj["new"+name] = createTexture(gl, ary, gl.R32F, width, height);
-};
+}
 
 var removeOwnVariable = function(obj, name) {
     delete obj.own[name];
@@ -377,60 +388,90 @@ var removeOwnVariable = function(obj, name) {
         gl.deleteTexture(obj["new"+name]);
         delete obj["new"+name];
     }
-};
+}
 
-function Breed(count) {
+function setTarget(aTexture) {
+    targetTexture = aTexture;
+}
+
+function makeTarget() {
+    if (!targetTexture)
+        targetTexture = createTexture(gl, new Uint8Array(FW*FH*4), gl.UNSIGNED_BYTE, FW, FH);
+}
+
+function setReadPixelCallback(func) {
+    readPixelCallback = func;
+}
+
+function readPixels() {
+    var width = FW;
+    var height = FH;
+
+    if (!readPixelArray) {
+        readPixelArray = new Uint8Array(width * height * 4);
+    }
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, readPixelArray);
+    
+    var clamped = new Uint8ClampedArray(readPixelArray);
+    var img = new ImageData(clamped, width, height);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return img;
+}
+
+class Breed {
+
+  constructor(count) {
     this.own = {};
     this.count = count;
-};
+  }
 
-Breed.prototype.fillRandom = function(name, min, max) {
+  fillRandom(name, min, max) {
     var ary = new Float32Array(T * T);
     var range = max - min;
     for (var i = 0; i < ary.length; i++) {
-        ary[i] = Math.random() * range + min;
+      ary[i] = Math.random() * range + min;
     }
     updateOwnVariable(this, name, ary);
-};
+  }
 
-Breed.prototype.fillRandomDir = function(xName, yName) {
+  fillRandomDir(xName, yName) {
     var x = new Float32Array(T * T);
     var y = new Float32Array(T * T);
     for (var i = 0; i < x.length; i++) {
-        var dir = Math.random() * Math.PI * 2.0;
-        x[i] = Math.cos(dir);
-        y[i] = Math.sin(dir);
+      var dir = Math.random() * Math.PI * 2.0;
+      x[i] = Math.cos(dir);
+      y[i] = Math.sin(dir);
     }
     updateOwnVariable(this, xName, x);
     updateOwnVariable(this, yName, y);
-};
+  }
 
-Breed.prototype.fillSpace = function(xName, yName, xDim, yDim) {
+  fillSpace(xName, yName, xDim, yDim) {
     this.count = xDim * yDim;
     var x = new Float32Array(T * T);
     var y = new Float32Array(T * T);
 
     for (var j = 0; j < yDim; j++) {
-        for (var i = 0; i < xDim; i++) {
-            var ind = xDim * j + i;
-            x[ind] = i;
-            y[ind] = j;
-        }
+      for (var i = 0; i < xDim; i++) {
+        var ind = xDim * j + i;
+        x[ind] = i;
+        y[ind] = j;
+      }
     }
     updateOwnVariable(this, xName, x);
     updateOwnVariable(this, yName, y);
-};
+  }
 
-Breed.prototype.fill = function(name, value) {
+  fill(name, value) {
     var x = new Float32Array(T * T);
 
     for (var j = 0; j < this.count; j++) {
-        x[j] = value;
+      x[j] = value;
     }
     updateOwnVariable(this, name, x);
-};
+  }
 
-Breed.prototype.fillImage = function(xName, yName, rName, gName, bName, aName, imagedata) {
+  fillImage(xName, yName, rName, gName, bName, aName, imagedata) {
     var xDim = imagedata.width;
     var yDim = imagedata.height;
     this.fillSpace(xName, yName, xDim, yDim);
@@ -441,66 +482,30 @@ Breed.prototype.fillImage = function(xName, yName, rName, gName, bName, aName, i
     var a = new Float32Array(T * T);
 
     for (var j = 0; j < yDim; j++) {
-        for (var i = 0; i < xDim; i++) {
-            var src = j * xDim + i;
-            var dst = (yDim - 1 - j) * xDim + i;
-            r[dst] = imagedata.data[src * 4 + 0] / 255.0;
-            g[dst] = imagedata.data[src * 4 + 1] / 255.0;
-            b[dst] = imagedata.data[src * 4 + 2] / 255.0;
-            a[dst] = imagedata.data[src * 4 + 3] / 255.0;
-        }
+      for (var i = 0; i < xDim; i++) {
+        var src = j * xDim + i;
+        var dst = (yDim - 1 - j) * xDim + i;
+        r[dst] = imagedata.data[src * 4 + 0] / 255.0;
+        g[dst] = imagedata.data[src * 4 + 1] / 255.0;
+        b[dst] = imagedata.data[src * 4 + 2] / 255.0;
+        a[dst] = imagedata.data[src * 4 + 3] / 255.0;
+      }
     }
     updateOwnVariable(this, rName, r);
     updateOwnVariable(this, gName, g);
     updateOwnVariable(this, bName, b);
     updateOwnVariable(this, aName, a);
-};
+  }
 
-function Patch() {
-   this.own = {};
-};
-
-function makePrimitive(gl, name, uniforms, vao) {
-    var vs = createShader(gl, name + ".vert");
-    var fs = createShader(gl, name + ".frag");
-
-    var prog = createProgram(gl, vs, fs);
-
-    var uniLocations = {};
-    uniforms.forEach(function (n) {
-        uniLocations[n] = gl.getUniformLocation(prog, n);
-    });
-
-    return {program: prog, uniLocations: uniLocations, vao: vao};
-};
-
-function drawBreedProgram(gl) {
-    return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
-};
-
-function drawPatchProgram(gl) {
-    return makePrimitive(gl, "drawPatch", ["u_a", "u_r", "u_g", "u_b"], patchVAO);
-};
-
-function debugPatchProgram(gl) {
-    return makePrimitive(gl, "debugPatch", ["u_value"], patchVAO);
-};
-
-function diffusePatchProgram(gl) {
-    return makePrimitive(gl, "diffusePatch", ["u_value"], patchVAO);
-};
-
-function copyProgram(gl) {
-    return makePrimitive(gl, "copy", ["u_value"], patchVAO);
-};
-
-function debugFrameProgram(gl) {
-    return makePrimitive(gl, "debugFrame", ["u_this_r", "u_this_g", "u_this_b", "u_this_a"], breedVAO);
-};
-
-Breed.prototype.draw = function() {
+  draw() {
     var prog = programs["drawBreed"];
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    if (targetTexture) {
+      setTargetBuffer(gl, framebufferF, targetTexture);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
@@ -540,90 +545,36 @@ Breed.prototype.draw = function() {
 
     gl.flush();
     gl.disable(gl.BLEND);
-};
+    if (!targetTexture) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+  }
 
-Breed.prototype.debugFrame = function() {
-    var prog = programs["debugFrame"];
-
-    var targets = ["r", "g", "b", "a"].map((n) => this["new" + n]);
-    setTargetBuffers(gl, framebufferT, targets);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    //    gl.blendFunc(gl.ONE, gl.ONE);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.r);
-    gl.uniform1i(prog.uniLocations["u_this_r"], 0);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.g);
-    gl.uniform1i(prog.uniLocations["u_this_g"], 1);
-
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, this.b);
-    gl.uniform1i(prog.uniLocations["u_this.b"], 2);
-
-    gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, this.a);
-    gl.uniform1i(prog.uniLocations["u_this_a"], 3);
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-
-    gl.flush();
-    gl.disable(gl.BLEND);
-
-    ["r", "g", "b", "a"].forEach((n) => {
-	var tmp = this["new"+n];
-	this["new"+n] = this[n];
-	this[n] = tmp;
-    });
-};
-
-Breed.prototype.increasePatch = function(patch, value) {
-    var prog = programs["setPatch"];  // the same program but with blend enabled.
-    setTargetBuffer(gl, framebufferF, patch.values);
-
-    gl.useProgram(prog.program);
-    gl.bindVertexArray(prog.vao);
-
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
-
-    gl.viewport(0, 0, FW, FH);
-
-    gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-    gl.uniform1f(prog.uniLocations["u_particleLength"], T);
-    gl.uniform1i(prog.uniLocations["u_position"], 0);
-    gl.uniform4fv(prog.uniLocations["u_value"], value);
-    gl.uniform1i(prog.uniLocations["u_type"], patch.type);
-
-    gl.drawArrays(gl.POINTS, 0, this.count);
-    gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.disable(gl.BLEND);
-};
-
-Breed.prototype.setCount = function(n) {
+  setCount(n) {
     var oldCount = this.count;
     if (n < 0 || !n) {
-        n = 0;
+      n = 0;
     }
     this.count = n;
     //
-};
+  }
+}
 
-Patch.prototype.draw = function() {
+
+class Patch {
+
+  constructor() {
+   this.own = {};
+  }
+
+  draw() {
+    if (targetTexture) {
+      setTargetBuffer(gl, framebufferF, targetTexture);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
     var prog = programs["drawPatch"];
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(prog.program);
     gl.bindVertexArray(prog.vao);
 
@@ -648,10 +599,12 @@ Patch.prototype.draw = function() {
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
+    if (!targetTexture) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+  }
 
-Patch.prototype.diffuse = function(name) {
+  diffuse(name) {
     var prog = programs["diffusePatch"];
 
     var target = this["new"+name];
@@ -676,7 +629,220 @@ Patch.prototype.diffuse = function(name) {
 
     this["new"+name] = source;
     this[name] = target;
-};
+  };
+
+}
+
+
+var shaders = {
+  "copy.vert":
+`#version 300 es
+layout (location = 0) in vec2 a_position;
+
+void main(void) {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}`,
+  "copy.frag":
+`#version 300 es
+precision highp float;
+
+uniform sampler2D u_value;
+
+out float fragColor;
+
+void main(void) {
+  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+  fragColor = texelFetch(u_value, fc, 0).r;
+}`,
+  "drawBreed.vert":
+`#version 300 es
+layout (location = 0) in vec2 a_index;
+
+uniform vec2 u_resolution;
+uniform float u_particleLength;
+uniform sampler2D u_x;
+uniform sampler2D u_y;
+
+uniform sampler2D u_r;
+uniform sampler2D u_g;
+uniform sampler2D u_b;
+uniform sampler2D u_a;
+
+out vec4 v_color;
+
+void main(void) {
+    vec2 zeroToOne = a_index / u_particleLength;
+    float x = texelFetch(u_x, ivec2(a_index), 0).r;
+    float y = texelFetch(u_y, ivec2(a_index), 0).r;
+    vec2 dPos = vec2(x, y);   // (0-resolution, 0-resolution)
+    vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
+    vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+    gl_Position = vec4(clipPos, 0, 1.0);
+
+    float r = texelFetch(u_r, ivec2(a_index), 0).r;
+    float g = texelFetch(u_g, ivec2(a_index), 0).r;
+    float b = texelFetch(u_b, ivec2(a_index), 0).r;
+    float a = texelFetch(u_a, ivec2(a_index), 0).r;
+    v_color = vec4(r, g, b, a);
+    gl_PointSize = 1.0;
+}`,
+
+  "drawBreed.frag":
+`#version 300 es
+precision highp float;
+
+in vec4 v_color;
+
+out vec4 fragColor;
+
+void main(void) {
+  fragColor = v_color;
+}`,
+
+  "drawPatch.vert":
+`#version 300 es
+layout (location = 0) in vec2 a_position;
+
+void main(void) {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}`,
+
+  "drawPatch.frag":
+`#version 300 es
+precision highp float;
+
+uniform sampler2D u_r;
+uniform sampler2D u_g;
+uniform sampler2D u_b;
+uniform sampler2D u_a;
+
+out vec4 fragColor;
+
+void main(void) {
+  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+  float r = texelFetch(u_r, fc, 0).r;
+  float g = texelFetch(u_g, fc, 0).r;
+  float b = texelFetch(u_b, fc, 0).r;
+  float a = texelFetch(u_a, fc, 0).r;
+  fragColor = vec4(r, g, b, a);
+}`,
+
+  "diffusePatch.vert":
+`#version 300 es
+layout (location = 0) in vec2 a_position;
+
+void main(void) {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}`,
+
+  "diffusePatch.frag":
+`#version 300 es
+precision highp float;
+uniform sampler2D u_value;
+
+const float weight[9] = float[9](
+    0.077847, 0.123317, 0.077847,
+    0.123317, 0.195346, 0.123317,
+    0.077847, 0.123317, 0.077847
+);
+
+out float fragColor;
+
+void main(void) {
+  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+  float v;
+  v = texelFetch(u_value, fc + ivec2(-1, -1), 0).r * weight[0];
+  v += texelFetch(u_value, fc + ivec2(-1,  0), 0).r * weight[1];
+  v += texelFetch(u_value, fc + ivec2(-1,  1), 0).r * weight[2];
+  v += texelFetch(u_value, fc + ivec2( 0, -1), 0).r * weight[3];
+  v += texelFetch(u_value, fc + ivec2( 0,  0), 0).r * weight[4];
+  v += texelFetch(u_value, fc + ivec2( 0,  1), 0).r * weight[5];
+  v += texelFetch(u_value, fc + ivec2( 1, -1), 0).r * weight[6];
+  v += texelFetch(u_value, fc + ivec2( 1,  0), 0).r * weight[7];
+  v += texelFetch(u_value, fc + ivec2( 1,  1), 0).r * weight[8];
+  v = v <= (1.0/256.0) ? 0.0 : v;
+  fragColor = v;
+}`,
+
+  "debugPatch.vert":
+`#version 300 es
+layout (location = 0) in vec2 a_position;
+
+void main(void) {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}`,
+
+  "debugPatch.frag":
+`#version 300 es
+precision highp float;
+uniform sampler2D u_value;
+
+out vec4 fragColor;
+
+void main(void) {
+    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
+    fragColor = texelFetch(u_value, fc, 0);
+}`
+}
+
+
+function makePrimitive(gl, name, uniforms, vao) {
+    var vs = createShader(gl, name + ".vert", shaders[name+'.vert']);
+    var fs = createShader(gl, name + ".frag", shaders[name+'.frag']);
+
+    var prog = createProgram(gl, vs, fs);
+
+    var uniLocations = {};
+    uniforms.forEach(function (n) {
+        uniLocations[n] = gl.getUniformLocation(prog, n);
+    });
+
+    return {program: prog, uniLocations: uniLocations, vao: vao};
+}
+
+function drawBreedProgram(gl) {
+    return makePrimitive(gl, "drawBreed", ["u_resolution", "u_particleLength", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+}
+
+function drawPatchProgram(gl) {
+    return makePrimitive(gl, "drawPatch", ["u_a", "u_r", "u_g", "u_b"], patchVAO);
+}
+
+function debugPatchProgram(gl) {
+    return makePrimitive(gl, "debugPatch", ["u_value"], patchVAO);
+}
+
+function diffusePatchProgram(gl) {
+    return makePrimitive(gl, "diffusePatch", ["u_value"], patchVAO);
+}
+
+function copyProgram(gl) {
+    return makePrimitive(gl, "copy", ["u_value"], patchVAO);
+}
+
+// Breed.prototype.increasePatch = function(patch, value) {
+//     var prog = programs["setPatch"];  // the same program but with blend enabled.
+//     setTargetBuffer(gl, framebufferF, patch.values);
+
+//     gl.useProgram(prog.program);
+//     gl.bindVertexArray(prog.vao);
+
+//     gl.enable(gl.BLEND);
+//     gl.blendFunc(gl.ONE, gl.ONE);
+
+//     gl.viewport(0, 0, FW, FH);
+
+//     gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+//     gl.uniform1f(prog.uniLocations["u_particleLength"], T);
+//     gl.uniform1i(prog.uniLocations["u_position"], 0);
+//     gl.uniform4fv(prog.uniLocations["u_value"], value);
+//     gl.uniform1i(prog.uniLocations["u_type"], patch.type);
+
+//     gl.drawArrays(gl.POINTS, 0, this.count);
+//     gl.flush();
+//     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+//     gl.disable(gl.BLEND);
+// };
 
 function debugDisplay(objName, name) {
     var object = env[objName];
@@ -727,16 +893,16 @@ function debugDisplay(objName, name) {
     console.log(debugArray1);
 
     for (var i = 0; i < width * height; i++) {
-        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 256;
-        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 256;
-        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 256;
-        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 256;
+        debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
+        debugArray2[i * 4 + 1] = debugArray[i * 4 + 1] * 255;
+        debugArray2[i * 4 + 2] = debugArray[i * 4 + 2] * 255;
+        debugArray2[i * 4 + 3] = debugArray[i * 4 + 3] * 255;
     }
 
     var img = new ImageData(debugArray2, width, height);
     debugCanvas1.getContext("2d").putImageData(img, 0, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-};
+}
 
 function update(cls, name, fields) {
     var stringify = (obj) => {
@@ -796,7 +962,7 @@ function update(cls, name, fields) {
 
     toBeCreated.forEach((k) => updateOwnVariable(obj, k));
     toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
-};
+}
 
 function programFromTable(table, vert, frag, name) {
     return (function () {
@@ -838,8 +1004,8 @@ function programFromTable(table, vert, frag, name) {
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-	    if (debugName === "cream") {
-	    }
+            if (debugName === "cream") {
+            }
             var object = objects["this"];
 
             outs.forEach((pair) => {
@@ -915,7 +1081,7 @@ function programFromTable(table, vert, frag, name) {
             }
         }
     })();
-};
+}
 
 function cleanUpEditorState() {
     if (editor) {
@@ -925,7 +1091,7 @@ function cleanUpEditorState() {
         }
         editor.getAllMarks().forEach(function(mark) { mark.clear(); });
     }
-};
+}
 
 function syntaxError(match, src) {
     function toDOM(x) {
@@ -960,7 +1126,7 @@ function syntaxError(match, src) {
             2500
         );
     }
-};
+}
 
 function resetSystem() {
     for (var s in steppers) {
@@ -968,6 +1134,9 @@ function resetSystem() {
     }
     removeAll();
 
+    scripts = {};
+    statics = {};
+    staticsList = [];
     steppers = {};
     setupCode = null;
     programName = null;
@@ -984,11 +1153,12 @@ function resetSystem() {
             delete env[o];
         }
     }
-};
+}
 
 function updateCode() {
     var code = editor.getValue();
     loadShadama(null, code);
+    maybeRunner();
     if (!programName) {
         programName = prompt("Enter the program name:", "My Cool Effect!");
         if (!programName) {
@@ -1003,12 +1173,12 @@ function updateCode() {
 };
 
 function callSetup() {
-    loadTime = performance.now() / 1000.0;
+    loadTime = window.performance.now() / 1000.0;
     env["time"] = 0.0;
     if (statics["setup"]) {
         statics["setup"](env);
     }
-};
+}
 
 function addListeners(aCanvas) {
     var rect = aCanvas.getBoundingClientRect();
@@ -1023,7 +1193,7 @@ function addListeners(aCanvas) {
     aCanvas.addEventListener("mouseup", function(e) {
         env.mouseup = {x: e.clientX, y: FH - (e.clientY - top)};
     });
-};
+}
 
 function emptyImageData(width, height) {
     var ary = new Uint8ClampedArray(width * height * 4);
@@ -1034,7 +1204,7 @@ function emptyImageData(width, height) {
         ary[i * 4 + 3] = 255;
     }
     return new ImageData(ary, 256, 256);
-};
+}
 
 function initServerFiles() {
     var location = window.location.toString();
@@ -1064,7 +1234,7 @@ function initServerFiles() {
 	xhttp.open("GET", file, true);
 	xhttp.send();
     });
-};
+}
 
 function initAudio(name, keyName, callback) {
     var location = window.location.toString();
@@ -1097,7 +1267,7 @@ function initAudio(name, keyName, callback) {
 	}
     }
     document.body.appendChild(audio);
-};
+}
 
 function initImage(name, keyName, callback) {
     var img = document.createElement("img");
@@ -1132,7 +1302,7 @@ function initImage(name, keyName, callback) {
 	}
     }
     document.body.appendChild(img);
-};
+}
 
 function initEnv(callback) {
     env.mousedown = {x: 0, y: 0};
@@ -1145,7 +1315,7 @@ function initEnv(callback) {
     initAudio("degauss.mp3", "degauss");
     initImage("mask.png", "mask");
     initImage("ahiru.png", "image", callback);
-};
+}
 
 function makeClock() {
     var aClock = document.createElement("canvas");
@@ -1158,27 +1328,27 @@ function makeClock() {
     aClock.onclick = function () {toggleScript(aClock.entry.scriptName)};
 
     return aClock;
-};
+}
 
 function stopClock(aClock) {
     aClock.ticking = false;
     drawClock(aClock);
-};
+}
 
 function startClock(aClock) {
     aClock.ticking = true;
     drawClock(aClock);
-};
+}
 
 function stopScript(name) {
     delete steppers[name];
     stopClock(detectEntry(name).clock);
-};
+}
 
 function startScript(name) {
     steppers[name] = name;
     startClock(detectEntry(name).clock);
-};
+}
 
 function toggleScript(name) {
     if (steppers[name]) {
@@ -1186,7 +1356,7 @@ function toggleScript(name) {
     } else {
         startScript(name);
     }
-};
+}
 
 function drawClock(aClock) {
     var hand = aClock.hand;
@@ -1226,7 +1396,7 @@ function drawClock(aClock) {
     drawFace(aClock.getContext('2d'), 16, backColor);
     drawHand(aClock.getContext('2d'), 10, dir);
     ctx.resetTransform();
-};
+}
 
 function makeEntry(name) {
     var entry = document.createElement("div");
@@ -1239,14 +1409,14 @@ function makeEntry(name) {
     button.className = "staticName";
     button.innerHTML = name;
     button.onclick = function() {
-        env["time"] = (performance.now() / 1000) - loadTime;
+        env["time"] = (window.performance.now() / 1000) - loadTime;
         if (statics[entry.scriptName]) {
             statics[entry.scriptName](env);
         }
     };
     entry.appendChild(button);
     return entry;
-};
+}
 
 function detectEntry(name) {
     for (var j = 0; j < watcherList.children.length; j++) {
@@ -1254,19 +1424,19 @@ function detectEntry(name) {
         if (oldEntry.scriptName === name) {return oldEntry;}
     }
     return null;
-};
+}
 
 function removeAll() {
     while (watcherList.firstChild) {
 	watcherList.removeChild(watcherList.firstChild);
     }
-};
+}
 
 function addAll(elems) {
     for (var j = 0; j < elems.length; j++) {
         watcherList.appendChild(elems[j]);
     }
-};
+}
 
 function updateClocks() {
     for (var j = 0; j < watcherList.children.length; j++) {
@@ -1277,7 +1447,7 @@ function updateClocks() {
         }
         drawClock(aClock);
     }
-};
+}
 
 function updateEnv() {
     function printNum(obj) {
@@ -1296,7 +1466,7 @@ function updateEnv() {
                .sort()
                .map((k)=>`${k}: ${print(env[k])}`);
     envList.innerHTML = `<pre>${list.join('\n')}</pre>`;
-};
+}
 
 function populateList(newList) {
     watcherElements = [];
@@ -1314,7 +1484,13 @@ function populateList(newList) {
     if (statics["loop"]) {
         startScript("loop");
     }
-};
+}
+
+function runLoop() {
+  if (statics["loop"]) {
+    steppers["loop"] = "loop";
+  }
+}
 
 function selectFile(dom) {
     if (dom.selectedIndex > 0) {// 0 is for the default label
@@ -1328,9 +1504,11 @@ function selectFile(dom) {
 	    if (editor) {
 		editor.doc.setValue(source);
 	    }
+	    env["Display"].clear();
+	    maybeRunner();
         }
     }
-};
+}
 
 function initFileList(optSelection) {
     if (optSelection) {
@@ -1355,7 +1533,7 @@ function initFileList(optSelection) {
             dom.selectedIndex = selectIndex;
         }
     }
-};
+}
 
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
@@ -1369,16 +1547,19 @@ onload = function() {
     watcherList = document.getElementById("watcherList");
     envList = document.getElementById("envList");
 
-    var c = document.getElementById("canvas");
-    c.width = FW;
-    c.height = FH;
-    c.style.width = (FW * ENLARGE) + "px";
-    c.style.height = (FH * ENLARGE) + "px";
+    shadamaCanvas = document.getElementById("shadamaCanvas");
+    if (!shadamaCanvas) {
+	shadamaCanvas = document.createElement("canvas");
+    }
+    shadamaCanvas.id = "shadamaCanvas";
+    shadamaCanvas.width = FW;
+    shadamaCanvas.height = FH;
+    shadamaCanvas.style.width = (FW * ENLARGE) + "px";
+    shadamaCanvas.style.height = (FH * ENLARGE) + "px";
 
-    addListeners(c);
+    addListeners(shadamaCanvas);
 
-    gl = c.getContext("webgl2");
-
+    gl = shadamaCanvas.getContext("webgl2");
     var ext = gl.getExtension("EXT_color_buffer_float");
 
     initBreedVAO(gl);
@@ -1392,9 +1573,8 @@ onload = function() {
     programs["debugPatch"] = debugPatchProgram(gl);
     programs["diffusePatch"] = diffusePatchProgram(gl);
     programs["copy"] = copyProgram(gl);
-    programs["debugFrame"] = debugFrameProgram(gl);
 
-    debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T)
+    debugTexture0 = createTexture(gl, new Float32Array(T*T*4), gl.FLOAT, T, T);
     debugTexture1 = createTexture(gl, new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
     var tmp = createTexture(gl, new Float32Array(T * T), gl.R32F, T, T);
@@ -1416,8 +1596,6 @@ onload = function() {
     framebufferD = gl.createFramebuffer();
     initFramebuffer(gl, framebufferD, tmp, gl.FLOAT, FW, FH);
     gl.deleteTexture(tmp);
-
-
 
     if (runTests) {
         grammarUnitTests();
@@ -1449,11 +1627,18 @@ onload = function() {
         if (editor) {
             editor.doc.setValue(source);
         }
-        runner();
+	maybeRunner();
     });
-};
+}
+
+function maybeRunner() {
+    if (!animationRequested) {
+	runner();
+    }
+}
 
 function runner() {
+    animationRequested = false;
     var start = performance.now();
     step();
     var now = performance.now();
@@ -1469,15 +1654,32 @@ function runner() {
     }
 
     updateClocks();
-    window.requestAnimationFrame(runner);
-};
+
+    if (readPixelCallback) {
+	readPixelCallback(readPixels());
+    }
+    if (keepGoing) {
+	window.requestAnimationFrame(runner);
+	animationRequested = true;
+    } else {
+	keepGoing = true;
+    }
+}
 
 function step() {
-    env["time"] = (performance.now() / 1000) - loadTime;
+    env["time"] = (window.performance.now() / 1000) - loadTime;
     for (var k in steppers) {
         var func = statics[k];
         if (func) {
             func(env);
         }
     }
+}
+
+function getCanvas() {
+  return shadamaCanvas;
+}
+
+function pause() {
+  keepGoing = false;
 }

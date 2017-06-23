@@ -1,13 +1,144 @@
 "use strict";
 
+var shadamaGrammar = String.raw`
+Shadama {
+  TopLevel
+    = ProgramDecl? (Breed | Patch | Script | Static)*
+
+  ProgramDecl = program string
+  Breed = breed ident "(" Formals ")"
+  Patch = patch ident "(" Formals ")"
+  Script = def ident "(" Formals ")" Block
+  Static = static ident "(" Formals ")" Block
+
+  Formals
+    = ident ("," ident)* -- list
+    | empty
+
+  Block = "{" StatementList "}"
+
+  StatementList = Statement*
+
+  Statement
+    = Block
+    | VariableStatement
+    | AssignmentStatement
+    | ExpressionStatement
+    | IfStatement
+    | ExpressionStatement
+
+  VariableStatement = var VariableDeclaration ";"
+  VariableDeclaration = ident Initialiser?
+  Initialiser = "=" Expression
+
+  ExpressionStatement = Expression ";"
+  IfStatement = if "(" Expression ")" Statement (else Statement)?
+
+  AssignmentStatement
+    = LeftHandSideExpression "=" Expression ";"
+
+  LeftHandSideExpression
+    = ident "." ident -- field
+    | ident
+
+  Expression = EqualityExpression
+
+  EqualityExpression
+    = EqualityExpression "==" LogicalExpression  -- equal
+    | EqualityExpression "!=" LogicalExpression  -- notEqual
+    | LogicalExpression
+
+  LogicalExpression
+    = LogicalExpression "&&" RelationalExpression       -- and
+    | LogicalExpression "||" RelationalExpression       -- or
+    | RelationalExpression
+
+  RelationalExpression
+    = RelationalExpression "<" AddExpression           -- lt
+    | RelationalExpression ">" AddExpression           -- gt
+    | RelationalExpression "<=" AddExpression          -- le
+    | RelationalExpression ">=" AddExpression          -- ge
+    | AddExpression
+
+  AddExpression
+    = AddExpression "+" MulExpression  -- plus
+    | AddExpression "-" MulExpression -- minus
+    | MulExpression
+
+  MulExpression
+    = MulExpression "*" PrimExpression  -- times
+    | MulExpression "/" PrimExpression  -- divide
+    | MulExpression "%" PrimExpression  -- mod
+    | UnaryExpression
+
+  UnaryExpression
+    = "+" PrimExpression -- plus
+    | "-" PrimExpression -- minus
+    | "!" PrimExpression -- not
+    | PrimExpression
+
+  PrimExpression
+    = "(" Expression ")"  -- paren
+    | PrimitiveCall
+    | MethodCall
+    | PrimExpression "." ident     -- field
+    | ident               -- variable
+    | string              -- string
+    | number              -- number
+
+  PrimitiveCall
+    = ident "(" Actuals ")"
+
+  MethodCall
+    = ident "." ident "(" Actuals ")"
+
+  Actuals
+    = Expression ("," Expression)* -- list
+    | empty
+
+  ident
+    = letter (alnum | "_")*
+
+  number
+    = digit* "." digit+  -- fract
+    | digit+             -- whole
+
+  string = "\"" doubleStringCharacter* "\""
+
+  doubleStringCharacter
+    = "\\" any           -- escaped
+    | ~"\"" any          -- nonEscaped
+
+  identifierStart = letter | "_"
+  identifierPart = identifierStart | digit
+
+  var = "var" ~identifierPart
+  if = "if" ~identifierPart
+  breed = "breed" ~identifierPart
+  patch = "patch" ~identifierPart
+  else = "else" ~identifierPart
+  def = "def" ~identifierPart
+  this = "this" ~identifierPart
+  self = "self" ~identifierPart
+  static = "static" ~identifierPart
+  program = "program" ~identifierPart
+
+  empty =
+  space
+   += "//" (~nl any)* nl  -- cppComment
+    | "/*" (~"*/" any)* "*/" -- cComment
+  nl = "\n"
+}
+`;
+
 var g;
 var s;
 
 function initCompiler() {
-    g = ohm.grammarFromScriptElement();
+    g = ohm.grammar(shadamaGrammar);
     s = g.createSemantics();
     initSemantics();
-};
+}
 
 function initSemantics() {
     function addDefaults(obj) {
@@ -47,14 +178,14 @@ function initSemantics() {
     }
 
     s.addOperation(
-        "symTable(table)", 
+        "symTable(table)",
         {
             TopLevel(p, ds) {
                 var result = {};
                 addDefaults(result);
-		if (p.children.length > 0) {
-		    result = addAsSet(result, p.children[0].symTable(null));
-		}
+                if (p.children.length > 0) {
+                    result = addAsSet(result, p.children[0].symTable(null));
+                }
                 for (var i = 0; i< ds.children.length; i++) {
                     var d = ds.children[i].symTable(null);
                     var ctor = ds.children[i].ctorName;
@@ -65,9 +196,9 @@ function initSemantics() {
                 return result;
             },
 
-	    ProgramDecl(_p, s) {
-		return {_programName: s.sourceString.slice(1, s.sourceString.length - 1)}
-	    },
+            ProgramDecl(_p, s) {
+                return {_programName: s.sourceString.slice(1, s.sourceString.length - 1)}
+            },
 
             Breed(_b, n, _o, fs, _c) {
                 var table = new SymTable();
@@ -142,10 +273,9 @@ function initSemantics() {
             },
             PrimExpression_field(n, _p, f) {
                 var table = this.args.table;
-		if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
-		    debugger;
-		    console.log("you can only use 'this' or incoming patch name");
-		}
+                if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
+                    console.log("you can only use 'this' or incoming patch name");
+                }
                 var name = n.sourceString;
                 if (!table.isBuiltin(name)) {
                     table.add("propIn", n.sourceString, f.sourceString);
@@ -158,7 +288,7 @@ function initSemantics() {
             },
 
             PrimitiveCall(n, _o, as, _c) {
-		this.args.table.maybePrimitive(n.sourceString);
+                this.args.table.maybePrimitive(n.sourceString);
                 return as.symTable(this.args.table);
             },
 
@@ -239,7 +369,7 @@ function initSemantics() {
                 if (table.hasPatchInput || !table.forBreed) {
                     vert.push(patchInput);
                 }
-                
+
                 if (table.forBreed) {
                     vert.push(breedPrologue);
                 } else {
@@ -255,7 +385,7 @@ function initSemantics() {
                 });
 
                 table.uniformDefaults().forEach(elem => {
-		    vert.tab();
+                    vert.tab();
                     vert.push(elem);
                     vert.cr();
                 });
@@ -274,7 +404,7 @@ function initSemantics() {
                 var vert = this.args.vert;
                 var frag = this.args.frag;
 
-                var breedPrologue = 
+                var breedPrologue =
 `#version 300 es
 layout (location = 0) in vec2 a_index;
 uniform vec2 u_resolution;
@@ -305,9 +435,9 @@ uniform sampler2D u_that_y;
 
                 vert.crIfNeeded();
 
-		table.primitives().forEach((n) => {
-		    vert.push(n);
-		});
+                table.primitives().forEach((n) => {
+                    vert.push(n);
+                });
 
                 vert.push("void main()");
 
@@ -368,7 +498,7 @@ uniform sampler2D u_that_y;
                         addAsSet(result, val);
                     }
                 }
-		result["_programName"] = table["_programName"];
+                result["_programName"] = table["_programName"];
                 return result;
             },
 
@@ -435,7 +565,7 @@ uniform sampler2D u_that_y;
                 if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                     vert.push(";");
                     vert.cr();
-                } 
+                }
                 if (e.ctorName == "IfStatement") {
                     vert.cr();
                 }
@@ -611,11 +741,11 @@ uniform sampler2D u_that_y;
             PrimExpression_number(e) {
                 var vert = this.args.vert;
                 var ind = e.sourceString.indexOf(".");
-		if (ind < 0) {
+                if (ind < 0) {
                     vert.push(e.sourceString + ".0");
-		} else {
+                } else {
                     vert.push(e.sourceString);
-		}
+                }
             },
 
             PrimExpression_field(n, _p, f) {
@@ -780,7 +910,7 @@ uniform sampler2D u_that_y;
                 if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                     js.push(";");
                     js.cr();
-                } 
+                }
                 if (e.ctorName == "IfStatement") {
                     js.cr();
                 }
@@ -806,34 +936,34 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = this.args.method;
                 var isOther = this.args.isOther;
-		d.static(table, js, method, isOther);
+                d.static(table, js, method, isOther);
             },
 
             VariableDeclaration(n, i) {
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
-		var isOther = this.args.isOther;
-		js.push("env.");
-		js.push(n.sourceString);
+                var isOther = this.args.isOther;
+                js.push("env.");
+                js.push(n.sourceString);
                 js.pushWithSpace("= ");
                 if (i.children.length !== 0) {
                     i.static(table, js, method, isOther);
                 } else {
-		    js.pushWithSpace("null;");
-		}
+                    js.pushWithSpace("null;");
+                }
             },
 
-	    AssignmentStatement(l, _a, e, _) {
+            AssignmentStatement(l, _a, e, _) {
                 var table = this.args.table;
                 var js = this.args.js;
                 var method = this.args.method;
-		var isOther = this.args.isOther;
-		js.push("env.");
-		js.push(l.sourceString);
+                var isOther = this.args.isOther;
+                js.push("env.");
+                js.push(l.sourceString);
                 js.pushWithSpace("= ");
                 e.static(table, js, method, isOther);
-	    },
+            },
 
             Initialiser(_a, e) {
                 e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
@@ -959,8 +1089,8 @@ uniform sampler2D u_that_y;
 
             PrimExpression_field(n, _p, f) {
                 var js = this.args.js;
-		n.static(this.args.table, js, this.args.method, this.args.isOther);
-		js.push(".");
+                n.static(this.args.table, js, this.args.method, this.args.isOther);
+                js.push(".");
                 js.push(f.sourceString);
             },
 
@@ -976,12 +1106,12 @@ uniform sampler2D u_that_y;
                 var table = this.args.table;
                 var js = this.args.js;
 
-		var str = n.sourceString;
-		if (str ==="floor") {
-		    js.push("Math.floor(");
-		    as.children[0].children[0].static(table, js, this.args.method, this.args.isOther);
-		    js.push(")");
-		}
+                var str = n.sourceString;
+                if (str === "floor") {
+                    js.push("Math.floor(");
+                    as.children[0].children[0].static(table, js, this.args.method, this.args.isOther);
+                    js.push(")");
+                }
             },
 
             MethodCall(r, _p, n, _o, as, _c) {
@@ -989,14 +1119,9 @@ uniform sampler2D u_that_y;
                 var js = this.args.js;
                 var method = n.sourceString;
 
-                // if (method === "clear" && r.sourceString === "Display") {
-                //     js.push("clear()");
-                //     return;
-                // }
-
                 var displayBuiltIns = ["clear", "playSound"];
 
-		var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillImage", "diffuse"];
+                var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillImage", "diffuse"];
                 var myTable = table[n.sourceString];
 
 
@@ -1015,11 +1140,10 @@ uniform sampler2D u_that_y;
                 }
 
                 var actuals = as.static_method_helper(table, null, method, false);
-                var myTable = table[n.sourceString];
                 var formals;
                 if (myTable) {
                     formals = myTable.param;
-                }                   
+                }
 
                 if (formals && (actuals.length !== formals.size())) {
                     throw "number of arguments don't match.";
@@ -1065,7 +1189,7 @@ uniform sampler2D u_that_y;
                 js.push(callProgram);
             },
         });
-};
+}
 
 class OrderedPair {
     constructor() {
@@ -1081,7 +1205,7 @@ class OrderedPair {
                     maybeEntry[2] === entry[2]) {
                     return;
                 } else {
-                    throw "error duplicate variable" + name
+                    throw "error duplicate variable" + k
                     return;
                 }
         }
@@ -1090,7 +1214,7 @@ class OrderedPair {
     }
 
     addAll(other) {
-        other.keysAndValuesDo((key, entry) => 
+        other.keysAndValuesDo((key, entry) =>
             this.add(key, entry));
     }
 
@@ -1120,7 +1244,7 @@ class OrderedPair {
     size() {
         return this.keys.length;
     }
-};
+}
 
 class SymTable {
     constructor(entries) {
@@ -1129,7 +1253,7 @@ class SymTable {
         this.hasPatchInput = false;
         this.defaultUniforms = null;
         this.defaultAttributes = null;
-	this.usedPrimitives = {};
+        this.usedPrimitives = {};
 
         // - from source (extensional)
         // I use this term because I want to remember which is which)
@@ -1158,18 +1282,17 @@ class SymTable {
     }
 
     process() {
-	// maybe a hack: look for outs that are not ins and add them to ins.  Those are use
-	this.thisOut.keysAndValuesDo((key, entry) => {
-	    var newEntry = ["propIn", "this", entry[2]];
-	    var newK = newEntry.join(".");
-	    this.thisIn.add(newK, newEntry);
-	});
-	this.otherOut.keysAndValuesDo((key, entry) => {
-	    var newEntry = ["propIn", entry[1], entry[2]];
-	    var newK = newEntry.join(".");
-	    this.otherIn.add(newK, newEntry);
-	});
-
+        // maybe a hack: look for outs that are not ins and add them to ins.  Those are use
+        this.thisOut.keysAndValuesDo((key, entry) => {
+            var newEntry = ["propIn", "this", entry[2]];
+            var newK = newEntry.join(".");
+            this.thisIn.add(newK, newEntry);
+        });
+        this.otherOut.keysAndValuesDo((key, entry) => {
+            var newEntry = ["propIn", entry[1], entry[2]];
+            var newK = newEntry.join(".");
+            this.otherIn.add(newK, newEntry);
+        });
 
         this.uniformTable.addAll(this.thisIn);
         this.uniformTable.addAll(this.otherIn);
@@ -1259,7 +1382,7 @@ class SymTable {
         return this.uniformTable.keysAndValuesCollect((key, entry) =>
             "uniform sampler2D " + this.uniform(entry) + ";");
     }
-    
+
     paramUniforms() {
         var result = [];
         this.scalarParamTable.keysAndValuesDo((key, entry) => {
@@ -1271,21 +1394,21 @@ class SymTable {
     }
 
     vertVaryings() {
-        return this.varyingTable.keysAndValuesCollect((key, entry) => 
+        return this.varyingTable.keysAndValuesCollect((key, entry) =>
                                                  "out float " + this.varying(entry) + ";");
     }
 
     fragVaryings() {
-        return this.varyingTable.keysAndValuesCollect((key, entry) => 
+        return this.varyingTable.keysAndValuesCollect((key, entry) =>
                                                  "in float " + this.varying(entry) + ";");
     }
 
     uniformDefaults() {
         return this.varyingTable.keysAndValuesCollect((key, entry) => {
-	    var u_entry = ["propIn", entry[1], entry[2]];
+            var u_entry = ["propIn", entry[1], entry[2]];
             var ind = entry[1] === "this" ? "ivec2(a_index)" : "ivec2(_pos)";
             return `${this.varying(entry)} = texelFetch(${this.uniform(u_entry)}, ${ind}, 0).r;`;
-	})
+        })
     }
 
     outs() {
@@ -1306,7 +1429,7 @@ class SymTable {
     isBuiltin(n) {
         return this.defaultAttributes.indexOf(n) >= 0 || this.defaultUniforms.indexOf(n) >= 0 ;
     }
-    
+
     insAndParamsAndOuts() {
         var ins = this.uniformTable.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
         var shortParams = this.scalarParamTable.keysAndValuesCollect((key, entry) => entry[2]);
@@ -1331,14 +1454,14 @@ class SymTable {
     }
 
     maybePrimitive(aString) {
-	this.usedPrimitives[aString] = aString;
+        this.usedPrimitives[aString] = aString;
     }
 
     primitives() {
-	var result = [];
-	for (var n in this.usedPrimitives) {
-	    if (n === "random") {
-		result.push(
+        var result = [];
+        for (var n in this.usedPrimitives) {
+            if (n === "random") {
+                result.push(
 `
 highp float random(float seed) {
    highp float a  = 12.9898;
@@ -1349,11 +1472,11 @@ highp float random(float seed) {
    return fract(sin(sn) * c);
 }
 `);
-	    }
-	};
-	return result;
+            }
+        };
+        return result;
     }
-};
+}
 
 class CodeStream {
     constructor() {
@@ -1414,31 +1537,15 @@ class CodeStream {
         };
         return flatten(this.result);
     }
-};
-    
+}
+
 function parse(aString, optRule) {
     var rule = optRule;
     if (!rule) {
         rule = "TopLevel";
     }
     return g.match(aString, rule);
-};
-
-function grammarTest(aString, rule, ctor) {
-    var match = parse(aString, rule);
-
-    if (!match.succeeded()) {
-        console.log(aString);
-        console.log("did not parse: " + aString);
-    }
-    if (!ctor) {
-        ctor = rule;
-    }
-    if (match._cst.ctorName != ctor) {
-        console.log(str);
-        console.log("did not get " + ctor + " from " + aString);
-    }
-};
+}
 
 function addAsSet(to, from) {
     for (var k in from) {
@@ -1447,174 +1554,23 @@ function addAsSet(to, from) {
         }
     }
     return to;
-};
-
-function symTableTest(str, prod, sem, expected) {
-    var stringify = (obj) => {
-        var type = Object.prototype.toString.call(obj);
-        if (type === "[object Object]") {
-            var pairs = [];
-            for (var k in obj) {
-                if (!obj.hasOwnProperty(k)) continue;
-                pairs.push([k, stringify(obj[k])]);
-            }
-            pairs.sort((a, b) => a[0] < b[0] ? -1 : 1);
-            pairs = pairs.map(v => '"' + v[0] + '":' + v[1]);
-            return "{" + pairs + "}";
-        }
-        if (type === "[object Array]") {
-            return "[" + obj.map(v => stringify(v)) + "]";
-        }
-        return JSON.stringify(obj);
-    };
-
-    var match = parse(str, prod);
-    if (!match.succeeded()) {
-        console.log(str);
-        console.log("did not parse: " + str);
-    };
-
-    var rawTable = function(table) {
-        var t;
-        if (table.constructor === SymTable) {
-            t = table;
-        } else {
-            t = table[Object.keys(table)[0]];
-        }
-        return t.rawTable();
-    }
-
-    var n = sem(match);
-    var table = new SymTable();
-    var ret = n.symTable(table);
-
-    var result = rawTable(ret);
-    var a = stringify(result);
-    var b = stringify(expected);
-    if (a != b) {
-        console.log(str);
-        console.log("Expected: " + b + " got: " + a);
-    }
-};
+}
 
 function translate(str, prod, errorCallback) {
     if (!prod) {
-	prod = "TopLevel";
+        prod = "TopLevel";
     }
     var match = g.match(str, prod);
     if (!match.succeeded()) {
         console.log(str);
         console.log("did not parse: " + str);
-	if (errorCallback) {
+        if (errorCallback) {
             return errorCallback(match, str);
-	}
-	return null;
+        }
+        return null;
     }
 
     var n = s(match);
     var symTable = n.symTable(null);
     return n.glsl(symTable, null, null);
-};
-
-function grammarUnitTests() {
-    grammarTest("abc", "ident");
-    grammarTest("if", "if");
-    grammarTest("breed", "breed");
-    grammarTest("patch", "patch");
-    grammarTest("else", "else");
-    grammarTest("def", "def");
-    grammarTest("3.4", "number");
-
-    grammarTest("abc", "PrimExpression");
-    grammarTest("3.5", "PrimExpression");
-    grammarTest("(3.5 + abc)", "PrimExpression");
-    grammarTest("3.5 + abc", "AddExpression");
-    grammarTest("abc - 3", "AddExpression_minus");
-    grammarTest("abc * 3", "AddExpression");
-    grammarTest("abc * 3", "MulExpression");
-    grammarTest("abc * 3 * 3.0", "Expression");
-
-    grammarTest("var c = 3;", "VariableStatement");
-
-    grammarTest("this.x", "LeftHandSideExpression");
-    grammarTest("patch.x", "LeftHandSideExpression");
-
-    grammarTest("forward(this.x)", "PrimitiveCall");
-    grammarTest("forward(this.x + 3)", "PrimitiveCall");
-    grammarTest("turn(this.x + 3, x)", "PrimitiveCall");
-
-    grammarTest("mod(this.x , 2)", "PrimitiveCall");
-
-    grammarTest("forward(this.x + 3);", "Statement");
-
-    grammarTest("a == b", "EqualityExpression");
-    grammarTest("a > 3", "RelationalExpression");
-    grammarTest("a > 3 + 4", "RelationalExpression");
-
-    grammarTest("this.x = 3 + 4;", "AssignmentStatement");
-
-    grammarTest("if (this.x > 3) {this.x = 3;} else {this.x = 4;}", "IfStatement");
-    grammarTest("if (this.x > 3) {this.x = 3;}", "IfStatement");
-    grammarTest("this.x + 3;", "ExpressionStatement");
-    grammarTest("var x = 3;", "VariableStatement");
-    grammarTest("{var x = 3; x = x + 3;}", "Block");
-
-    grammarTest("breed Turtle (x, y)", "Breed");
-    grammarTest("patch Patch (x, y)", "Patch");
-    grammarTest("def foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
 }
-
-function symTableUnitTests() {
-    symTableTest("this.x = 3;", "Statement", s,{"propOut.this.x": ["propOut", "this","x"]});
-    symTableTest("{this.x = 3; other.y = 4;}", "Statement", s,{"propOut.this.x": ["propOut", "this", "x"], "propOut.other.y": ["propOut", "other", "y"]});
-    symTableTest("{this.x = 3; this.x = 4;}", "Statement", s, {"propOut.this.x": ["propOut", "this", "x"]});
-
-    symTableTest("{var x = 3; x = x + 3;}", "Block", s, {"var.null.x": ["var", null, "x"]});
-
-    symTableTest(`
-       if (other.x > 0) {
-         this.x = 3;
-         other.a = 4;
-       }
-       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propIn.other.x": ["propIn", "other", "x"]});
-
-    symTableTest(`
-       if (other.x > 0) {
-         this.x = 3;
-         other.a = 4;
-       } else {
-         this.y = 3;
-         other.a = 4;
-       }
-       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propOut.this.y": ["propOut", "this", "y"], "propIn.other.x": ["propIn", "other", "x"]});
-
-    symTableTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
-        "propIn.this.y": ["propIn", "this", "y"],
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propOut.other.z": ["propOut" ,"other", "z"],
-        "propIn.this.x": ["propIn" ,"this", "x"]});
-
-    symTableTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"]});
-
-    symTableTest("def foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
-        "propIn.this.x": ["propIn", "this", "x"],
-        "propIn.this.y": ["propIn", "this", "y"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"],
-        "param.null.a": ["param" , null, "a"],
-        "param.null.b": ["param" , null, "b"],
-        "param.null.c": ["param" , null, "c"],
-    });
-};
-
-function translateTests() {
-    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));
-
-    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
-    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
-};
-
