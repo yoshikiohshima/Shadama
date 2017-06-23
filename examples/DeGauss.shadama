@@ -1,5 +1,5 @@
 program "DeGauss"
-breed Turtle (x, y, r, g, b, a, origX, origY, origR, origG, origB, origA)
+breed Pict (x, y, r, g, b, a, origX, origY, origR, origG, origB, origA)
 patch Field (nx, ny, nr, r, g, b, a)
 
 def fillCircle(cx, cy, r, field) {
@@ -84,14 +84,14 @@ def degaussColor(step, begin) {
 }
   
 static setup() {
-  Turtle.fillImage("x", "y", "r", "g", "b", "a", image); 
-  Turtle.remember1();
-  Turtle.clear(Field);
-  Turtle.setColorInField(Field);
-//  Turtle.colorize1(Field);
-  Turtle.colorize2(Field);
-//  Turtle.colorize3();
-  Turtle.draw();
+  Pict.fillImage("x", "y", "r", "g", "b", "a", image); 
+  Pict.remember1();
+  Pict.clear(Field);
+  Pict.setColorInField(Field);
+//  Pict.colorize1(Field);
+  Pict.colorize2(Field);
+//  Pict.colorize3();
+  Pict.draw();
   var begin = null;
 }
 
@@ -102,8 +102,8 @@ static loop(env) {
       begin = time;
       Display.playSound("degauss");
     }
-    Turtle.degauss(time, begin);
-    Turtle.degaussColor(time, begin);
+    Pict.degauss(time, begin);
+    Pict.degaussColor(time, begin);
   }
-  Turtle.draw();
+  Pict.draw();
 }

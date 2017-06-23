@@ -1314,6 +1314,7 @@ function initEnv(callback) {
 
     initAudio("degauss.mp3", "degauss");
     initImage("mask.png", "mask");
+    initImage("blur.png", "blur");
     initImage("ahiru.png", "image", callback);
 }
 
