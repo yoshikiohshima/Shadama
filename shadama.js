@@ -1199,6 +1199,15 @@ function addListeners(aCanvas) {
     aCanvas.addEventListener("mouseup", function(e) {
         env.mouseup = {x: e.clientX, y: FH - (e.clientY - top)};
     });
+    document.addEventListener('keypress', function(evt) {
+	if (evt.target === document.body) {
+	    if (evt.key =='`') {
+		callSetup();
+	    } else if (evt.key == "\\") {
+		toggleScript("loop");
+	    }
+	}
+    }, true);
 }
 
 function emptyImageData(width, height) {
