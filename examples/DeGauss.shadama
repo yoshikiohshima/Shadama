@@ -40,12 +40,16 @@ def colorize3() {
 
 def degauss(step, begin) {
   var x = step * 50.0;
-  x = x + (this.origY - 128) / 100.0 + (this.origX -128) / 100.0 * sin(step) * 3;
-  var c = cos(x) * exp(-1 - (step - begin));
-  var s = sin(x) * exp(-1 - (step - begin));
+  var off = step - begin;
+  if (step - begin > 0.4) {
+    var arg = -3 - off;
+    x = x + (this.origY - 128) / 100.0 + (this.origX -128) / 100.0 * sin(step) * 3;
+    var c = cos(x) * exp(arg);
+    var s = sin(x) * exp(arg);
   
-  this.x = this.origX + (this.origX - 128) * c;
-  this.y = this.origY + (this.origY - 128) * s;
+    this.x = this.origX + (this.origX - 128) * c;
+    this.y = this.origY + (this.origY - 128) * s;
+  }
 }
 
 def degaussColor(step, begin) {
@@ -54,9 +58,9 @@ def degaussColor(step, begin) {
 }
   
 static setup() {
-  Pict.fillImage("x", "y", "r", "g", "b", "a", image);
+  Pict.fillImage("x", "y", "r", "g", "b", "a", modelT);
   Pict.remember1();
-  Filler.fillImage("x", "y", "r", "g", "b", "a", blur);
+  Filler.fillImage("x", "y", "r", "g", "b", "a", blurBig);
   Filler.storeBlur(Blur);
   Pict.colorize2(Blur);
   Pict.draw();
@@ -67,7 +71,7 @@ static rrestore() {
   Pict.restore();
 }
 
-static step() {
+static loop() {
 
   if (mousemove.x > 505) {
     if (begin == null) {

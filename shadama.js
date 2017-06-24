@@ -5,13 +5,15 @@ var FIELD_WIDTH = 512;
 var FIELD_HEIGHT = 512;
 var ENLARGE = 1;
 
-var T = TEXTURE_SIZE;
-var FW = FIELD_WIDTH;
-var FH = FIELD_HEIGHT;
+var T;
+var FW;
+var FH;
 
 var readout;
 
 var gl;
+
+var audioContext;
 var targetTexture;
 var readPixelArray;
 var readPixelCallback;
@@ -311,8 +313,12 @@ Display.prototype.clear = function() {
 }
 
 Display.prototype.playSound = function(name) {
-    var dom = document.getElementById(name);
-    if (dom) {dom.play()}
+    var buffer = env[name];
+    if (!buffer) {return}
+    var source = audioContext.createBufferSource(); // creates a sound source
+    source.buffer = buffer;                    // tell the source which sound to play
+    source.connect(audioContext.destination);       // connect the source to the context's destination (the speakers)
+    source.start(0);                           // play the source now
 }
 
 function textureCopy(obj, src, dst) {
@@ -1239,34 +1245,40 @@ function initServerFiles() {
 function initAudio(name, keyName, callback) {
     var location = window.location.toString();
 
-    var audio = document.createElement("audio");
-    audio.id = "degauss";
-    audio.style = "display: none;";
-    audio.setAttribute("preload", "auto");
+    if (!audioContext) {
+	audioContext = new AudioContext();
+    }
+
+    function loadSound(url) {
+	var request = new XMLHttpRequest();
+	request.open('GET', url, true);
+	request.responseType = 'arraybuffer';
+
+	// Decode asynchronously
+	request.onload = function() {
+	    audioContext.decodeAudioData(request.response,
+					 function(buffer) {
+					     env[keyName] = buffer;
+					     if (callback) {
+						 callback();
+					     }
+					 },
+					 function(error) {
+					     console.log(error);
+					     if (callback) {
+						 callback();
+					     }
+					 });
+	}
+	request.send();
+    }
 
     if (location.startsWith("http")) {
         var slash = location.lastIndexOf("/");
-        var dir = location.slice(0, slash) + "/" + name;
-        audio.src = dir;
+	loadSound(location.slice(0, slash) + "/" + name);
     } else {
-        audio.crossOrigin = "Anonymous";
-        audio.onerror = function() {
-            console.log("no internet");
-            document.body.removeChild(audio);
-            env[keyName] = null;
-	    if (callback) {
-		callback();
-	    }
-        }
-        audio.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
+	loadSound("http://tinlizzie.org/~ohshima/ahiru/" + name);
     }
-
-    audio.onload = function() {
-	if (callback) {
-            callback();
-	}
-    }
-    document.body.appendChild(audio);
 }
 
 function initImage(name, keyName, callback) {
@@ -1315,6 +1327,8 @@ function initEnv(callback) {
     initAudio("degauss.mp3", "degauss");
     initImage("mask.png", "mask");
     initImage("blur.png", "blur");
+    initImage("modelT.jpg", "modelT");
+    initImage("blur-big.png", "blurBig");
     initImage("ahiru.png", "image", callback);
 }
 
@@ -1538,6 +1552,44 @@ function initFileList(optSelection) {
 
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
+
+    var val;
+
+    FW = 0;
+    var match = /fw=([0-9]+)/.exec(window.location.search);
+    if (match && match.length == 2) {
+	val = parseInt(match[1]);
+	if (val > 0) {
+	    FW = val;
+	}
+    }
+    if (FW === 0) {
+	FW = FIELD_WIDTH;
+    }
+
+    FH = 0;
+    var match = /fh=([0-9]+)/.exec(window.location.search);
+    if (match && match.length == 2) {
+	val = parseInt(match[1]);
+	if (val > 0) {
+	    FH = val;
+	}
+    }
+    if (FH === 0) {
+	FH = FIELD_HEIGHT;
+    }
+
+    T = 0;
+    var match = /t=([0-9]+)/.exec(window.location.search);
+    if (match && match.length == 2) {
+	val = parseInt(match[1]);
+	if (val > 0) {
+	    T = val;
+	}
+    }
+    if (T === 0) {
+	T = TEXTURE_SIZE;
+    }
 
     if (runTests) {
         setTestParams();
