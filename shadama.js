@@ -1190,14 +1190,20 @@ function addListeners(aCanvas) {
     var rect = aCanvas.getBoundingClientRect();
     var left = rect.left;
     var top = rect.top;
+
+    var y = function(e, top) {
+	var diff = e.pageY - e.clientY;
+	return FW - (e.clientY + diff - top);
+    }
+
     aCanvas.addEventListener("mousemove", function(e) {
-        env.mousemove = {x: e.clientX - left, y: FH - (e.clientY - top)};
+        env.mousemove = {x: e.clientX - left, y: y(e, top)};
     });
     aCanvas.addEventListener("mousedown", function(e) {
-        env.mousedown = {x: e.clientX, y: FH - (e.clientY - top)};
+        env.mousedown = {x: e.clientX - left, y: y(e, top)}
     });
     aCanvas.addEventListener("mouseup", function(e) {
-        env.mouseup = {x: e.clientX, y: FH - (e.clientY - top)};
+        env.mouseup = {x: e.clientX - left, y: y(e, top)}
     });
     document.addEventListener('keypress', function(evt) {
 	if (evt.target === document.body) {
@@ -1224,7 +1230,7 @@ function emptyImageData(width, height) {
 function initServerFiles() {
     var location = window.location.toString();
     var examples = [
-	"1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama"
+	"1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama"
     ];
 
     if (!location.startsWith("http")) {return;}
@@ -1338,6 +1344,8 @@ function initEnv(callback) {
     initImage("blur.png", "blur");
     initImage("modelT.jpg", "modelT");
     initImage("blur-big.png", "blurBig");
+    initImage("windows.png", "windows");
+    initImage("button.png", "button");
     initImage("ahiru.png", "image", callback);
 }
 

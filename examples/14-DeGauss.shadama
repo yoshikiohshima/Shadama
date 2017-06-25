@@ -1,7 +1,13 @@
 program "DeGauss"
 breed Pict (x, y, r, g, b, a, origX, origY, origR, origG, origB, origA)
 breed Filler (x, y, r, g, b, a)
+breed Button (x, y, r, g, b, a)
 patch Blur (level)
+  
+def move(x, y) {
+  this.x = this.x + x;
+  this.y = this.y + y;
+}
 
 def remember1() {
   this.origX = this.x;
@@ -27,9 +33,9 @@ def restore() {
 
 def colorize2(blur) {
   var p = blur.level;
-  this.r = this.origG * p + this.origR * (1.0 - p);
-  this.g = this.origB;
-  this.b = this.origG * p + this.origB * (1.0 - p);
+  this.r = this.origB + this.origG * (1.0 - p);
+  this.g = this.origB * (1.0 - p);
+  this.b = this.origB * p + this.origG * (1.0 - p);
   this.a = this.origA;
 }
 
@@ -53,18 +59,22 @@ def degauss(step, begin) {
 }
 
 def degaussColor(step, begin) {
-  this.r = this.r - (this.r - this.origR) * 0.02;
-  this.g = this.g - (this.g - this.origG) * 0.02;
+  this.r = this.r - (this.r - this.origR) * 0.01;
+  this.g = this.g - (this.g - this.origG) * 0.01;
 }
   
 static setup() {
-  Pict.fillImage("x", "y", "r", "g", "b", "a", modelT);
+  Pict.fillImage("x", "y", "r", "g", "b", "a", windows);
   Pict.remember1();
   Filler.fillImage("x", "y", "r", "g", "b", "a", blurBig);
   Filler.storeBlur(Blur);
+  Button.fillImage("x", "y", "r", "g", "b", "a", button);
+  Button.move(760, 260);
+
   Pict.colorize2(Blur);
   Pict.draw();
-  var begin = null;
+  var begin = -1;
+  var showButton = 0;
 }
 
 static rrestore() {
@@ -72,14 +82,23 @@ static rrestore() {
 }
 
 static loop() {
-
-  if (mousemove.x > 505) {
-    if (begin == null) {
-      begin = time;
-      Display.playSound("degauss");
+  if (mousemove.x > 950) {
+    if (showButton == 0) {
+      showButton = 1;
     }
+    if (mousemove.y < 300) {
+      if (begin == -1) {
+        begin = time;
+        Display.playSound("degauss");
+      }
+    }
+  }
+  if (begin != -1) {
     Pict.degauss(time, begin);
     Pict.degaussColor(time, begin);
   }
   Pict.draw();
+  if (showButton == 1) {
+     Button.draw();
+  }
 }

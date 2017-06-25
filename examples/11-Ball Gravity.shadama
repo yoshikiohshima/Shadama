@@ -1,0 +1,98 @@
+program "Ball Gravity"
+
+breed Turtle (x, y, dx, dy, r, g, b, a)
+breed Filler (x, y)
+patch Field (nx, ny, r, g, b, a)
+
+def setColor() {
+  this.r = this.x / 512.0;
+  this.g = this.y / 512.0;
+  this.b = 0.0;
+  this.a = 1.0;
+}
+
+def clear(field) {
+  field.r = 0.0;
+  field.g = 0.0;
+  field.b = 0.0;
+  field.a = 0.0;
+  field.nx = 0.0;
+  field.ny = 0.0;
+}
+
+def d() {
+  this.dx = 0;
+  this.dy = 0;
+}
+
+def fillCircle(cx, cy, r, field) {
+  var dx = this.x - cx;
+  var dy = this.y - cy;
+  var dr = sqrt(dx * dx + dy * dy);
+  if (dr < r) {
+    field.r = 0.2;
+    field.g = 0.2;
+    field.b = 0.8;
+    field.a = 1.0;
+    field.nx = dx / r;
+    field.ny = dy / r;
+  }
+}
+
+def bounce(field, mousex, mousey) {
+  var nx = field.nx;
+  var ny = field.ny;
+  var dx = this.dx;
+  var dy = this.dy;
+  var dot = dx * nx + dy * ny;
+  var rx = dx;
+  var ry = dy;
+  var origV = sqrt(dx * dx + dy * dy);
+
+  if (dot < 0.0) {
+    rx = dx - 2.0 * dot * nx;
+    ry = dy - 2.0 * dot * ny;
+    rx = rx + random(dot) * 0.2 - 0.1;
+    var norm = sqrt(rx * rx + ry * ry);
+    rx = rx / (norm / origV);
+    ry = ry / (norm / origV);
+  }
+
+  var newX = this.x + dx;
+  var newY = this.y + dy;
+
+
+  this.x = newX;
+  this.y = newY;
+  
+  var offX = newX - mousex;
+  var offY = newY - mousey;
+  
+  var dist2 = sqrt(offX * offX + offY * offY);
+  var gx;
+  var gy;
+  if (dist2 > 1.0) {
+    gx = -(offX/dist2) * 0.1;
+    gy = -(offY/dist2) * 0.1;
+  } else {
+    gx = 0;
+    gy = 0;
+  }
+  this.dx = rx + gx;
+  this.dy = ry + gy;
+}
+
+static setup() {
+  Filler.fillSpace("x", "y", 512, 512);
+  Turtle.fillSpace("x", "y", 512, 512);
+  Turtle.d();
+  Turtle.setColor();
+}
+
+static loop() {
+  Filler.clear(Field);
+  Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
+  Turtle.bounce(Field, mousemove.x, mousemove.y);
+  Field.draw();
+  Turtle.draw();
+}
