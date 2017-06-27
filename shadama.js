@@ -171,7 +171,12 @@ function loadShadama(id, source) {
         source = scriptElement.text;
     }
     cleanUpEditorState();
-    var result = translate(source, "TopLevel", syntaxError);
+    try {
+	var result = translate(source, "TopLevel");
+    } catch (e) {
+	syntaxError(e);
+	return;
+    };
     compilation = result;
     if (!result) {return "";}
     if (oldProgramName != result["_programName"]) {
@@ -1099,7 +1104,7 @@ function cleanUpEditorState() {
     }
 }
 
-function syntaxError(match, src) {
+function syntaxError(error) {
     function toDOM(x) {
         if (x instanceof Array) {
             var xNode = document.createElement(x[0]);
@@ -1115,7 +1120,10 @@ function syntaxError(match, src) {
     if (editor) {
         setTimeout(
             function() {
-                if (editor.getValue() === src && !parseErrorWidget) {
+		var msg = error.expected;
+		var pos = error.pos;
+		var src = error.src;
+                if ((!src || editor.getValue() === src) && !parseErrorWidget) {
                     function repeat(x, n) {
                         var xs = [];
                         while (n-- > 0) {
@@ -1123,10 +1131,10 @@ function syntaxError(match, src) {
                         }
                         return xs.join('');
                     }
-                    var msg = 'Expected: ' + match.getExpectedText();
-                    var pos = editor.doc.posFromIndex(match.getRightmostFailurePosition());
-                    var error = toDOM(['parseerror', repeat(' ', pos.ch) + '^\n' + msg]);
-                    parseErrorWidget = editor.addLineWidget(pos.line, error);
+                    var docPos = editor.doc.posFromIndex(pos);
+                    var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
+		    console.log(widget);
+                    parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                 }
             },
             2500

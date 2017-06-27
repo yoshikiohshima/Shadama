@@ -52,7 +52,6 @@ def bounce(field, mousex, mousey) {
   if (dot < 0.0) {
     rx = dx - 2.0 * dot * nx;
     ry = dy - 2.0 * dot * ny;
-    rx = rx + random(dot) * 0.2 - 0.1;
     var norm = sqrt(rx * rx + ry * ry);
     rx = rx / (norm / origV);
     ry = ry / (norm / origV);

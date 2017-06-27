@@ -216,6 +216,8 @@ function initSemantics() {
 
             Script(_d, n, _o, ns, _c, b) {
                 var table = new SymTable();
+		table.methodPos = b.source.endIdx;
+		table.methodName = n.sourceString;
                 ns.symTable(table);
                 b.symTable(table);
                 table.process();
@@ -274,7 +276,7 @@ function initSemantics() {
             PrimExpression_field(n, _p, f) {
                 var table = this.args.table;
                 if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
-                    console.log("you can only use 'this' or incoming patch name");
+                    console.log("you can only use 'this' or a incoming patch name");
                 }
                 var name = n.sourceString;
                 if (!table.isBuiltin(name)) {
@@ -1265,6 +1267,9 @@ class SymTable {
         this.defaultAttributes = null;
         this.usedPrimitives = {};
 
+	this.methodName = null;
+	this.methodPos = null;
+
         // - from source (extensional)
         // I use this term because I want to remember which is which)
 
@@ -1315,7 +1320,12 @@ class SymTable {
         }
 
         if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
-            throw "shadama cannot write into this and others from the same script."
+	    var error = new Error("semantic error");
+	    error.reason = "shadama cannot write into this and others from the same script.";
+	    error.expected = "Make sure " + this methodName + " only writes into either properties of 'this', or properties of method arguments";
+	    error.pos = this.methodPos;
+	    error.src = null;
+	    throw error;
         } else {
             this.forBreed = this.thisOut.size() > 0;
         }
@@ -1566,7 +1576,7 @@ function addAsSet(to, from) {
     return to;
 }
 
-function translate(str, prod, errorCallback) {
+function translate(str, prod) {
     if (!prod) {
         prod = "TopLevel";
     }
@@ -1574,9 +1584,13 @@ function translate(str, prod, errorCallback) {
     if (!match.succeeded()) {
         console.log(str);
         console.log("did not parse: " + str);
-        if (errorCallback) {
-            return errorCallback(match, str);
-        }
+
+	var error = new Error("parse error");
+	error.reason = "parse error";
+	error.expected = "Expected: " + match.getExpectedText();
+	error.pos = match.getRightmostFailurePosition();
+	error.src = str;
+	throw error;
         return null;
     }
 
