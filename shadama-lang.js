@@ -1136,7 +1136,7 @@ uniform sampler2D u_that_y;
                 var displayBuiltIns = ["clear", "playSound"];
 
                 var builtIns = ["draw", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillImage", "diffuse"];
-                var myTable = table[n.sourceString];
+                var myTable = table[method];
 
 
                 if (r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) {
@@ -1160,7 +1160,12 @@ uniform sampler2D u_that_y;
                 }
 
                 if (formals && (actuals.length !== formals.size())) {
-                    throw "number of arguments don't match.";
+		    var error = new Error("semantic error");
+		    error.reason = `argument count does not match for method ${n.sourceString}`;
+		    error.expected = `argument count does not match for method ${n.sourceString}`;
+		    error.pos = myTable.methodPos;
+		    error.src = null;
+		    throw error;
                 }
                 var params = new CodeStream();
                 var objectsString = new CodeStream();
@@ -1196,7 +1201,6 @@ uniform sampler2D u_that_y;
 	error.pos = ${table.methodPos};
 	error.src = null;
 	throw error;
-	return;
     }
     var func = data[0];
     var ins = data[1][0]; // [[name, <fieldName>]]
@@ -1391,9 +1395,6 @@ class SymTable {
     uniform(entry) {
         var k = ["propIn", entry[1], entry[2]].join(".");
         var entry = this.uniformTable.at(k);
-        if (!entry) {
-            debugger;
-        }
         return ["u", entry[1], entry[2]].join("_");
     }
 
@@ -1595,14 +1596,12 @@ function translate(str, prod) {
     if (!match.succeeded()) {
         console.log(str);
         console.log("did not parse: " + str);
-
 	var error = new Error("parse error");
 	error.reason = "parse error";
 	error.expected = "Expected: " + match.getExpectedText();
 	error.pos = match.getRightmostFailurePosition();
 	error.src = str;
 	throw error;
-        return null;
     }
 
     var n = s(match);

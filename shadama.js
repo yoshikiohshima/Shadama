@@ -134,8 +134,14 @@ function createShader(gl, id, source) {
     }
 
     console.log(gl.getShaderInfoLog(shader));
-    alert(gl.getShaderInfoLog(shader));
+    
+    var error = new Error("GL error");
+    error.reason = "GL error";
+    error.expected = gl.getShaderInfoLog(shader);
+    error.pos = null;
+    error.src = null;
     gl.deleteShader(shader);
+    throw error;
 }
 
 function createProgram(gl, vertexShader, fragmentShader) {
@@ -149,7 +155,13 @@ function createProgram(gl, vertexShader, fragmentShader) {
     }
 
     console.log(gl.getProgramInfoLog(program));
-    alert(gl.getProgramInfoLog(program));
+
+    var error = new Error("GL error");
+    error.reason = "GL error";
+    error.expected = gl.getProgramInfoLog(program);
+    error.pos = null;
+    error.src = null;
+    gl.deleteShader(program);
     gl.deleteProgram(program);
 }
 
@@ -201,8 +213,13 @@ function loadShadama(id, source) {
                 update(Patch, js[1], js[2]);
             } else if (js[0] === "updateScript") {
                 var table = entry[0];
-                scripts[js[1]] = [programFromTable(table, entry[1], entry[2], js[1]),
-                                  table.insAndParamsAndOuts()];
+		try {
+		    var prog = programFromTable(table, entry[1], entry[2], js[1]);
+		} catch (e) {
+		    reportError(e);
+		    return;
+		}
+                scripts[js[1]] = [prog, table.insAndParamsAndOuts()];
             }
         }
     }
@@ -1147,7 +1164,6 @@ function reportError(error) {
 	    stopScript(n);
 	}
 	alert(error.expected);
-	debugger;
     }
 }
 
@@ -1466,8 +1482,12 @@ function makeEntry(name) {
     button.onclick = function() {
         env["time"] = (window.performance.now() / 1000) - loadTime;
         if (statics[entry.scriptName]) {
-            statics[entry.scriptName](env);
-        }
+	    try {
+	        statics[entry.scriptName](env);
+            } catch (e) {
+		reportError(e);
+	    }
+	}
     };
     entry.appendChild(button);
     return entry;
