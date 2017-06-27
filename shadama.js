@@ -174,7 +174,7 @@ function loadShadama(id, source) {
     try {
 	var result = translate(source, "TopLevel");
     } catch (e) {
-	syntaxError(e);
+	reportError(e);
 	return;
     };
     compilation = result;
@@ -208,8 +208,9 @@ function loadShadama(id, source) {
     }
 
     if (setupCode !== newSetupCode) {
-        callSetup();
+        var success = callSetup();
         setupCode = newSetupCode;
+	if (!success) {return};
     }
     populateList(staticsList);
     runLoop();
@@ -1104,7 +1105,7 @@ function cleanUpEditorState() {
     }
 }
 
-function syntaxError(error) {
+function reportError(error) {
     function toDOM(x) {
         if (x instanceof Array) {
             var xNode = document.createElement(x[0]);
@@ -1117,28 +1118,36 @@ function syntaxError(error) {
         }
     };
 
-    if (editor) {
-        setTimeout(
-            function() {
-		var msg = error.expected;
-		var pos = error.pos;
-		var src = error.src;
-                if ((!src || editor.getValue() === src) && !parseErrorWidget) {
-                    function repeat(x, n) {
-                        var xs = [];
-                        while (n-- > 0) {
-                            xs.push(x);
-                        }
-                        return xs.join('');
+    if (error.message != "runtime error") {
+	if (editor) {
+            setTimeout(
+		function() {
+		    var msg = error.expected;
+		    var pos = error.pos;
+		    var src = error.src;
+                    if ((!src || editor.getValue() === src) && !parseErrorWidget) {
+			function repeat(x, n) {
+                            var xs = [];
+                            while (n-- > 0) {
+				xs.push(x);
+                            }
+                            return xs.join('');
+			}
+			var docPos = editor.doc.posFromIndex(pos);
+			var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
+			console.log(widget);
+			parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                     }
-                    var docPos = editor.doc.posFromIndex(pos);
-                    var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
-		    console.log(widget);
-                    parseErrorWidget = editor.addLineWidget(docPos.line, widget);
-                }
-            },
-            2500
-        );
+		},
+		2500
+            );
+	}
+    } else {
+	for (var n in steppers) {
+	    stopScript(n);
+	}
+	alert(error.expected);
+	debugger;
     }
 }
 
@@ -1190,8 +1199,14 @@ function callSetup() {
     loadTime = window.performance.now() / 1000.0;
     env["time"] = 0.0;
     if (statics["setup"]) {
-        statics["setup"](env);
+	try {
+            statics["setup"](env);
+	} catch (e) {
+	    reportError(e);
+	    return false;
+	}
     }
+    return true;
 }
 
 function addListeners(aCanvas) {
@@ -1746,11 +1761,15 @@ function runner() {
 
 function step() {
     env["time"] = (window.performance.now() / 1000) - loadTime;
-    for (var k in steppers) {
-        var func = statics[k];
-        if (func) {
-            func(env);
+    try {
+	for (var k in steppers) {
+            var func = statics[k];
+            if (func) {
+		func(env);
+	    }
         }
+    } catch (e) {
+	reportError(e);
     }
 }
 

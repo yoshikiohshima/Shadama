@@ -226,6 +226,8 @@ function initSemantics() {
 
             Static(_s, n, _o, ns, _c, b) {
                 var table = new SymTable();
+		table.methodName = n.sourceString;
+		table.methodPos = b.source.endIdx;
                 ns.symTable(table);
                 table.process();
                 return {[n.sourceString]: table};
@@ -1187,6 +1189,15 @@ uniform sampler2D u_that_y;
                 var callProgram = `
 (function() {
     var data = scripts["${n.sourceString}"];
+    if (!data) {
+	var error = new Error("runtime error");
+	error.reason = "Method named ${n.sourceString} does not exist";
+	error.expected = "Method named ${n.sourceString} does not exist";
+	error.pos = ${table.methodPos};
+	error.src = null;
+	throw error;
+	return;
+    }
     var func = data[0];
     var ins = data[1][0]; // [[name, <fieldName>]]
     var formals = data[1][1];
@@ -1322,7 +1333,7 @@ class SymTable {
         if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
 	    var error = new Error("semantic error");
 	    error.reason = "shadama cannot write into this and others from the same script.";
-	    error.expected = "Make sure " + this methodName + " only writes into either properties of 'this', or properties of method arguments";
+	    error.expected = "Make sure " + this.methodName + " only writes into either properties of 'this', or properties of method arguments";
 	    error.pos = this.methodPos;
 	    error.src = null;
 	    throw error;
