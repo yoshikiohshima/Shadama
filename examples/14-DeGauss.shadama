@@ -48,7 +48,7 @@ def degauss(step, begin) {
   var x = step * 50.0;
   var off = step - begin;
   if (step - begin > 0.4) {
-    var arg = -3 - off;
+    var arg = -2.4 - off;
     x = x + (this.origY - 128) / 100.0 + (this.origX -128) / 100.0 * sin(step) * 3;
     var c = cos(x) * exp(arg);
     var s = sin(x) * exp(arg);
@@ -69,7 +69,7 @@ static setup() {
   Filler.fillImage("x", "y", "r", "g", "b", "a", blurBig);
   Filler.storeBlur(Blur);
   Button.fillImage("x", "y", "r", "g", "b", "a", button);
-  Button.move(760, 260);
+  Button.move(760, 160);
 
   Pict.colorize2(Blur);
   Pict.draw();
@@ -86,7 +86,7 @@ static loop() {
     if (showButton == 0) {
       showButton = 1;
     }
-    if (mousemove.y < 300) {
+    if (mousemove.y < 200) {
       if (begin == -1) {
         begin = time;
         Display.playSound("degauss");
