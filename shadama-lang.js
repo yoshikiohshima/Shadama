@@ -41,16 +41,16 @@ Shadama {
     = ident "." ident -- field
     | ident
 
-  Expression = EqualityExpression
-
-  EqualityExpression
-    = EqualityExpression "==" LogicalExpression  -- equal
-    | EqualityExpression "!=" LogicalExpression  -- notEqual
-    | LogicalExpression
+  Expression = LogicalExpression
 
   LogicalExpression
-    = LogicalExpression "&&" RelationalExpression       -- and
-    | LogicalExpression "||" RelationalExpression       -- or
+    = LogicalExpression "&&" EqualityExpression       -- and
+    | LogicalExpression "||" EqualityExpression       -- or
+    | EqualityExpression
+
+  EqualityExpression
+    = EqualityExpression "==" RelationalExpression  -- equal
+    | EqualityExpression "!=" RelationalExpression  -- notEqual
     | RelationalExpression
 
   RelationalExpression
