@@ -32,11 +32,11 @@ def restore() {
 }
 
 def colorize2(blur) {
-  var p = blur.level;
-  this.r = this.origB + this.origG * (1.0 - p);
-  this.g = this.origB * (1.0 - p);
-  this.b = this.origB * p + this.origG * (1.0 - p);
-  this.a = this.origA;
+  var p = 1.0 - blur.level;
+   this.r = this.origR * p + this.origG * (1.0 - p);
+   this.g = this.origG * p;
+   this.b = this.origB * p + this.origG * (1.0 - p);
+   this.a = this.origA;
 }
 
 def colorize3() {

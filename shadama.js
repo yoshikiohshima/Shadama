@@ -40,6 +40,7 @@ var watcherElements = []; // [DOM]
 var envList; // DOM
 
 var shadamaCanvas;
+var fullScreenScale = 1;
 
 var keepGoing = true;
 var animationRequested = false;
@@ -1226,23 +1227,28 @@ function callSetup() {
 }
 
 function addListeners(aCanvas) {
-    var rect = aCanvas.getBoundingClientRect();
-    var left = rect.left;
-    var top = rect.top;
-
-    var y = function(e, top) {
-	var diff = e.pageY - e.clientY;
-	return FW - (e.clientY + diff - top);
+    var set = function(e, symbol) {
+	var rect = aCanvas.getBoundingClientRect();
+	var left = rect.left;
+	var top = rect.top;
+	var diffY = e.pageY - e.clientY;
+	var diffX = e.pageX - e.clientX;
+	var x = (e.clientX + diffX - left) / fullScreenScale;
+	var y = FH - (e.clientY + diffY - top) / fullScreenScale;
+	console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
+	console.log("x " + x + " y: " + y);
+	env[symbol] = {x: x,  y: y};
     }
 
+
     aCanvas.addEventListener("mousemove", function(e) {
-        env.mousemove = {x: e.clientX - left, y: y(e, top)};
+	set(e, "mousemove");
     });
     aCanvas.addEventListener("mousedown", function(e) {
-        env.mousedown = {x: e.clientX - left, y: y(e, top)}
+        set(e, "mousedown");
     });
     aCanvas.addEventListener("mouseup", function(e) {
-        env.mouseup = {x: e.clientX - left, y: y(e, top)}
+        set(e, "mouseup");
     });
     document.addEventListener('keypress', function(evt) {
 	if (evt.target === document.body) {
@@ -1790,6 +1796,20 @@ function step() {
         }
     } catch (e) {
 	reportError(e);
+    }
+}
+
+function goFullScreen() {
+    var rx = window.innerWidth / FW;
+    var ry = window.innerHeight / FH;
+
+    fullScreenScale = Math.min(rx, ry);
+
+    var req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen;
+    if (req) {
+	req.call(shadamaCanvas);
+	shadamaCanvas.style.width = FW * fullScreenScale + 'px';
+	shadamaCanvas.style.height = FH * fullScreenScale + 'px';
     }
 }
 
