@@ -1,6 +1,6 @@
 "use strict";
 
-var TEXTURE_SIZE = 1024;
+var TEXTURE_SIZE = 512;
 var FIELD_WIDTH = 512;
 var FIELD_HEIGHT = 512;
 var ENLARGE = 1;
@@ -1235,8 +1235,8 @@ function addListeners(aCanvas) {
 	var diffX = e.pageX - e.clientX;
 	var x = (e.clientX + diffX - left) / fullScreenScale;
 	var y = FH - (e.clientY + diffY - top) / fullScreenScale;
-	console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
-	console.log("x " + x + " y: " + y);
+//	console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
+//	console.log("x " + x + " y: " + y);
 	env[symbol] = {x: x,  y: y};
     }
 
@@ -1619,43 +1619,15 @@ function initFileList(optSelection) {
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
 
-    var val;
+    var match;
+    match = /fw=([0-9]+)/.exec(window.location.search);
+    FW = (match && match.length == 2) ? parseInt(match[1]) : FIELD_WIDTH;
 
-    FW = 0;
-    var match = /fw=([0-9]+)/.exec(window.location.search);
-    if (match && match.length == 2) {
-	val = parseInt(match[1]);
-	if (val > 0) {
-	    FW = val;
-	}
-    }
-    if (FW === 0) {
-	FW = FIELD_WIDTH;
-    }
-
-    FH = 0;
-    var match = /fh=([0-9]+)/.exec(window.location.search);
-    if (match && match.length == 2) {
-	val = parseInt(match[1]);
-	if (val > 0) {
-	    FH = val;
-	}
-    }
-    if (FH === 0) {
-	FH = FIELD_HEIGHT;
-    }
-
-    T = 0;
-    var match = /t=([0-9]+)/.exec(window.location.search);
-    if (match && match.length == 2) {
-	val = parseInt(match[1]);
-	if (val > 0) {
-	    T = val;
-	}
-    }
-    if (T === 0) {
-	T = TEXTURE_SIZE;
-    }
+    match = /fh=([0-9]+)/.exec(window.location.search);
+    FH = (match && match.length == 2)  ? parseInt(match[1]) : FIELD_HEIGHT;
+    
+    match = /t=([0-9]+)/.exec(window.location.search);
+    T = (match && match.length == 2) ? parseInt(match[1]) : TEXTURE_SIZE;
 
     if (runTests) {
         setTestParams();
