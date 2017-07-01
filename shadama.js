@@ -1,6 +1,6 @@
 "use strict";
 
-var TEXTURE_SIZE = 512;
+var TEXTURE_SIZE = 1024;
 var FIELD_WIDTH = 512;
 var FIELD_HEIGHT = 512;
 var ENLARGE = 1;
