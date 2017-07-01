@@ -19,6 +19,7 @@ var readPixelArray;
 var readPixelCallback;
 
 var runTests = false;
+var showAllEnv = true;
 
 var breedVAO;
 var patchVAO;
@@ -1543,8 +1544,16 @@ function updateEnv() {
                     .map((k)=>`${k}:${printNum(obj[k])}`);
         return `{${props.join(' ')}}`;
     }
+    function filter(k) {
+	if (showAllEnv) {
+	    return true;
+	} else {
+	    return(env[k] && env[k].constructor != ImageData);
+	}
+    }
     let list = Object.getOwnPropertyNames(env)
                .sort()
+               .filter(filter)
                .map((k)=>`${k}: ${print(env[k])}`);
     envList.innerHTML = `<pre>${list.join('\n')}</pre>`;
 }
@@ -1618,6 +1627,7 @@ function initFileList(optSelection) {
 
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
+    showAllEnv = !(/allEnv=/.test(window.location.search));
 
     var match;
     match = /fw=([0-9]+)/.exec(window.location.search);
