@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css?family=Fira+Sans:400,400i,500,500i,600,600i,700,700i|Vollkorn:400,400i,700,700i');
+
+body {
+  font-family: 'Vollkorn', serif;
+  background-color: hsl(0, 0%, 100%);
+}
+
+h1, h2, h3, h4, h5,
+p.subtitle {
+  font-family: 'Fira Sans', sans-serif;
+}
+
+h1 {
+  font-weight: 700;
+}
+
+h2, h3 {
+  font-style:  normal;
+  font-weight: 500;
+}
+
+pre.code {
+  font-family: Consolas, Monaco, Courier, monospace;
+}

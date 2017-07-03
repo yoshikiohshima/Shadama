@@ -1171,7 +1171,10 @@ function reportError(error) {
 
 function resetSystem() {
     for (var s in steppers) {
-        stopClock(detectEntry(s).clock);
+	var e = detectEntry(s);
+	if (e) {
+            stopClock(e.clock);
+	}
     }
     removeAll();
 
