@@ -312,31 +312,26 @@ powerful mathematical tools.
 	<h2 id="language">The Primer of the Shadama Language (The one pager) </h2>
 	<p>
 The Shadama language uses the turtles and patches abstraction, which
-is drawn from the tradition of StartLogo.  Turtles are organized into
-"breeds".  Each breed can declares its own variables.
+is drawn from the tradition of StarLogo.  Turtles are organized into
+"breeds".  Each breed can declare its own variables.
 
         <h3 id="breeds">Breeds</h3>
-  A breed is
-declared in the program with the "breed" statement.  For example, a
+  A breed is declared in the program with the "breed" statement.  For example, a
 statement:
 <pre class="code">
 breed MyTurtle (x, y)
 </pre>
 </p>
 <p>
-creates a breed of turtle called "MyTurtle", and specifies that each
+creates a breed of turtle called "MyTurtle", and declares that each
 turtle in the breed has two own properties called "x", and "y".
-You can have as many breeds as you like, and as many own properties for
-each as you like.
 	</p>
 	<p>
-The type of own properties (and other variables in general) are
-limited to scalar floats.
+The type of properties are limited to scalar floats.
 	</p>
 	<p>
 To define behavior for turtles, you define a method with the def
-statement.  For example, you an define a method called "move" like
-this:<br>
+statement.  Here is an example:<br>
 <pre class="code">
 def move() {
   this.x = this.x + 1;
@@ -345,14 +340,12 @@ def move() {
 </pre>
 </p>
 <p>
-Intuitively, this says that when a method is invoked for a turtle, the
-turtle's x value and y value are incremented by one.  The "this"
-keyword followed by a period "." and the name of the own variable is
-the syntax to access an own variable.
+Intuitively, when this method is invoked for a turtle, the
+turtle's x property and y property are incremented by one.
 	</p>
 	<p>
-To invoke a method, it has to be done for all turtle in a breed at the
-same time.  Only place you can do it is a static function.  For
+When a method is invoked from a static function, all turtles in the receiving breed executes it at the
+same time.  For
 example, a static function:<br>
 <pre class="code">
 static step() {
@@ -361,19 +354,14 @@ static step() {
 </pre>
 </p>
 <p>
-calls the move function on all turtles of the MyTurtle breed.  Besides
-user-defined methods, there are "primitives" that provide a certain
+calls the move method on all turtles of the MyTurtle breed.  Besides
+user-defined methods, there are "primitives" that provide certain
 pre-defined features. The following is a list of primitives for
 breeds.
 <ul>
 <li> <code>aBreed.setCount(count);</code>
   <p>
-  This sets the number of turtles in the breed.  If the number
-  increases, the newly "created" turtles' own variables are
-  initialized with 0.  In the current implementation, there is the
-  limit on the number of turtles in a breed.  By default, it is about 1
-  million.  (It is provided by the  square of a constant called TEXTURE_SIZE in the
-  implementation.)
+  This sets the number of turtles in the breed.
 
   For example, a static function:
 <pre class="code">
@@ -384,10 +372,16 @@ static setup() {
 	</p>
 	<p>
 will set the number of turtles in the MyTurtle breed to 10,000.
+</p>
+<p>
+  In the current implementation, there is a limit on the number of
+turtles for a breed.  The limit is about 1 million.  (It is provided
+by the square of a constant called TEXTURE_SIZE in the
+implementation.)
 	</p>
 <li> <code>aBreed.fillRandom(name, min, max);</code>
 	<p>
-  For all turtles in the breed, this sets the own variable specified by
+  The fillRandom primitive sets the property specified by
   the string to be a random (floating point) number between min
   (inclusive) and max (exclusive).  It does not change the number of
   turtles in the breed.  For example,
@@ -399,17 +393,17 @@ static setup() {
   </pre>
   </p>
   <p>
-  will make each of the 10,000 instance's "x" own variable to be a
-  random floating point number between 0 and 100. (That is, the
-  results are not limited to integral values.)
+  will make each of the 10,000 instance's "x" property to be a
+  random floating point number between 0 and 100.
  </p>
 <li> <code>aBreed.fillRandomDir(dxName, dyName);</code>
 	<p>
-  This assumes a two-dimentional space, and for each turtle in the
-  breed, generate a random 2D unit direction vector (that is, a vector
-  pointing to a direction in a 2D space, and whose length is one) and
-  store its x and y component of the vector into the own variables
-  specified by dxName and dyName, respectively.  For example,
+
+  The fillRandomDir primitive generates a random 2D unit direction
+  vector (that is, a vector pointing to a direction in a 2D space, and
+  whose length is one) and store its x and y component of the vector
+  into the own property specified by dxName and dyName, respectively.
+  For example,
   <pre class="code">
 static setup() {
   MyTurtle.setCount(10000);
@@ -418,13 +412,13 @@ static setup() {
 </pre>
 </p>
 <p>
-sets "dx" and "dy" of a turtle with a pair of values that are (dx * dx
-+ dy * dy) = 1 (or close to that, within the limit of numerical
-computation errors).
+sets "dx" and "dy" of a turtle with the x- and y- component of a random unit vector.
 </p>
 <li> <code>aBreed.fillSpace(xName, yName, xDim, yDim);</code>
 	<p>
-  This sets the number of turtles in the breed to be xDim * yDim.  Then, assuming they are in the two-dimentional space, it places the turtles at all 2D grid points within in the (0..xDim, 0..yDim) area.  For example,
+The fillSpace primitive first sets the number of turtles in the breed
+to be xDim * yDim.  Then, it places the turtles at all 2D grid points
+within the (0..xDim, 0..yDim) area.  For example,
 <pre class="code">
 static setup() {
   MyTurtle.fillSpace("x", "y", 100, 100);
@@ -432,13 +426,13 @@ static setup() {
 </pre>
 </p>
 <p>
-creates 10,000 turtles for the MyTurtle breed, and their "x" and "y" own variables becomes the integral grid points spanned by (0, 0) and (99, 99), inclusive.
+creates 10,000 turtles of the MyTurtle breed, and their "x" and "y" properties become the integral grid points spanned in (0, 0) and (99, 99) (inclusive).
 </p>
 <li> <code>aBreed.fillImage(xName, yName, rName, gName, bName, aName, anImageData);</code>
 	<p>
   The anImageData argument is a Javascript ImageData object.  This
   sets the turtle count of the breed to be anImageData.width *
-  anImageData.height.  Then as in fillSpace, it places those turtles
+  anImageData.height.  Then, similar to fillSpace, it places those turtles
   at the 2D grid points within the image extent, and update their own
   variables specified by rName, gName, bName, and aName with the RGBA
   color component values of the image.  Note that while the color
@@ -454,36 +448,36 @@ static setup() {
 </p>
 <p>
 (where the value of anImage can be taken from the global variable
-described below), will create the number of turtles equal to the pixel
-count in anImage and store the anImage's color component values,
-scaled to 1.0, into r, g, b and a own variables.
+described below), creates the same number of turtles to the pixel
+count of anImage, and stores the anImage's color component values,
+scaled to 1.0, into r, g, b and a properties.
 </ul>
 
-<h3 id="breeds">Breeds</h3>
+<h3 id="breeds">Patches</h3>
 <p>
-Besides breeds of turtles, you can create patch variables.  A patch
-variable assumes a two dimentional space of the fixed size (by default
-512x512, specified as FIELD_WIDTH and FIELD_HEIGHT), and a cell at
-each integral coodinate in the space holds a set of own variables.
+Besides breeds of turtles, you can create patches.  A patch
+is a set of "cells" that can hold values.  A patch
+assumes a two-dimentional space of the fixed size (by default
+512x512, specified as FIELD_WIDTH and FIELD_HEIGHT).
 For example, a statement:
 <pre class="code">
 patch Field (nx, ny)
 </pre>
 </p>
 <p>
-declares a patch variable, and each cell in the patch variable holds
+declares a patch, and each cell in the patch variable holds
 two values "nx" and "nyclas".
 </p>
 
 <p>
-To manipulate patches, they are pssed into a method as arguments.  An
-argument for a method can be either a scalar value or a patch variable.
+To manipulate patches, you  pssed them into a method as arguments.
 </p>
 <p>
-The caller of a method is always a static function.  To pass in a patch variable
-to a method, you pass the name of the patch variable as an argument.
-On the callee, which is executed in the context of a turtle, the
-nearest patch cell will be bound to the argument.  For example, this code:
+The caller of a method is always a static function.  To pass in a
+patch to a method, you pass the name of the patch as an argument.
+Each turtle that executes the method can only see the nearest patch
+cell, and accessing a property of patch give the value in the cell.
+For example, this code:
 </pre class="code">
 breed MyTurtle (x, y, r, g, b, a)
 patch Field (r, g, b, a)
@@ -499,14 +493,14 @@ static setup() {
 </pre>
 </p>
 <p>
-declares a breed called MyTurtle, and a patch variable called Field.
+declares a breed called MyTurtle and a patch called Field.
 The "setup" function calls the "store" method with "Field" as an
 argument.  The store method, executed for each turtle in Turtle,
-store the turtle's r own variable into the nearest cell in the patch.
+store the turtle's r property into the r property of the nearest cell in Field.
 </p>
 
 <p>
-The opposite direction of data transfer is also possible.  For example,
+You can read values out from the patch.  For example, when the following method is executed:
 <pre class="code">
 def load(field) {
    this.r = field.r;
@@ -514,8 +508,7 @@ def load(field) {
 </pre>
 </p>
 <p>
-each turtle reads the r own variable in the patch cell at where the
-turtle is and store it into its own variable.
+each turtle reads the r property of the nearest patch cell and stores it into its property.
 </p>
 <p>
 You can pass in multiple patches to a method.  For example,
@@ -543,15 +536,14 @@ are valid.
 
 <h3 id="variables">Local and Global Variables</h3>
 <p>
-A method can have a local variable declared by a "var"
+A method can have local variables declared by the "var"
 statement.  The scope of the variable is the whole method,
 regardless where it is declared.  There can be at most one "var"
 declaration for the saem variable name, unlike JavaScript.
 </p>
 <p>
-Static functions have global variables, which are shared
-by all static functions and persisted across the invocations of static
-functions.  For example, if you have two static functions:
+Static functions have global variables, which are visible to all static functions.
+For example, if you have two static functions:
 <pre class="code">
 static setup() {
   var begin = 1;
@@ -565,8 +557,7 @@ static loop() {
 </pre>
 </p>
 <p>
-The begin variable is unique and can be referred to from
-both setup and loop.
+The begin variable can be referred to from both setup and loop,
 </p>
 
 <p>
@@ -580,12 +571,14 @@ There are built in global variables.
 <li> <code> width, height</code>: the width and height of the visible 2D space.
 <li> <code>Display</code>:           a stand in to be a left of the dot notation
 </ul>
+<p>
+Note that mouse events are JS objects but methods can still only takes scalar values.
 
 <h3 id="parallelism">Parallelism</h3>
 <p>
-When there are many turtles and they are writing into a patch
-variable, it is possible that more than one turtles are at the same
-cell and try to write into the same cell.  The result is non-deterministic.
+When turtles are writing into a patch, it is
+possible that more than one turtles are at the same cell and try to
+write into it.  The result from this is non-deterministic.
 </p>
 <p>
 Also, you cannot read a value that you "just" wrote within the same
@@ -602,10 +595,9 @@ def test() {
 </pre>
 </p>
 <p>
-the r own property and b own variable will not have the same value
-even though the last line reads "this.b = this.r;".  The assignments into this.r in the if statement flips the value, but the actual update of the own property
-does not take effect until the function finishes.  For instance, the value read
-by the last "this.r" is still the old value.
+the r property and b property will not have the same value after the invocation,
+even though the last line reads <code>this.b = this.r;</code>.  The assignments into this.r in the if statement negates the value, but the actual update of the variable
+does not take effect until the function finishes.
 </p>
 <p>
 If you want it so that this.b and this.r will always have the same value, you
@@ -628,7 +620,9 @@ def test() {
 
 <h3 id="control-structure">Control structure</h3>
 <p>
-Only control structure supported is the if statement.  As GLSL 3.0 supports variable-count loops, Shadama should be able to support loops; but it has not implemented.
+Only control structure supported is the if statement.  As GLSL 3.0
+supports variable-count loops, Shadama should be able to support
+loops; but it has not implemented.
 </p>
 <p>
 
@@ -727,8 +721,13 @@ and "x", which are referred to from the function.
 
       <section>
         <h2>References</h2>
+	<ul>
+	  <li>StarLogo
+	  <li>LiquidFun
+	  <li>GLSL
+	  <li>Nigiri
+        </ul>
       </section>
-
     </article>
   </body>
 </html>
