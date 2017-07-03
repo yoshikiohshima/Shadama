@@ -18,46 +18,47 @@
       <section id="abstract">
         <p>
 We present a prototype of a programming system called Shadama, which
-is specialized to create and control a large number of particles.
-Shadama's basic execution model follows the tradition of StarLogo and
-its "turtles and patches" abstraction, which is proven to be effective
-and easy to use.  The language is intended to be used by high-school
-level students to make physics simulations.
+is designed to support programs that creates large number of objects
+and control them.  Shadama's basic execution model follows the
+tradition of StarLogo and its "turtles and patches" abstraction.  The
+abstraction is proven to be effective and easy to use.  The primary
+intended audience of the language is high-school level students to
+make physics simulations.
 	</p>
         <p>
-The environment provides <i>liveness</i>.  When the user save the
+The environment provides <i>liveness</i>.  When the user saves the
 program, the change immediately takes effects on the running
 simulation without needing to restart the simulation.
 	</p>
         <p>
 The user code is translated to the Open GL Shader Language and
-supporting JavaScript code.  The translator is written in the Ohm
-parser generator.  The runtime data of the program is stored and kept
-in the memory of graphics card for fast execution.
+supporting JavaScript code.  The runtime data of the program is stored
+and kept in the memory of graphics card for fast execution.
 	</p>
         <p>
-The prototype is available at: http://tinlizzie.org/~ohshima/shadama2.
-Note, however, that the system is sensitive to the floating point
+The prototype is available
+at: <A href="http://tinlizzie.org/~ohshima/shadama2">Shadama Prototype
+Page</A>.  Note that the system is sensitive to the floating point
 precision provided by the graphics card, and consequently it rather
 chooses a platform it runs.  On a computer with AMD Radeon graphics
 card, and Chrome or FireFox browsers seem to work better.
 </p>
       </section>
-
       <section>
         <h2>Introduction</h2>
         <p>
-The computing power that is available for each of us in the world is
-astounding, if we look back just a few years.  Achieving the Teraflops
-mark was a milestone for building-sized supercomputers in late '90's.
-Now, a smart phone has equivalent performance.
+The computing power that is available for lay people like us is
+astounding, if we look back in the history of computing just for a few
+years.  Achieving the Teraflops mark was a milestone for
+building-sized supercomputers in late '90's.  Now, a smart phone has
+equivalent performance.
 	</p>
 	<p>
 But what are people doing with it?  I don't want to say bad stuff
 about my friends and families, but they are more interested in
 watching cat videos and playing solitaire, rather than trying to
 invent self-flying personal airplanes, nor to discover the graviton.
-A joke aside, one big problem we face today is that the
+A joke aside, one of the big problems we face today is that the
 importance of science literacy seems to be discounted in this
 technologically advanced society, when we will need the next
 generation to embrace science more, not less.
@@ -68,21 +69,21 @@ environment where school students, artists, and even professional
 programmers can tap into the power that is available for us.
 	</p>
 	<p>
-Along this line of effort, we have been working on a prototype of a
+Along this line of efforts, we have been working on a prototype of a
 programming language intended for high school students to explore
 scientific ideas.
 	</p>
 	<p>
 Science is about making invisible things visible.  One notable example
-of invisible yet important is the concept of molecules.  We would like
-students to learn about them.  And not only rote memorization, we want
-them to learn it through actual experiments, and through building
-models to understand it.  And if the model is executable on a
-computer, they can make a model with massive number of particles.
+of invisible yet hugely important is the concept of molecules.  We
+would like students to learn about them: not only with rote
+memorization, but we want them to learn it through actual experiments,
+and through building models.  And if the model is executable on a
+computer, they can make a dynamic model to understand it more deeply.
 	</p>
 	<p>
-So we set ourselves out to make a prototype of the language.  We set
-following goals for the language:
+So we set ourselves out to make a prototype of the language, that aims
+to satisfy following goals:
 <ul>
 <li> Based on simple Concepts
 <li> Large number of objects
@@ -91,29 +92,28 @@ following goals for the language:
        <p>
 As the basis for our prototype, we follow the tradition of StarLogo,
 where objects are organized into turtles patches.  For those students
-who have used Scratch, specifying the behavior of one object is in
-their vocabulary, and perhaps the clone feature in Scratch is already
-familiar.  Breeds and patches are straightforward extensions and we
-expect that most students can pick them up easily.
+who have used Scratch, specifying the behavior of one object is
+already familiar. Breeds and patches are straightforward extensions
+and we expect that most students can pick them up easily.
        </p>
        <p>
 For the second point, there is a trade-off between having easy
 language semantics and providing high performance.  On one hand, we
-would like an end-user language to be free from the constraints
-imposed by particular nature of hardware.  On the other hand, however,
-there are some fundamental limitations in the execution model of
-today's graphics hardware.  In particular, sharing turtles' own states
+would like an end-user language to be free from constraints imposed by
+the particular nature of hardware.  On the other hand, however, there
+are some fundamental limitations in the execution model of today's
+graphics hardware.  In particular, sharing turtles' own states
 directly with others, or dynamically constructing a list of turtles in
-its neighborhood, are not implementable in GPU.  But we found that the
+its neighborhood, are not implementable.  But we found that the
 indirect communication scheme facilitated by patches mitigates the
 limitation.
        </p>
        <p>
 For the third point, the environment should show the effects of user
 actions, in this case code changes, as soon as possible.  However,
-when the real-time simulation is already running, and we would not
-want to restart the simulation for each of the changes the user makes,
-we think that the user rather want to batch code changes to a 
+when the user already has a running real-time simulation, we would not
+want to restart the simulation for each keystrokes into the code.  We
+think that the user rather want to batch code changes to a
 <i>chunk of meaningful code change</i> before the system adapts to it.
 An example of a meaningful chunk is to change the arity of a function:
 it is not sensible to run the program until both the function
@@ -125,22 +125,25 @@ immediately.
 </section>
 <section>
 	<h2 id="a-science-experiment">A Science Experiment</h2>
-	  <p>
-We begins with an actual science experiment to motivate the narrative.
-This movie shows a vacuum cannon.  The vacuum cannon is a six foot PVC
-pipe, connected to a vacuum pump.  We put a ping pong ball inside,
-cover the open ends with a soft and sturdy but breakable material such
-as plastic cake plates, and pump the air out.  In this movie the
-inside was about 20% of the atmospheric pressure.
-	  </p>
 <iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
 	  <p>
-When one end near the ping pong ball is popped by a box cutter, the
+We begins with an actual science experiment to motivate the narrative.
+This movie shows a vacuum cannon.  The vacuum cannon is made out of a
+six foot PVC pipe, connected to a vacuum pump.  We put a ping pong
+ball in it, cover the ends with soft and sturdy but breakable
+materials such as plastic cake plates, and pump the air out.  In this
+movie the pressure inside was about 20% of the atmospheric pressure,
+which is decent but not extreme.
+	  </p>
+	  <p>
+When one end near the ping pong ball is broken by a box cutter, the
 air molecules that are moving toward the opening keep moving into the
-low pressure space, and the ping pong ball is simply pushed out
-because of it.  Our crude version can achieve over 200 meters/sec,
-which is about 60% of the speed of sound.  Some people have built one
-that can achieve super sonic speed.
+low pressure space.  (Note that they are not sucked in the space; they
+just happen to be moving to that direction.).  Those molecules hit the
+ping pong ball and simply push it out from the other end. Our crude
+version can achieve over 200 meters/sec, which is about 60% of the
+speed of sound.  Some people have built one that can achieve super
+sonic speed.
 	</p>
         <p>
 Recall that the idea that science is about making invisible visible.
@@ -293,11 +296,30 @@ simulation right away, without needing to restart it.
 	</p>
 </section>
 <section>
+	<h2 id="implementation">Implementation</h2>
+</section>
+<p>
+Shadama is a web-based technology.  It uses WebGL 2.0 and the shader
+language version 3.0 provided by WebGL 2.0.  A turtle's own property
+is stored in one texture, whose type is "R32F" and it is treated as a
+vector of scalar values.  Also the multiple render target is used to
+write back the changes to multiple properties at once.
+</p>
+<p>
+From the user code, the vertex shader code and fragment shader code,
+along with some support code in JavaScript are generated.  The
+translator is written in Ohm[].
+</p>
+
+<section>
 	<h2 id="related-work">Related Work</h2>
 	<p>
-The major inspiration is Resnick's StarLogo.  The basic organization
-of Shadama objects is largely drawn upon StarLogo, and in fact Shadama
-is missing some key features to access other turtles from a turtle.
+The major inspiration for Shadama is Resnick's StarLogo.  The basic
+organization of Shadama objects is largely drawn upon StarLogo, and in
+fact Shadama is missing some key features to access other turtles from
+a turtle.  One of the author did a particle extension called Kedama
+for Etoys.  The name Shadama is an homage to Kedama, but with the
+Shader Language as the backend.
 	</p>
 	<p>
 Lately, there are various simulation environments, such as Liquid Fun,
