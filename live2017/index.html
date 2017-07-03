@@ -16,85 +16,111 @@
       HARC/Y Combinator Research</p>
 
       <section id="abstract">
-        <p>abstract goes here</p>
+        <p>
+We present a prototype of a programming system called Shadama, which
+is specialized to create and control a large number of particles.
+Shadama's basic execution model follows the tradition of StarLogo and
+its "turtles and patches" abstraction, which is proven to be effective
+and easy to use.  The language is intended to be used by high-school
+level students to make physics simulations.
+	</p>
+        <p>
+The environment provides <i>liveness</i>.  When the user save the
+program, the change immediately takes effects on the running
+simulation without needing to restart the simulation.
+	</p>
+        <p>
+The user code is translated to the Open GL Shader Language and
+supporting JavaScript code.  The translator is written in the Ohm
+parser generator.  The runtime data of the program is stored and kept
+in the memory of graphics card for fast execution.
+	</p>
+        <p>
+The prototype is available at: http://tinlizzie.org/~ohshima/shadama2.
+Note, however, that the system is sensitive to the floating point
+precision provided by the graphics card, and consequently it rather
+chooses a platform it runs.  On a computer with AMD Radeon graphics
+card, and Chrome or FireFox browsers seem to work better.
+</p>
       </section>
 
       <section>
         <h2>Introduction</h2>
         <p>
 The computing power that is available for each of us in the world is
-astounding.  Achiving the Teraflops mark was a milestone for
-building-sized supercomputers in late '90's.  Now, a smartphone has
-equivalent performance.
+astounding, if we look back just a few years.  Achieving the Teraflops
+mark was a milestone for building-sized supercomputers in late '90's.
+Now, a smart phone has equivalent performance.
 	</p>
 	<p>
 But what are people doing with it?  I don't want to say bad stuff
-about my friends and families, but they are watching cat videos and
-playing solitaire, not trying to invent self-flying personal
-airplaces, or to discover graviton.  A joke aside, one big problem we
-face today is that the importance of science literacy seems to be
-discounted, when we will need the next generationto to embrace science
-more not less.
+about my friends and families, but they are more interested in
+watching cat videos and playing solitaire, rather than trying to
+invent self-flying personal airplanes, nor to discover the graviton.
+A joke aside, one big problem we face today is that the
+importance of science literacy seems to be discounted in this
+technologically advanced society, when we will need the next
+generation to embrace science more, not less.
 	</p>
 	<p>
 We think this is a good time to restart our efforts to provide an
-environment where school students, artsts, and even professional
-programmers can tap into the power provided by hardware easily.
+environment where school students, artists, and even professional
+programmers can tap into the power that is available for us.
 	</p>
 	<p>
-In this effort, we have been working on a prototype of a programming
-language intended for high school students to explore scientific
-ideas.
+Along this line of effort, we have been working on a prototype of a
+programming language intended for high school students to explore
+scientific ideas.
 	</p>
 	<p>
 Science is about making invisible things visible.  One notable example
-is molecules.  We would like students to learn about them through
-actual experiments, and then, build models to understand it.  By
-taking advantage of the power of computer, they should be able to make
-a dynamic model with massive number of particles, and interactively
-explore the idea.
+of invisible yet important is the concept of molecules.  We would like
+students to learn about them.  And not only rote memorization, we want
+them to learn it through actual experiments, and through building
+models to understand it.  And if the model is executable on a
+computer, they can make a model with massive number of particles.
 	</p>
 	<p>
-So we set ourselves out to make a prototype of the language.  We set following goals:
+So we set ourselves out to make a prototype of the language.  We set
+following goals for the language:
 <ul>
-<li> Object-Oriented.
+<li> Based on simple Concepts
 <li> Large number of objects
 <li> Liveness. 
 </ul>
-
        <p>
-The object-orientation helps the user to focus on the behavior of one
-particle, following what they might already know about Scratch or
-similar languages.  This is the tradition from StarLogo, where large
-number of objects are organized in breeds of turtles and patches, but
-mostly the programmer begins with writing simple of actions for one
-turtle.
+As the basis for our prototype, we follow the tradition of StarLogo,
+where objects are organized into turtles patches.  For those students
+who have used Scratch, specifying the behavior of one object is in
+their vocabulary, and perhaps the clone feature in Scratch is already
+familiar.  Breeds and patches are straightforward extensions and we
+expect that most students can pick them up easily.
        </p>
        <p>
-For the second point, there is a trade of between performance and
-language semantics.  On one hand, we want to be able to write a
-program that controls millions of objects.  On one hand, we would like
-an end-user language to be free from the constraints imposed by
-particular nature of hardware.  On the other hand, however, there are
-some fundamental limitations the execution model has to follow to gain
-any performance benefit from GPU.  In particular, sharing turtles' own
-states directly with others, or dynamically constructing a list of
-turtles in its neighborhood, are not implementable in GPU.  But we
-found that the indirect communication scheme facilitated by patches
-mitigates the limitation.
+For the second point, there is a trade-off between having easy
+language semantics and providing high performance.  On one hand, we
+would like an end-user language to be free from the constraints
+imposed by particular nature of hardware.  On the other hand, however,
+there are some fundamental limitations in the execution model of
+today's graphics hardware.  In particular, sharing turtles' own states
+directly with others, or dynamically constructing a list of turtles in
+its neighborhood, are not implementable in GPU.  But we found that the
+indirect communication scheme facilitated by patches mitigates the
+limitation.
        </p>
        <p>
 For the third point, the environment should show the effects of user
-actions, in this case code changes, as soon as possible in principle.
-However, Shadama aspires to an environment where the simulation is
-already live, and code change should not restart the simulation, we
-found that the user rather want to wait until a
-<i>chunk of meaningful code change</i>
-is completed before the system adapt to a partial change too quickly.
-An example of a meaningful chunk is changing the arity of a function: it is not sensible to run the
-program until both the function definition and its caller have been
-changed.  After changing those locations, the user can make a minimum gesture (such as hitting Cmd-S for
-save), and the change takes effects immediately.
+actions, in this case code changes, as soon as possible.  However,
+when the real-time simulation is already running, and we would not
+want to restart the simulation for each of the changes the user makes,
+we think that the user rather want to batch code changes to a 
+<i>chunk of meaningful code change</i> before the system adapts to it.
+An example of a meaningful chunk is to change the arity of a function:
+it is not sensible to run the program until both the function
+definition and its caller have been changed.  After changing those
+different places in the code, the user can make a minimum gesture
+(such as hitting Cmd-S for save), and the change can take effects
+immediately.
        </p>
 </section>
 <section>
