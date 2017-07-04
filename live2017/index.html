@@ -18,22 +18,22 @@
       <section id="abstract">
         <p>
 We present a prototype of a programming system called Shadama, which
-is designed to support programs that creates large number of objects
-and control them.  Shadama's basic execution model follows the
-tradition of StarLogo and its "turtles and patches" abstraction.  The
-abstraction is proven to be effective and easy to use.  The primary
-intended audience of the language is high-school level students to
-make physics simulations.
+is designed to help writing programs that creates large number of
+objects, control them and visualize them.  Shadama's basic execution
+model follows the tradition of StarLogo and its "turtles and patches"
+abstraction.  The abstraction is proven to be effective and easy to
+use.  The primary audience intended of the language is high-school
+level students to make physics simulations.
 	</p>
         <p>
-The environment provides <i>liveness</i>.  When the user saves the
-program, the change immediately takes effects on the running
+The environment supports <i>liveness</i>.  When the user saves the
+program, the code change immediately takes effects on the running
 simulation without needing to restart the simulation.
 	</p>
         <p>
-The user code is translated to the Open GL Shader Language and
-supporting JavaScript code.  The runtime data of the program is stored
-and kept in the memory of graphics card for fast execution.
+The user code is translated to the Open GL Shader Language.  The
+runtime data of the program is stored and kept in the memory of
+graphics card for fast execution.
 	</p>
         <p>
 The prototype is available
@@ -47,24 +47,24 @@ card, and Chrome or FireFox browsers seem to work better.
       <section>
         <h2>Introduction</h2>
         <p>
-The computing power that is available for lay people like us is
-astounding, if we look back in the history of computing just for a few
-years.  Achieving the Teraflops mark was a milestone for
-building-sized supercomputers in late '90's.  Now, a smart phone has
-equivalent performance.
+The computing power that is available for us is astounding, if we look
+back in the history of computing just for a few years.  Achieving the
+Teraflops mark was a milestone for a building-sized supercomputer in
+late '90's.  Now, a smart phone has equivalent performance.  The computing performance
+will continue to increase in the future.
 	</p>
 	<p>
-But what are people doing with it?  I don't want to say bad stuff
+But what are people doing with it?  I don't want to say bad things
 about my friends and families, but they are more interested in
 watching cat videos and playing solitaire, rather than trying to
-invent self-flying personal airplanes, nor to discover the graviton.
-A joke aside, one of the big problems we face today is that the
+invent self-flying personal airplanes, or to discover the graviton.
+Jokes aside, one of the big problems we face today is that the
 importance of science literacy seems to be discounted in this
 technologically advanced society, when we will need the next
 generation to embrace science more, not less.
 	</p>
 	<p>
-We think this is a good time to restart our efforts to provide an
+We think now is a good time to restart our efforts to provide an
 environment where school students, artists, and even professional
 programmers can tap into the power that is available for us.
 	</p>
@@ -75,17 +75,17 @@ scientific ideas.
 	</p>
 	<p>
 Science is about making invisible things visible.  One notable example
-of invisible yet hugely important is the concept of molecules.  We
-would like students to learn about them: not only with rote
-memorization, but we want them to learn it through actual experiments,
-and through building models.  And if the model is executable on a
+of invisible yet hugely important is gas molecules.  We would like
+students to learn about them: not only with rote memorization of
+words, but also through actual experiments, and
+through building models.  And if the model is executable on a
 computer, they can make a dynamic model to understand it more deeply.
 	</p>
 	<p>
 So we set ourselves out to make a prototype of the language, that aims
 to satisfy following goals:
 <ul>
-<li> Based on simple Concepts
+<li> Object-Oriented
 <li> Large number of objects
 <li> Liveness. 
 </ul>
@@ -112,9 +112,11 @@ limitation.
 For the third point, the environment should show the effects of user
 actions, in this case code changes, as soon as possible.  However,
 when the user already has a running real-time simulation, we would not
-want to restart the simulation for each keystrokes into the code.  We
+want to restart the simulation for each and every key stroke.  We
 think that the user rather want to batch code changes to a
 <i>chunk of meaningful code change</i> before the system adapts to it.
+</p>
+<p>
 An example of a meaningful chunk is to change the arity of a function:
 it is not sensible to run the program until both the function
 definition and its caller have been changed.  After changing those
@@ -128,19 +130,19 @@ immediately.
 <iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
 	  <p>
 We begins with an actual science experiment to motivate the narrative.
-This movie shows a vacuum cannon.  The vacuum cannon is made out of a
-six foot PVC pipe, connected to a vacuum pump.  We put a ping pong
-ball in it, cover the ends with soft and sturdy but breakable
-materials such as plastic cake plates, and pump the air out.  In this
-movie the pressure inside was about 20% of the atmospheric pressure,
-which is decent but not extreme.
+The movie above shows a vacuum cannon, created by the authors.  The
+vacuum cannon is made out of a six foot PVC pipe, with a
+vacuum pump connected.  We put a ping pong ball in it, cover the ends with soft
+and sturdy but breakable materials such as plastic cake plates, and
+pump the air out.  In this movie the pressure inside was about 20% of
+the atmospheric pressure, which is decent but not extreme.
 	  </p>
 	  <p>
 When one end near the ping pong ball is broken by a box cutter, the
 air molecules that are moving toward the opening keep moving into the
-low pressure space.  (Note that they are not sucked in the space; they
-just happen to be moving to that direction.).  Those molecules hit the
-ping pong ball and simply push it out from the other end. Our crude
+low pressure space.  (Note that they are not "sucked in"; they
+just happen to be moving to that direction.)  Those molecules hit the
+ping pong ball and simply push it out from the other end. Our
 version can achieve over 200 meters/sec, which is about 60% of the
 speed of sound.  Some people have built one that can achieve super
 sonic speed.
@@ -164,28 +166,31 @@ Here we try to make a simple physics simulation where many particles
 are following some gravity law.
 	</p>
 	<p>
-In a Shadama program, we declare a breed of turtles.  Here, the breed
-called Turtle has x, y, r, g, b and a properties.  A method is defined
-with the keyword "def".  Method is executed on each turtle in a breed.
-The setColor method uses the turtle's x and y coordinate and assign
-them into r and g.
+In a Shadama program, we declare and use breeds of turtles.  Here, the
+breed called Turtle is created.  Each turtle in the breed has x, y, r,
+g, b and a properties.
+	</p>
+	<p>
+  A method is defined with the keyword "def".  A method is executed on
+each turtle in a breed.  The setColor method uses the turtle's x and y
+coordinate and assign them into r and g.
 	</p>
 	<p>
 In a static function called "setup", we first set the number of
 turtles in the breed to be 3,000, set all turtle's x and y to be a
-random number between 0 and 512.  We run it by hitting Cmd-S, and it
-runs.  But we don't see the result until we call the setColor method,
-and call the draw primitive.
+random number between 0 and 512.  We run it by hitting Cmd-S to run
+it.  Okay, we don't see the result until we call the setColor method
+and call the draw primitive.  Good.
 	</p>
 	<p>
-Those dots are hard to see, but we can increase the number of turtles
+Those dots may be hard to see, but we can increase the number of turtles
 to 30,000, 300,000 and 1 million.
 	</p>
 	<p>
 What we want to do next is to move those turtles around.  So we define
 a method called move.  Move increments the x and y of turtles.  I call
-the move method from a static function step, and draw turtles.  When I
-set the clock on step and repeatedly execute it, the turtles move.
+the move method from a static function step.  When I set the clock on
+step and repeatedly execute it, the turtles move.
 	</p>
 	<p>
 Interestingly, while they are moving, I can edit the program on the
@@ -195,68 +200,73 @@ turtles that went off screen comes back.
 	</p>
 	<p>
 We would actually like each individual turtle to have its own
-velocity, so we add dx and dy to each turtle.  And then use them in
+velocity, so we add dx and dy to each turtle.  And then, we use them in
 move.  Here, instead of n, we increment x and y of each turtle with
 their dx and dy.
 	</p>
 	<p>
-We add a primitive to set the x and y component of a random direction
-vector, and run the code.  Now, all turtles move to their own
-directions.  Try again by executing setup, We are trying make a
-gravity simulation, so we add constant acceleration to the y component
-of the velocity.  Now all turtles are accelerated toward the bottom.
+We add a primitive to set the dx and dy to be the x and y components
+of a random direction vector.  Now, all turtles move
+to their own directions.  Try again by executing setup,
 	</p>
 	<p>
-But we don't want those particles to go out of bounds.  So we extend
+We can make this to be a simple gravity simulation.  We add constant
+acceleration to the y component of the velocity.  Now all turtles are
+accelerated toward the bottom.
+	</p>
+	<p>
+We don't want those particles to go out of bounds.  So we extend
 the move method.  First we store dx and dy, as well as the possible
 new location of x and y into local variables.  when newX is going out
 of bounds, we make the turtle bounce back.  When newY is going below,
-we wrap the turtle around to the top.  After adjusting those values,
+we wrap the value around to the top.  After adjusting those variables,
 we write those values back to turtle's properties.  Now one million
 turtles are falling down, bouncing off the side walls, and wrap around
 to the top.
 	</p>
 	<p>
-We are going add some large objects.  To do so, we use a grid of data
-cells called patches.  A patch is a set of 2D grid cells where turtles
-can store values.  Here, we create a patch called Field, and a breed
-called Filler that operates on it.
+We are going to add some large objects.  To do so, we use a patch.  A
+patch is a set of 2D grid cells where turtles can store values.  Here,
+we create a patch called Field, and a breed called Filler that
+operates on it.
 	</p>
 	<p>
 We define a method called fill.  This method takes an argument, and
 updates fields, values.  And the setup uses a primitive called
 fillSpace, which create enough number of turtles in the breed and
 locate them at all integral grid point.  When this setup is called,
-and the fill method is called for all turtles in the Filler breed, the
-patch's r and g gets this gradation.
+and the fill method is called for all turtles in the Filler breed the
+r and g of the patch gets values based on its position and it results
+in this gradation.
 	</p>
 	<p>
-But instead of gradation, let us make some shapes.  So we define
-fillCircle method instead.  The idea of fillCircle is that each turtle
+Instead of gradation, let us make some shapes.  So we define
+the fillCircle method instead.  The idea of fillCircle is that each turtle
 checks whether it is within the radius, and only when it is, it writes
 values into the cell.  We define the clear method, and now we use them
 in setup.  We get a circle at (100, 100).
 	</p>
 	<p>
-We can actually make the program interactive.  Split the setup
-function and create another one called loop.  Notice that there is a
-variable called mousemove, which updates when you move the mouse
-pointer in the display.  That is an indication that we can use the
-value in our program.
+We can make the program interactive.  Split the setup function and
+create another one called loop.  Notice that there is a variable
+called mousemove, which updates when you move the mouse pointer in the
+display.  That is an indication that we can use the value in our
+program.
 	</p>
 	<p>
-Now let us tie all together.  This code has some of the methods we
-used previously, such as setColor.  fillCircle is slightly modified so
-that it sets the normal vector for the circle.  In move, each turtle
-checks the normal in the cell where the turtle is at, computes the new
-direction that uses the dot product.  When I run this, particles are
-bouncing off the circle as expected.
+Now let us tie all together.  This code has methods we used
+previously, such as setColor.  FillCircle is slightly modified so that
+it sets the normal vector for the circle in the patch.  In the move
+method, each turtle checks the normal in the patch cell where the turtle is
+on, computes the new direction that uses the dot product.  When I run
+this, particles are bouncing off the circle as expected.
 	</p>
 	<p>
 However, it is a bit hard to see because the colors of turtles are too
-close.  Here, we change the setColor method so that instead of the x,
-and y position, it uses the dx and dy to decides its color.  Then we
-call setColor from loop, so that it updates its color all the time.
+close.  Here, we change the setColor method so that instead of the x
+and y position, we use the the velocity dx and dy to decides its
+color.  Then we call setColor from loop, so that it updates its color
+all the time.
 	</p>
 	<p>
 Here, horizontal velocity is rendered as reddish color, and vertical
@@ -341,18 +351,19 @@ quickly.  An anecdotal observation is that bugs in a program often
 produces interesting visual effects, and that is motivating.
 	</p>
 	<p>
-The current system needs some drastic make over.  One major factor is
-to support simulations in 3D.  While the numeric computation itself is
-all scalar values and agnostic to the dimensionality, the primitive
-provided by the system and the concept of patches only works well for
-2D.  New ideas are called for to manage the spatial data.
+We are thinking about various improvements to the system.  One major
+addition is to fully support simulations in 3D.  While the numeric
+computation itself is all scalar values and agnostic to the
+dimensionality, the primitive provided by the system and the concept
+of patches only works well for 2D.  New ideas are called for to manage
+the spatial data.
 	</p>
 	<p>
-As future work, supporting more mathematics, such as vectors and
-matriices is important.  While a first-time user may not use vectors
-and matrices initially and write two lines of code for one vector
-operation, ideally the language may ramp up the user to use those
-powerful mathematical tools.
+Also, supporting more mathematics, such as vectors and matriices is in
+our plans. A first-time user may not use vectors and matrices
+initially and write two lines of code for one vector operation, but we
+would like them to learn those powerful concepts. Ideally the language
+may ramp up the user to use those powerful mathematical tools.
 	</p>
 </section>
 
