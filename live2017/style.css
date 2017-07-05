@@ -22,3 +22,19 @@ h2, h3 {
 pre.code {
   font-family: Consolas, Monaco, Courier, monospace;
 }
+
+div.caption {
+      margin-left: 0px;
+      overflow-y: scroll;
+      height: 150px;
+      width: 1024px;
+      outline: 1px solid;
+}
+
+p.caption {
+  width: 1000px;
+}
+
+p.highlight {
+  color: blue;
+}

@@ -7,6 +7,193 @@
     <link rel="stylesheet" href="latex.css"/>
     <link rel="stylesheet" href="style.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+    var shadamaEvents = [
+    [`We are going to try to make a simple physics simulation where many particles
+are following some gravity law.`, 0], 
+    [`In a Shadama program, we declare and use breeds of turtles.  Here, the
+breed called Turtle is created.  Each turtle in the breed has x, y, r,
+g, b and a properties.`, 3],
+    [`A method is defined with the keyword "def".  A method is executed on
+each turtle in a breed.  The setColor method uses the turtle's x and y
+coordinate and assign them into r and g.`, 14],
+    [`In a static function called "setup", we first set the number of
+turtles in the breed to be 3,000, set all turtle's x and y to be a
+random number between 0 and 512.  We run it by hitting Cmd-S to run
+it.`, 22],
+    [`Okay, we don't see the result until we call the setColor method
+and call the draw primitive.  Good.`, 35],
+    [`Those dots may be hard to see, but we can increase the number of turtles
+to 30,000, 300,000 and 1 million.`, 40],
+    [`What we want to do next is to move those turtles around.  So we define
+a method called move.  Move increments the x and y of turtles.  I call
+the move method from a static function step.`, 53],
+    [`When I set the clock on step and repeatedly execute it, the turtles move.`, 61],
+    [`Interestingly, while they are moving, I can edit the program on the
+fly and the changes takes effect as soon as I hit Cmd-S.  I can add an
+argument to move, use it in the code, change the call site and the
+turtles that went off screen comes back.`, 64],
+    [`We would actually like each individual turtle to have its own
+velocity, so we add dx and dy to each turtle.  And then, we use them in
+move.  Here, instead of n, we increment x and y of each turtle with
+their dx and dy.`, 94],
+    [`We add a primitive call to set the dx and dy to be the x and y components
+of a random direction vector.  Now, all turtles move
+to their own directions.`, 109],
+    [`Let us try again by executing setup manually,`, 120],
+    [`We can change this to be a simple gravity simulation.  We add constant
+acceleration to the y component of the velocity.  Now all turtles are
+accelerated toward the bottom.`, 128],
+    [`We don't want those particles to go out of bounds.  So we extend
+the move method.  First we store dx and dy, as well as the possible
+new location of x and y into local variables.`, 138],
+    [`When newX is going out of bounds, we make the turtle bounce back.`, 145],
+    [`When newY is going below, we wrap the value around to the top.`, 153],
+    [`After adjusting those variables,
+we write those values back to turtle's properties.  Now one million
+turtles are falling down, bouncing off the side walls, and wrap around
+to the top.`, 150],
+    [`We are going to add some large objects to the simulation.  To do so, we use a patch.  A
+patch is a set of 2D grid cells where turtles can store values.  Here,
+we create a patch called Field, and add r, g, b, and a properties for each cell.`, 176],
+    [`And, we define breed called Filler that operates on it.`, 197],
+    [`We define a method called fill.  The argument for this method is the patch, and
+turtles executing this method update patch cell values where they are at.`, 204],
+    [`And add setup to use a primitive called
+fillSpace, which create enough number of turtles in the breed and
+locate them at all integral grid point.  When this setup is called,
+and the fill method is called for all turtles in the Filler breed the
+r and g of the patch gets values based on its position and it results
+in this gradation.`, 214],
+    [`Instead of gradation, let us make some shapes.  So we define
+the fillCircle method instead.  Let us also add the clear method, which clears the field's values.`, 231],
+    [`The idea of fillCircle is that each turtle
+checks whether it is within the radius, and only when it is, it writes
+values into the cell.`, 246],
+    [`In setup.  We call it and get a circle at (100, 100).`, 265],
+    [`We can make the program interactive.  Split the setup function and
+create another one called loop.`, 277],
+    [`Notice that there is a variable
+called mousemove, which updates when you move the mouse pointer in the
+display.  That is an indication that we can use the value in our
+program.`, 288],
+    [`Now let us tie all together.  This code has methods we used
+previously, such as setColor.  FillCircle is slightly modified so that
+it sets the normal vector for the circle in the patch.`, 311],
+    [`In the move
+method, each turtle checks the normal in the patch cell where the turtle is
+on, computes the new direction that uses the dot product.  When I run
+this, particles are bouncing off the circle and make a beautiful pattern.`, 320],
+    [`However, it is a bit hard to see because the colors of turtles are too
+close.  Here, we change the setColor method so that instead of the x
+and y position, we use the the velocity dx and dy to decides its
+color.`, 351],
+    [`Then we call setColor from loop, so that it updates its color
+all the time.`, 360],
+    [`Here, horizontal velocity is rendered as reddish color, and vertical
+velocity is rendered as greenish color.  As you can see, you can
+change the visualization quickly and observe the simulation in a way
+you like.`, 365], 
+    [`For fun, you can make two circles that moves symmetrically.`, 374],
+    [`This is a variation of this program.  Here,
+instead of modeling the gravity pulling downward, the gravity follow
+the inverse square law to the mouse pointer's location.  It appears
+that there are large structures, but the truth is that it is just
+quarter million particles had regular initial positions, and
+following the inverse square law.`, 385],
+    [`Shadama allows the user to import an image.  The primitive fillImage
+takes an image object, and creates enough turtles and set their colors
+based on the images pixel values.  This looks like an image but it
+actually a set of turtles.`, 423],
+    [`We define the same move method, set the
+direction vector to random directions, create the loop method tha calls move, and run loop.`, 442],
+    [`For fun,
+I can use the r and g channel values for the velocity, you can make
+an interesting effect.`, 466],
+    [`Let us use those pixels in the gravity simulation.`, 490],
+    [`The code checks the timer, and every 10 seconds, it gathers all turtles to their original positions.`, 500],
+    [`We can try some mathematical functions.  This is a program to
+visualize the mandelbrot set.  We can change the color scheme on the
+fly, for example.`, 513],
+    [`This is the Game of Life.`, 532],
+    [`Again, we can change the program while
+the simulation is running, and the code change is reflected to the
+simulation right away, without needing to restart it.`, 535]];
+    </script>
+    <script>
+       var eventDivs; // [[div, time]]
+
+       var transcript;
+       var interval;
+       var caption;
+
+       function processOne(event) {
+	   var p = document.createElement("div");
+	   p.innerHTML = "<p class='caption'>" + event[0] + "</p>";
+           caption.appendChild(p);
+	   return [p, event[1]];
+       }
+
+       /* YouTube Javascript API stuff */
+       var tag = document.createElement('script');
+       tag.src = 'https://www.youtube.com/iframe_api';
+       var firstScriptTag = document.getElementsByTagName('script')[0];
+       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+       var player;
+       function onYouTubeIframeAPIReady() {
+	   player = new YT.Player('player', {
+	       height: '576',
+	       width:  '1024',
+	       videoId: 'g4rloq5FRLM',
+	       events: { 'onStateChange': onPlayerStateChange },
+	       playerVars: {rel: 0, showinfo: 0},
+	   });
+       }
+       function onPlayerStateChange(e) {
+	   if (e.data == YT.PlayerState.PLAYING) {
+	       interval = window.setInterval(updateEventHighlight, 500); // update every half-second
+	       updateEventHighlight();
+	   }
+	   if (e.data == YT.PlayerState.ENDED  ||
+               e.data == YT.PlayerState.PAUSED ||
+               e.data == YT.PlayerState.BUFFERING) {
+	       window.clearInterval(interval);
+	   }
+       }
+
+       function findEvent(time, events) {
+         for (var i = 0; i < events.length - 1; i++) {
+	     var pair = events[i];
+	     var next = events[i+1];
+             if (pair[1] <= time && time < next[1]) {
+		 return pair[0];
+	     }
+	 }
+	 var pair = events[events.length -1 ];
+         if (pair[1] < time) {
+	     return pair[0];
+	 }
+       }
+
+       function updateEventHighlight() {
+	   Array.from(document.getElementsByClassName('highlight')).forEach(function (p) {
+	       p.classList.remove('highlight');
+	   });
+	   var time = parseFloat(player.getCurrentTime());
+	   var event = findEvent(time, eventDivs);
+	   if (!event) {
+	       return;
+	   }
+	   caption.scrollTop = event.offsetTop - eventDivs[0][0].offsetTop;
+	   event.firstChild.classList.add("highlight");
+       }
+
+       function initialize() {
+	   caption = document.getElementById("caption");
+	   eventDivs = shadamaEvents.map(processOne); // [[div, time]]  As a side-effect it adds divs to caption
+       }
+       onload = initialize;
+  </script>
   </head>
 
   <body>
@@ -21,7 +208,7 @@ We present a prototype of a programming system called Shadama, which
 is designed to help writing programs that creates large number of
 objects, control them and visualize them.  Shadama's basic execution
 model follows the tradition of StarLogo and its "turtles and patches"
-abstraction.  The abstraction is proven to be effective and easy to
+abstraction[1].  The abstraction is proven to be effective and easy to
 use.  The primary audience intended of the language is high-school
 level students to make physics simulations.
 	</p>
@@ -31,7 +218,7 @@ program, the code change immediately takes effects on the running
 simulation without needing to restart the simulation.
 	</p>
         <p>
-The user code is translated to the Open GL Shader Language.  The
+The user code is translated to the Open GL Shading Language[2].  The
 runtime data of the program is stored and kept in the memory of
 graphics card for fast execution.
 	</p>
@@ -85,9 +272,9 @@ computer, they can make a dynamic model to understand it more deeply.
 So we set ourselves out to make a prototype of the language, that aims
 to satisfy following goals:
 <ul>
-<li> Object-Oriented
-<li> Large number of objects
-<li> Liveness. 
+<li> Object-Oriented</li>
+<li> Large number of objects</li>
+<li> Liveness</li>
 </ul>
        <p>
 As the basis for our prototype, we follow the tradition of StarLogo,
@@ -157,160 +344,22 @@ do the experiment in the real world and then make a simulation of it.
 </section>
 <section>
 	<h2 id="shadama-in-Action">Shadama in Action</h2>
-<iframe width="1024" height="576" src="https://www.youtube.com/embed/g4rloq5FRLM" frameborder="0" allowfullscreen></iframe>
 	<p>
-The following text is the explanation of the movie.  We should be able to have the narrative going but if not, please have two screens, and view the movie in full screen and see the text below.
+The following movie shows some examples done in Shadama.  And below the movie, we have the explanation to the movie.  You can pause the movie and revisit the explanation just by scrolling.
 	</p>
-	<p>
-Here we try to make a simple physics simulation where many particles
-are following some gravity law.
-	</p>
-	<p>
-In a Shadama program, we declare and use breeds of turtles.  Here, the
-breed called Turtle is created.  Each turtle in the breed has x, y, r,
-g, b and a properties.
-	</p>
-	<p>
-  A method is defined with the keyword "def".  A method is executed on
-each turtle in a breed.  The setColor method uses the turtle's x and y
-coordinate and assign them into r and g.
-	</p>
-	<p>
-In a static function called "setup", we first set the number of
-turtles in the breed to be 3,000, set all turtle's x and y to be a
-random number between 0 and 512.  We run it by hitting Cmd-S to run
-it.  Okay, we don't see the result until we call the setColor method
-and call the draw primitive.  Good.
-	</p>
-	<p>
-Those dots may be hard to see, but we can increase the number of turtles
-to 30,000, 300,000 and 1 million.
-	</p>
-	<p>
-What we want to do next is to move those turtles around.  So we define
-a method called move.  Move increments the x and y of turtles.  I call
-the move method from a static function step.  When I set the clock on
-step and repeatedly execute it, the turtles move.
-	</p>
-	<p>
-Interestingly, while they are moving, I can edit the program on the
-fly and the changes takes effect as soon as I hit Cmd-S.  I can add an
-argument to move, use it in the code, change the call site and the
-turtles that went off screen comes back.
-	</p>
-	<p>
-We would actually like each individual turtle to have its own
-velocity, so we add dx and dy to each turtle.  And then, we use them in
-move.  Here, instead of n, we increment x and y of each turtle with
-their dx and dy.
-	</p>
-	<p>
-We add a primitive to set the dx and dy to be the x and y components
-of a random direction vector.  Now, all turtles move
-to their own directions.  Try again by executing setup,
-	</p>
-	<p>
-We can make this to be a simple gravity simulation.  We add constant
-acceleration to the y component of the velocity.  Now all turtles are
-accelerated toward the bottom.
-	</p>
-	<p>
-We don't want those particles to go out of bounds.  So we extend
-the move method.  First we store dx and dy, as well as the possible
-new location of x and y into local variables.  when newX is going out
-of bounds, we make the turtle bounce back.  When newY is going below,
-we wrap the value around to the top.  After adjusting those variables,
-we write those values back to turtle's properties.  Now one million
-turtles are falling down, bouncing off the side walls, and wrap around
-to the top.
-	</p>
-	<p>
-We are going to add some large objects.  To do so, we use a patch.  A
-patch is a set of 2D grid cells where turtles can store values.  Here,
-we create a patch called Field, and a breed called Filler that
-operates on it.
-	</p>
-	<p>
-We define a method called fill.  This method takes an argument, and
-updates fields, values.  And the setup uses a primitive called
-fillSpace, which create enough number of turtles in the breed and
-locate them at all integral grid point.  When this setup is called,
-and the fill method is called for all turtles in the Filler breed the
-r and g of the patch gets values based on its position and it results
-in this gradation.
-	</p>
-	<p>
-Instead of gradation, let us make some shapes.  So we define
-the fillCircle method instead.  The idea of fillCircle is that each turtle
-checks whether it is within the radius, and only when it is, it writes
-values into the cell.  We define the clear method, and now we use them
-in setup.  We get a circle at (100, 100).
-	</p>
-	<p>
-We can make the program interactive.  Split the setup function and
-create another one called loop.  Notice that there is a variable
-called mousemove, which updates when you move the mouse pointer in the
-display.  That is an indication that we can use the value in our
-program.
-	</p>
-	<p>
-Now let us tie all together.  This code has methods we used
-previously, such as setColor.  FillCircle is slightly modified so that
-it sets the normal vector for the circle in the patch.  In the move
-method, each turtle checks the normal in the patch cell where the turtle is
-on, computes the new direction that uses the dot product.  When I run
-this, particles are bouncing off the circle as expected.
-	</p>
-	<p>
-However, it is a bit hard to see because the colors of turtles are too
-close.  Here, we change the setColor method so that instead of the x
-and y position, we use the the velocity dx and dy to decides its
-color.  Then we call setColor from loop, so that it updates its color
-all the time.
-	</p>
-	<p>
-Here, horizontal velocity is rendered as reddish color, and vertical
-velocity is rendered as greenish color.  As you can see, you can
-change the visualization quickly and observe the simulation in a way
-you like.
-	</p>
-	<p>
-For fun, you can make two circles that moves symmetrically.
-	</p>
-	<p>
-This is a variation of this program.  I replace the code.  Here,
-instead of modeling the gravity pulling downward, the gravity follow
-the inverse square law from the mouse pointer's location.  It appears
-that there is large structure, but the truth is that it is just
-quarter million particles had a regular initial condition, and
-following the inverse square law.
-	</p>
-	<p>
-Shadama allows the user to import an image.  The primitive fillImage
-takes an image object, and creates enough turtles and set their colors
-based on the images pixel values.  This looks like an image but it
-actually a set of turtles.  We define the same move method, set the
-direction vector to random directions, an run the function.  For fun,
-if you use the r and g channel values for the velocity, you can make
-an interesting effect.
-	</p>
-	<p>
-WE can try some mathematical functions.  This is a program to
-visualize the mandelbrot set, We can change the color scheme on the
-fly for example.
-	</p>
-	<p>
-And, this is the Game of Life.  Again, we can change the program while
-the simulation is running, and the code change is reflected to the
-simulation right away, without needing to restart it.
-	</p>
+<!--<iframe width="1024" height="576" src="https://www.youtube.com/embed/g4rloq5FRLM" frameborder="0" allowfullscreen></iframe>-->
+  <div id="video">
+    <div id="player"></div>
+  </div>
+  <div id="caption" class="caption"></div>
+  <hr>
 </section>
 <section>
 	<h2 id="implementation">Implementation</h2>
 </section>
 <p>
-Shadama is a web-based technology.  It uses WebGL 2.0 and the shader
-language version 3.0 provided by WebGL 2.0.  A turtle's own property
+Shadama is a web-based technology.  It uses WebGL 2.0 and the OpenGL Shading
+Language version 3.0 provided by WebGL 2.0.  A turtle's own property
 is stored in one texture, whose type is "R32F" and it is treated as a
 vector of scalar values.  Also the multiple render target is used to
 write back the changes to multiple properties at once.
@@ -318,7 +367,7 @@ write back the changes to multiple properties at once.
 <p>
 From the user code, the vertex shader code and fragment shader code,
 along with some support code in JavaScript are generated.  The
-translator is written in Ohm[].
+translator is written in Ohm[3].
 </p>
 
 <section>
@@ -329,12 +378,12 @@ organization of Shadama objects is largely drawn upon StarLogo, and in
 fact Shadama is missing some key features to access other turtles from
 a turtle.  One of the author did a particle extension called Kedama
 for Etoys.  The name Shadama is an homage to Kedama, but with the
-Shader Language as the backend.
+OpenGL Shading Language as the backend.
 	</p>
 	<p>
-Lately, there are various simulation environments, such as Liquid Fun,
-various Box2D based environments.  Nicky Case has a simulation
-construction environment based on emoji.  As of now, Shadama uses a
+Lately, there are various simulation environments, such as Liquid Fun[4].  Also providing bindings to GLSL from high-level languages is a hot topic[5].
+Nicky Case has a simulation
+construction environment based on emoji[6].  As of now, Shadama uses a
 textual language, based on the observation that physics simulations
 often only takes concise problem description so coding part is not the
 major obstacle.
@@ -438,6 +487,7 @@ turtles for a breed.  The limit is about 1 million.  (It is provided
 by the square of a constant called TEXTURE_SIZE in the
 implementation.)
 	</p>
+        </li>
 <li> <code>aBreed.fillRandom(name, min, max);</code>
 	<p>
   The fillRandom primitive sets the property specified by
@@ -455,6 +505,7 @@ static setup() {
   will make each of the 10,000 instance's "x" property to be a
   random floating point number between 0 and 100.
  </p>
+</li>
 <li> <code>aBreed.fillRandomDir(dxName, dyName);</code>
 	<p>
 
@@ -473,6 +524,7 @@ static setup() {
 <p>
 sets "dx" and "dy" of a turtle with the x- and y- component of a random unit vector.
 </p>
+</li>
 <li> <code>aBreed.fillSpace(xName, yName, xDim, yDim);</code>
 	<p>
 The fillSpace primitive first sets the number of turtles in the breed
@@ -487,6 +539,7 @@ static setup() {
 <p>
 creates 10,000 turtles of the MyTurtle breed, and their "x" and "y" properties become the integral grid points spanned in (0, 0) and (99, 99) (inclusive).
 </p>
+</li>
 <li> <code>aBreed.fillImage(xName, yName, rName, gName, bName, aName, anImageData);</code>
 	<p>
   The anImageData argument is a Javascript ImageData object.  This
@@ -623,12 +676,12 @@ The begin variable can be referred to from both setup and loop,
 There are built in global variables.
 </p>
 <ul>
-<li> <code>mousemove</code>: an object which has property x and y
-<li> <code>mouseup</code>:  an object which has property x and y
-<li> <code>mousedown</code>: an object which has property x and y
-<li> <code>time</code>:       a floating point value in seconds since the last time a specially named metho setup is called.
-<li> <code> width, height</code>: the width and height of the visible 2D space.
-<li> <code>Display</code>:           a stand in to be a left of the dot notation
+<li> <code>mousemove</code>: an object which has property x and y</li>
+<li> <code>mouseup</code>:  an object which has property x and y</li>
+<li> <code>mousedown</code>: an object which has property x and y</li>
+<li> <code>time</code>:       a floating point value in seconds since the last time a specially named metho setup is called.</li>
+<li> <code> width, height</code>: the width and height of the visible 2D space.</li>
+<li> <code>Display</code>:           a stand in to be a left of the dot notation</li>
 </ul>
 <p>
 Note that mouse events are JS objects but methods can still only takes scalar values.
@@ -780,13 +833,167 @@ and "x", which are referred to from the function.
 
       <section>
         <h2>References</h2>
-	<ul>
-	  <li>StarLogo
-	  <li>LiquidFun
-	  <li>GLSL
-	  <li>Nigiri
-        </ul>
+	<ol type="1">
+	  <li>
+M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
+in Massively Parallel Microworlds (Complex
+Adaptive Systems). MIT Press, 1994.
+          </li>
+	  <li>OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
+          <li>Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
+	  <li>LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
+	  <li>Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
+          <li>Simulation in Emoji: Nicky Case, (<a href="https://ohmlang.github.io/">project page</a>)</li>
+        </ol>
       </section>
     </article>
   </body>
 </html>
+
+
+<!--
+
+	<p>
+Here, we try to make a simple physics simulation where many particles
+are following some gravity law.
+	</p>
+	<p>
+In a Shadama program, we declare and use breeds of turtles.  Here, the
+breed called Turtle is created.  Each turtle in the breed has x, y, r,
+g, b and a properties.
+	</p>
+	<p>
+  A method is defined with the keyword "def".  A method is executed on
+each turtle in a breed.  The setColor method uses the turtle's x and y
+coordinate and assign them into r and g.
+	</p>
+	<p>
+In a static function called "setup", we first set the number of
+turtles in the breed to be 3,000, set all turtle's x and y to be a
+random number between 0 and 512.  We run it by hitting Cmd-S to run
+it.  Okay, we don't see the result until we call the setColor method
+and call the draw primitive.  Good.
+	</p>
+	<p>
+Those dots may be hard to see, but we can increase the number of turtles
+to 30,000, 300,000 and 1 million.
+	</p>
+	<p>
+What we want to do next is to move those turtles around.  So we define
+a method called move.  Move increments the x and y of turtles.  I call
+the move method from a static function step.  When I set the clock on
+step and repeatedly execute it, the turtles move.
+	</p>
+	<p>
+Interestingly, while they are moving, I can edit the program on the
+fly and the changes takes effect as soon as I hit Cmd-S.  I can add an
+argument to move, use it in the code, change the call site and the
+turtles that went off screen comes back.
+	</p>
+	<p>
+We would actually like each individual turtle to have its own
+velocity, so we add dx and dy to each turtle.  And then, we use them in
+move.  Here, instead of n, we increment x and y of each turtle with
+their dx and dy.
+	</p>
+	<p>
+We add a primitive to set the dx and dy to be the x and y components
+of a random direction vector.  Now, all turtles move
+to their own directions.  Try again by executing setup,
+	</p>
+	<p>
+We can make this to be a simple gravity simulation.  We add constant
+acceleration to the y component of the velocity.  Now all turtles are
+accelerated toward the bottom.
+	</p>
+	<p>
+We don't want those particles to go out of bounds.  So we extend
+the move method.  First we store dx and dy, as well as the possible
+new location of x and y into local variables.  when newX is going out
+of bounds, we make the turtle bounce back.  When newY is going below,
+we wrap the value around to the top.  After adjusting those variables,
+we write those values back to turtle's properties.  Now one million
+turtles are falling down, bouncing off the side walls, and wrap around
+to the top.
+	</p>
+	<p>
+We are going to add some large objects.  To do so, we use a patch.  A
+patch is a set of 2D grid cells where turtles can store values.  Here,
+we create a patch called Field, and a breed called Filler that
+operates on it.
+	</p>
+	<p>
+We define a method called fill.  This method takes an argument, and
+updates fields, values.  And the setup uses a primitive called
+fillSpace, which create enough number of turtles in the breed and
+locate them at all integral grid point.  When this setup is called,
+and the fill method is called for all turtles in the Filler breed the
+r and g of the patch gets values based on its position and it results
+in this gradation.
+	</p>
+	<p>
+Instead of gradation, let us make some shapes.  So we define
+the fillCircle method instead.  The idea of fillCircle is that each turtle
+checks whether it is within the radius, and only when it is, it writes
+values into the cell.  We define the clear method, and now we use them
+in setup.  We get a circle at (100, 100).
+	</p>
+	<p>
+We can make the program interactive.  Split the setup function and
+create another one called loop.  Notice that there is a variable
+called mousemove, which updates when you move the mouse pointer in the
+display.  That is an indication that we can use the value in our
+program.
+	</p>
+	<p>
+Now let us tie all together.  This code has methods we used
+previously, such as setColor.  FillCircle is slightly modified so that
+it sets the normal vector for the circle in the patch.  In the move
+method, each turtle checks the normal in the patch cell where the turtle is
+on, computes the new direction that uses the dot product.  When I run
+this, particles are bouncing off the circle as expected.
+	</p>
+	<p>
+However, it is a bit hard to see because the colors of turtles are too
+close.  Here, we change the setColor method so that instead of the x
+and y position, we use the the velocity dx and dy to decides its
+color.  Then we call setColor from loop, so that it updates its color
+all the time.
+	</p>
+	<p>
+Here, horizontal velocity is rendered as reddish color, and vertical
+velocity is rendered as greenish color.  As you can see, you can
+change the visualization quickly and observe the simulation in a way
+you like.
+	</p>
+	<p>
+For fun, you can make two circles that moves symmetrically.
+	</p>
+	<p>
+This is a variation of this program.  I replace the code.  Here,
+instead of modeling the gravity pulling downward, the gravity follow
+the inverse square law from the mouse pointer's location.  It appears
+that there is large structure, but the truth is that it is just
+quarter million particles had a regular initial condition, and
+following the inverse square law.
+	</p>
+	<p>
+Shadama allows the user to import an image.  The primitive fillImage
+takes an image object, and creates enough turtles and set their colors
+based on the images pixel values.  This looks like an image but it
+actually a set of turtles.  We define the same move method, set the
+direction vector to random directions, an run the function.  For fun,
+if you use the r and g channel values for the velocity, you can make
+an interesting effect.
+	</p>
+	<p>
+We can try some mathematical functions.  This is a program to
+visualize the mandelbrot set, We can change the color scheme on the
+fly for example.
+	</p>
+	<p>
+And, this is the Game of Life.  Again, we can change the program while
+the simulation is running, and the code change is reflected to the
+simulation right away, without needing to restart it.
+	</p>
+-->
