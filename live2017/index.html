@@ -198,7 +198,7 @@ simulation right away, without needing to restart it.`, 535]];
 
   <body>
     <article>
-      <h1 id="title">Shadama: A Particle Simulation Programming Environment</h1>
+      <h1 id="title">Shadama: A Particle Simulation<br> Programming Environment for Everyone</h1>
       <p class="subtitle">Yoshiki Ohshima, Dan Amelang and Bert Freudenberg<br>
       HARC/Y Combinator Research</p>
 
@@ -208,7 +208,19 @@ We present a prototype of a programming system called Shadama, which
 is designed to help writing programs that creates large number of
 objects, control them and visualize them.  Shadama's basic execution
 model follows the tradition of StarLogo and its "turtles and patches"
-abstraction[1].  The abstraction is proven to be effective and easy to
+abstraction[1]
+<label for="sn-starlogo"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-starlogo"
+       class="margin-toggle"/>
+<span class="sidenote">
+ M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
+in Massively Parallel Microworlds (Complex
+Adaptive Systems). MIT Press, 1994.
+</span>.
+The abstraction is proven to be effective and easy to
 use.  The primary audience intended of the language is high-school
 level students to make physics simulations.
 	</p>
@@ -218,8 +230,17 @@ program, the code change immediately takes effects on the running
 simulation without needing to restart the simulation.
 	</p>
         <p>
-The user code is translated to the Open GL Shading Language[2].  The
-runtime data of the program is stored and kept in the memory of
+The user code is translated to the Open GL Shading Language[2]
+<label for="sn-glsl"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-glsl"
+       class="margin-toggle"/>
+<span class="sidenote">
+OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)
+</span>.
+The runtime data of the program is stored and kept in the memory of
 graphics card for fast execution.
 	</p>
         <p>
@@ -234,20 +255,20 @@ card, and Chrome or FireFox browsers seem to work better.
       <section>
         <h2>Introduction</h2>
         <p>
-The computing power that is available for us is astounding, if we look
+The computing power to us today is astounding, if we look
 back in the history of computing just for a few years.  Achieving the
 Teraflops mark was a milestone for a building-sized supercomputer in
-late '90's.  Now, a smart phone has equivalent performance.  The computing performance
-will continue to increase in the future.
+the late '90's.  Now, a smart phone has equivalent performance.  Computing performance will continue to increase in the future.
 	</p>
 	<p>
 But what are people doing with it?  I don't want to say bad things
-about my friends and families, but they are more interested in
-watching cat videos and playing solitaire, rather than trying to
-invent self-flying personal airplanes, or to discover the graviton.
+about my friends and family, but they are more interested in
+watching cat videos and playing solitaire rather than trying to
+invent self-flying personal airplanes, or discover the graviton.
+
 Jokes aside, one of the big problems we face today is that the
 importance of science literacy seems to be discounted in this
-technologically advanced society, when we will need the next
+technologically advanced society.  We will need the next
 generation to embrace science more, not less.
 	</p>
 	<p>
@@ -256,17 +277,15 @@ environment where school students, artists, and even professional
 programmers can tap into the power that is available for us.
 	</p>
 	<p>
-Along this line of efforts, we have been working on a prototype of a
+Along this line of effort, we have been working on a prototype of a
 programming language intended for high school students to explore
 scientific ideas.
 	</p>
 	<p>
 Science is about making invisible things visible.  One notable example
-of invisible yet hugely important is gas molecules.  We would like
-students to learn about them: not only with rote memorization of
-words, but also through actual experiments, and
-through building models.  And if the model is executable on a
-computer, they can make a dynamic model to understand it more deeply.
+of the invisible yet with huge importance is gas molecules.  We would like students to learn
+about them: not only by rote memorization of words, but also through
+actual experiments, and through building models.  With the help of computers, students can make a dynamic model and understand it more deeply.  In other words, this kind of enviroment will help them to construct the knowledge by doing, in the sense of constructivism.
 	</p>
 	<p>
 So we set ourselves out to make a prototype of the language, that aims
@@ -316,36 +335,37 @@ immediately.
 	<h2 id="a-science-experiment">A Science Experiment</h2>
 <iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
 	  <p>
-We begins with an actual science experiment to motivate the narrative.
-The movie above shows a vacuum cannon, created by the authors.  The
-vacuum cannon is made out of a six foot PVC pipe, with a
-vacuum pump connected.  We put a ping pong ball in it, cover the ends with soft
-and sturdy but breakable materials such as plastic cake plates, and
-pump the air out.  In this movie the pressure inside was about 20% of
-the atmospheric pressure, which is decent but not extreme.
+We begin with an actual science experiment to motivate the narrative.
+This movie shows a vacuum cannon.  The vacuum cannon is a six foot PVC
+pipe, connected to a vacuum pump.  We put a ping pong ball inside,
+cover the open ends with a soft and sturdy but breakable material such
+as plastic cake plates, and pump the air out.
+	  </p>
+<p>
+The pump reduces the pressure inside the tube to about 20% of full atmospheric pressure.
 	  </p>
 	  <p>
-When one end near the ping pong ball is broken by a box cutter, the
+When the end near the ping pong ball is popped by a box cutter, the
 air molecules that are moving toward the opening keep moving into the
-low pressure space.  (Note that they are not "sucked in"; they
-just happen to be moving to that direction.)  Those molecules hit the
-ping pong ball and simply push it out from the other end. Our
-version can achieve over 200 meters/sec, which is about 60% of the
-speed of sound.  Some people have built one that can achieve super
-sonic speed.
+low pressure space, and the ping pong ball is simply pushed out
+because of it.  
+Our crude setup can accelerate the ball to a speed of over 200 meters/sec
+which is about 60% of the speed of sound.  Others have built experiments
+that can achieve super sonic speed.
 	</p>
         <p>
-Recall that the idea that science is about making invisible visible.
+Now Recall the idea that science is about making invisible visible.
 The important point to understand is that it is just movement of
-molecules that is is causing the ball to shoot away.  With this in
-mind we would like to have an environment where students can actually
+molecules that is is causing the ball to shoot out.  With this in
+mind, we would like to create an environment where students can
 do the experiment in the real world and then make a simulation of it.
 	  </p>
 </section>
 <section>
 	<h2 id="shadama-in-Action">Shadama in Action</h2>
 	<p>
-The following movie shows some examples done in Shadama.  And below the movie, we have the explanation to the movie.  You can pause the movie and revisit the explanation just by scrolling.
+The following movie shows some examples done in our prototype programming environment called Shadama.
+The subtitles below explain the movie.  You can pause the movie at any time, and read through the explanation, but more than anything, please enjoy the beautiful simulations.
 	</p>
 <!--<iframe width="1024" height="576" src="https://www.youtube.com/embed/g4rloq5FRLM" frameborder="0" allowfullscreen></iframe>-->
   <div id="video">
@@ -358,16 +378,25 @@ The following movie shows some examples done in Shadama.  And below the movie, w
 	<h2 id="implementation">Implementation</h2>
 </section>
 <p>
-Shadama is a web-based technology.  It uses WebGL 2.0 and the OpenGL Shading
-Language version 3.0 provided by WebGL 2.0.  A turtle's own property
-is stored in one texture, whose type is "R32F" and it is treated as a
-vector of scalar values.  Also the multiple render target is used to
-write back the changes to multiple properties at once.
+Shadama is a web-based technology.  It uses WebGL 2.0 and the OpenGL
+Shading Language version 3.0.  A property for all turtles in a breed
+is stored in one texture.  The type texture type is "R32F" to treat
+them as a vector of scalar values.  The multiple render target feature
+is used to write back the changes to multiple properties at once.
 </p>
 <p>
 From the user code, the vertex shader code and fragment shader code,
 along with some support code in JavaScript are generated.  The
-translator is written in Ohm[3].
+translator is written in Ohm[3]
+<label for="sn-ohm"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-ohm"
+       class="margin-toggle"/>
+<span class="sidenote">
+Ohm: A library and language for building parsers, interpreters, compilers, etc.
+</span>.
 </p>
 
 <section>
@@ -381,9 +410,40 @@ for Etoys.  The name Shadama is an homage to Kedama, but with the
 OpenGL Shading Language as the backend.
 	</p>
 	<p>
-Lately, there are various simulation environments, such as Liquid Fun[4].  Also providing bindings to GLSL from high-level languages is a hot topic[5].
+Lately, there are various simulation environments, such as Liquid Fun[4]
+<label for="sn-liquidfun"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-liquidfun"
+       class="margin-toggle"/>
+<span class="sidenote">
+<img src="liquidfun.png" width="50%" height="50%" alt="LiquidFun screenshot" /><br>
+LiquidFun.
+</span>.
+Also providing bindings to GLSL from high-level languages is a hot topic[5]
+<label for="sn-ikra"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-ikra"
+       class="margin-toggle"/>
+<span class="sidenote">
+Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby.  ARRAY’16, June 2016
+</span>.
 Nicky Case has a simulation
-construction environment based on emoji[6].  As of now, Shadama uses a
+construction environment based on emoji[6]
+<label for="sn-emoji"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-emoji"
+       class="margin-toggle"/>
+<span class="sidenote">
+  <img src="emoji.png" width="50%" height="50%" alt="Simulation in Emoji screenshot" /><br>
+Simulation in Emoji: Nicky Case, 
+</span>.
+  As of now, Shadama uses a
 textual language, based on the observation that physics simulations
 often only takes concise problem description so coding part is not the
 major obstacle.
@@ -396,23 +456,26 @@ This is an early prototype of the concept of a simulation language in
 which users can make simulations, interactive art and various
 visualization.  The liveliness of the environment encourages the
 exploratory style of programming, that is handy to try different ideas
-quickly.  An anecdotal observation is that bugs in a program often
+quickly.  An anecdotal observation is that a bug in a program often
 produces interesting visual effects, and that is motivating.
 	</p>
 	<p>
 We are thinking about various improvements to the system.  One major
-addition is to fully support simulations in 3D.  While the numeric
-computation itself is all scalar values and agnostic to the
-dimensionality, the primitive provided by the system and the concept
-of patches only works well for 2D.  New ideas are called for to manage
-the spatial data.
+addition is to fully support simulations in 3D.
+While the numeric computation itself only uses scalar values and is agnostic to dimensionality, the primitives and concepts the system provides only work well for 2D applications. We will need new ideas to manage spatial data.
 	</p>
 	<p>
-Also, supporting more mathematics, such as vectors and matriices is in
-our plans. A first-time user may not use vectors and matrices
-initially and write two lines of code for one vector operation, but we
-would like them to learn those powerful concepts. Ideally the language
-may ramp up the user to use those powerful mathematical tools.
+We plan to support more mathematics, such as vectors and matrices is in
+our plans. While a first-time user may not use matrices and vectors
+initially, we would eventually like them to learn these powerful concepts. 
+Ideally the language will gradually introduce the user to these powerful mathematical tools.
+	</p>
+	<p>
+We would like to conclude this report by stressing the importance of
+education.  Education raises the awareness, and allow people to see
+things with different light.  By seeing things differently, they will
+find more problems but those problems are solvable if they know more
+ways to attack.  And Science is one of the biggest asset humanhas has.  We hope that ideas like Shadama will help future education.
 	</p>
 </section>
 
@@ -424,8 +487,10 @@ is drawn from the tradition of StarLogo.  Turtles are organized into
 "breeds".  Each breed can declare its own variables.
 
         <h3 id="breeds">Breeds</h3>
+<p>
   A breed is declared in the program with the "breed" statement.  For example, a
 statement:
+</p>
 <pre class="code">
 breed MyTurtle (x, y)
 </pre>
@@ -843,7 +908,7 @@ Adaptive Systems). MIT Press, 1994.
           <li>Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
 	  <li>LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
 	  <li>Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
-          <li>Simulation in Emoji: Nicky Case, (<a href="https://ohmlang.github.io/">project page</a>)</li>
+          <li>Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
         </ol>
       </section>
     </article>
