@@ -2,123 +2,115 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>Shadama: A Particle Simulation Programming Environment</title>
+    <title>Shadama: A Particle Simulation Programming Environment for Everyone</title>
     <link rel="stylesheet" href="tufte.css"/>
     <link rel="stylesheet" href="latex.css"/>
     <link rel="stylesheet" href="style.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <script>
-    var shadamaEvents = [
-    [`We are going to try to make a simple physics simulation where many particles
-are following some gravity law.`, 0], 
-    [`In a Shadama program, we declare and use breeds of turtles.  Here, the
-breed called Turtle is created.  Each turtle in the breed has x, y, r,
-g, b and a properties.`, 3],
-    [`A method is defined with the keyword "def".  A method is executed on
-each turtle in a breed.  The setColor method uses the turtle's x and y
-coordinate and assign them into r and g.`, 14],
-    [`In a static function called "setup", we first set the number of
-turtles in the breed to be 3,000, set all turtle's x and y to be a
-random number between 0 and 512.  We run it by hitting Cmd-S to run
-it.`, 22],
-    [`Okay, we don't see the result until we call the setColor method
-and call the draw primitive.  Good.`, 35],
+var shadamaEvents = [
+    [`Our first example of Shadama is a simple physics simulation of particles and gravity.`, 0], 
+    [`As in the LOGO programming language, we refer to mobile objects as turtles. Here, we 
+      declare a breed of turtle such that each turtle will have properties
+      "x", "y", "r", "g", "b" and "a".`, 5],
+    [`A method is defined with the keyword "def". Methods are executed on
+each turtle in a breed. Here, we've defined the "setColor" method to use the turtle's x and y
+coordinates to assign them a red and green value.`, 15],
+    [`In the static function "setup", we set the number of
+turtles in the breed to be 3,000 and then set all turtle's x and y coordinates to be a
+random number between 0 and 512. We run "setup" by hitting Cmd-S.`, 27],
     [`Those dots may be hard to see, but we can increase the number of turtles
-to 30,000, 300,000 and 1 million.`, 40],
-    [`What we want to do next is to move those turtles around.  So we define
-a method called move.  Move increments the x and y of turtles.  I call
-the move method from a static function step.`, 53],
-    [`When I set the clock on step and repeatedly execute it, the turtles move.`, 61],
-    [`Interestingly, while they are moving, I can edit the program on the
-fly and the changes takes effect as soon as I hit Cmd-S.  I can add an
-argument to move, use it in the code, change the call site and the
-turtles that went off screen comes back.`, 64],
-    [`We would actually like each individual turtle to have its own
-velocity, so we add dx and dy to each turtle.  And then, we use them in
-move.  Here, instead of n, we increment x and y of each turtle with
-their dx and dy.`, 94],
-    [`We add a primitive call to set the dx and dy to be the x and y components
-of a random direction vector.  Now, all turtles move
-to their own directions.`, 109],
-    [`Let us try again by executing setup manually,`, 120],
-    [`We can change this to be a simple gravity simulation.  We add constant
-acceleration to the y component of the velocity.  Now all turtles are
-accelerated toward the bottom.`, 128],
-    [`We don't want those particles to go out of bounds.  So we extend
-the move method.  First we store dx and dy, as well as the possible
-new location of x and y into local variables.`, 138],
-    [`When newX is going out of bounds, we make the turtle bounce back.`, 145],
-    [`When newY is going below, we wrap the value around to the top.`, 153],
+to 30,000, 300,000 or 1 million.`, 38],
+    [`What we want to do next is to move those turtles around. So we define
+a method called "move". Move increments the x and y of the turtles. We call
+the move method from a static function "step".`, 50],
+    [`When we click the "step" clock, "step" is repeatedly executed and the turtles move.`, 61],
+    [`Interestingly, while they are moving, we can edit the program on the
+fly and the changes take effect as soon as we hit Cmd-S. We can add an
+argument to "move", use it in the code, change the call site and the
+turtles that went off screen come back.`, 66],
+    [`We could even allow each individual turtle to have its own
+velocity. So let's add properties "dx" and "dy" to each turtle. Then, we use them in
+"move". Here, instead of "n", we increment the "x" and "y" of each turtle
+according to their "dx" and "dy".`, 90],
+    [`We call the primitive "fillRandom" to set the "dx" and "dy" to be the x and y components
+of a randomly-chosen direction vector. Now, all turtles move
+in their own individual directions.`, 107],
+    [`Let's run it again by executing "setup" manually.`, 120],
+    [`Now we'll change this to be a simple gravity simulation. To do so, we add constant
+acceleration to the "y" component of the velocity.  Now all turtles are
+accelerating toward the bottom.`, 125],
+    [`We don't want those particles to go out of bounds. So we modify
+the "move" method. First we store "dx" and "dy", as well as the possible
+new location of "x" and "y" into local variables.`, 135],
+    [`When "newX" is out of bounds, we make the turtle bounce back.`, 145],
+    [`When "newY" is out of bounds below, we wrap the value around to the top.`, 152],
     [`After adjusting those variables,
-we write those values back to turtle's properties.  Now one million
-turtles are falling down, bouncing off the side walls, and wrap around
-to the top.`, 150],
-    [`We are going to add some large objects to the simulation.  To do so, we use a patch.  A
-patch is a set of 2D grid cells where turtles can store values.  Here,
-we create a patch called Field, and add r, g, b, and a properties for each cell.`, 176],
-    [`And, we define breed called Filler that operates on it.`, 197],
-    [`We define a method called fill.  The argument for this method is the patch, and
-turtles executing this method update patch cell values where they are at.`, 204],
-    [`And add setup to use a primitive called
-fillSpace, which create enough number of turtles in the breed and
-locate them at all integral grid point.  When this setup is called,
-and the fill method is called for all turtles in the Filler breed the
-r and g of the patch gets values based on its position and it results
-in this gradation.`, 214],
-    [`Instead of gradation, let us make some shapes.  So we define
-the fillCircle method instead.  Let us also add the clear method, which clears the field's values.`, 231],
-    [`The idea of fillCircle is that each turtle
-checks whether it is within the radius, and only when it is, it writes
-values into the cell.`, 246],
-    [`In setup.  We call it and get a circle at (100, 100).`, 265],
-    [`We can make the program interactive.  Split the setup function and
-create another one called loop.`, 277],
-    [`Notice that there is a variable
-called mousemove, which updates when you move the mouse pointer in the
-display.  That is an indication that we can use the value in our
+we write the values back to the turtle's properties. Now one million
+turtles are falling down, bouncing off the side walls, and wrapping around
+to the top.`, 160],
+    [`We are now going to create a simulation with large objects. To do so, we use what's called a "patch". A
+patch is a 2D grid of cells where turtles can store values. Here,
+we create a patch called "Field", and add "r", "g", "b", and "a" properties for each cell.`, 176],
+    [`And, we define a breed called "Filler" that operates on the Field.`, 197],
+    [`Now we define a method called "fill". The argument for this method is the patch, and
+turtles executing this method update the patch cell value at their x and y coordinates.`, 203],
+    [`We modify "setup" to use a primitive called
+"fillSpace", which creates turtles of the Filler breed and
+places them at all integral grid points. When this "setup" is called,
+and the "fill" method is called, each "r" and "g" of the patch get values derived from its position, resulting 
+in this color gradient.`, 214],
+    [`Let's make some shapes now. We define
+the "fillCircle" method to replace "fill". Let's also add the "clear" method, which clears the field's values.`, 231],
+    [`"fillCircle" works by having each Filler turtle
+check whether it is within the radius of the circle. If it is, it writes
+the value into their corresponding cell.`, 244],
+    [`In the "setup" function, we call "fillCircle" and get a circle at (100, 100).`, 264],
+    [`Shadama programs can also be interactive. Let's split the "setup" function and
+create another one called "loop".`, 273],
+    [`Notice to the right that there is a variable
+called "mousemove", which changes its value as we move the mouse pointer in the
+display. That is an indication that we can use the value in our
 program.`, 288],
-    [`Now let us tie all together.  This code has methods we used
-previously, such as setColor.  FillCircle is slightly modified so that
-it sets the normal vector for the circle in the patch.`, 311],
-    [`In the move
+    [`Now let's tie it all together. This code has methods we used
+previously, such as "setColor". "fillCircle" is slightly modified so that
+it sets normal vectors for the circle in the patch.`, 308],
+    [`In the "move"
 method, each turtle checks the normal in the patch cell where the turtle is
-on, computes the new direction that uses the dot product.  When I run
-this, particles are bouncing off the circle and make a beautiful pattern.`, 320],
-    [`However, it is a bit hard to see because the colors of turtles are too
-close.  Here, we change the setColor method so that instead of the x
-and y position, we use the the velocity dx and dy to decides its
-color.`, 351],
-    [`Then we call setColor from loop, so that it updates its color
-all the time.`, 360],
-    [`Here, horizontal velocity is rendered as reddish color, and vertical
-velocity is rendered as greenish color.  As you can see, you can
-change the visualization quickly and observe the simulation in a way
-you like.`, 365], 
-    [`For fun, you can make two circles that moves symmetrically.`, 374],
-    [`This is a variation of this program.  Here,
-instead of modeling the gravity pulling downward, the gravity follow
-the inverse square law to the mouse pointer's location.  It appears
-that there are large structures, but the truth is that it is just
-quarter million particles had regular initial positions, and
-following the inverse square law.`, 385],
-    [`Shadama allows the user to import an image.  The primitive fillImage
-takes an image object, and creates enough turtles and set their colors
-based on the images pixel values.  This looks like an image but it
-actually a set of turtles.`, 423],
-    [`We define the same move method, set the
-direction vector to random directions, create the loop method tha calls move, and run loop.`, 442],
+located and computes a new direction from the dot product with the normal. When we run
+this, particles bounce off the circle and make a beautiful pattern.`, 320],
+    [`However, it is a bit hard to see because the colors of the turtles are too
+similar. Here, we change the "setColor" method so that instead of using "x"
+and "y" position, we use the velocity "dx" and "dy" to determine the turtles'
+color.`, 348],
+    [`Then we call "setColor" from "loop", so that the colors are updated continuously.`, 360],
+    [`Here, horizontal velocity corresponds with reddish color, and vertical
+velocity corresponds with greenish color. The visualization can be quickly adjusted
+to match how you prefer to view the simulation.`, 365], 
+    [`For fun, you can make two circles that move symmetrically.`, 375],
+    [`Here's an interesting variation of our program. Instead of modeling gravity as pulling downward, gravity follows
+the inverse square law in relation to the mouse pointer location. It looks like
+there are large structures, but it's actually just a
+quarter million particles from regular initial positions, all following the inverse square law.`, 384],
+    [`Shadama allows the user to import images. The built-in "fillImage"
+takes an image object, creates enough turtles to cover it, and sets the turtle colors
+based on the image's pixel values. This looks like an image but it is
+actually a bunch of turtles.`, 422],
+    [`We reuse our previous "move" method, set the
+direction vectors randomly, create the "loop" method that calls "move", and run "loop".`, 442],
     [`For fun,
-I can use the r and g channel values for the velocity, you can make
+We can use the turtles' red and green values to determine turtle velocity, causing an
 an interesting effect.`, 466],
-    [`Let us use those pixels in the gravity simulation.`, 490],
-    [`The code checks the timer, and every 10 seconds, it gathers all turtles to their original positions.`, 500],
-    [`We can try some mathematical functions.  This is a program to
-visualize the mandelbrot set.  We can change the color scheme on the
-fly, for example.`, 513],
-    [`This is the Game of Life.`, 532],
+    [`Let's use those pixels in our gravity simulation.`, 488],
+    [`The code checks the timer, and every 10 seconds, it gathers all turtles to their original position.`, 500],
+    [`We can also try some mathematical functions. This is a program to
+visualize the Mandelbrot set. Notice how we can change the color scheme on the
+fly.`, 511],
+    [`This is Conway's Game of Life.`, 532],
     [`Again, we can change the program while
-the simulation is running, and the code change is reflected to the
-simulation right away, without needing to restart it.`, 535]];
+the simulation is running, and the code change is reflected in the
+simulation right away, without needing to restart.`, 537]];
     </script>
     <script>
        var eventDivs; // [[div, time]]
@@ -144,7 +136,7 @@ simulation right away, without needing to restart it.`, 535]];
 	   player = new YT.Player('player', {
 	       height: '576',
 	       width:  '1024',
-	       videoId: 'g4rloq5FRLM',
+	       videoId: 'kHTIv7HUPt8',
 	       events: { 'onStateChange': onPlayerStateChange },
 	       playerVars: {rel: 0, showinfo: 0},
 	   });
@@ -195,7 +187,6 @@ simulation right away, without needing to restart it.`, 535]];
        onload = initialize;
   </script>
   </head>
-
   <body>
     <article>
       <h1 id="title">Shadama: A Particle Simulation<br> Programming Environment for Everyone</h1>
@@ -244,51 +235,58 @@ The runtime data of the program is stored and kept in the memory of
 graphics card for fast execution.
 	</p>
         <p>
-The prototype is available
-at: <A href="http://tinlizzie.org/~ohshima/shadama2">Shadama Prototype
-Page</A>.  Note that the system is sensitive to the floating point
-precision provided by the graphics card, and consequently it rather
-chooses a platform it runs.  On a computer with AMD Radeon graphics
-card, and Chrome or FireFox browsers seem to work better.
+A prototype of Shadama can be found <a href="http://tinlizzie.org/~ohshima/shadama2">here</a>.
+Be aware that Shadama requires WebGL 2 and is affected by the floating point precision provided
+by your graphics card. Thus, it only works on certain computer systems.
+From our experience, it seems to work better on computers with an AMD Radeon graphics
+card and on Chrome or Firefox browsers.
 </p>
       </section>
       <section>
         <h2>Introduction</h2>
         <p>
-The computing power to us today is astounding, if we look
-back in the history of computing just for a few years.  Achieving the
-Teraflops mark was a milestone for a building-sized supercomputer in
-the late '90's.  Now, a smart phone has equivalent performance.  Computing performance will continue to increase in the future.
+The computing power available to us today is astounding.  Achieving
+one teraflop of performance was a milestone for a building-sized supercomputer in
+the late '90s, but now we expect smart phones to reach this same milestone soon.
+Computing performance will only continue to increase in the future.
 	</p>
 	<p>
-But what are people doing with it?  I don't want to say bad things
-about my friends and family, but they are more interested in
-watching cat videos and playing solitaire rather than trying to
-invent self-flying personal airplanes, or discover the graviton.
+But what are people using this power for?  Not to be critical
+of our friends and family, but people are generally more
+interested in watching cat videos and playing games than trying to
+invent self-flying personal airplanes or discover the graviton.
 
-Jokes aside, one of the big problems we face today is that the
-importance of science literacy seems to be discounted in this
-technologically advanced society.  We will need the next
+All joking aside, one of the big problems we face today is our
+struggle to advance science literacy, even within a
+technologically-advanced society.  We need the next
 generation to embrace science more, not less.
 	</p>
 	<p>
-We think now is a good time to restart our efforts to provide an
-environment where school students, artists, and even professional
-programmers can tap into the power that is available for us.
+We think now is a good time to redouble our efforts to provide an
+environment where students, artists, and even professional
+programmers can tap into the computing power that is available.
 	</p>
 	<p>
-Along this line of effort, we have been working on a prototype of a
+To this end, we have been working on a prototype of a
 programming language intended for high school students to explore
 scientific ideas.
 	</p>
 	<p>
-Science is about making invisible things visible.  One notable example
-of the invisible yet with huge importance is gas molecules.  We would like students to learn
-about them: not only by rote memorization of words, but also through
-actual experiments, and through building models.  With the help of computers, students can make a dynamic model and understand it more deeply.  In other words, this kind of enviroment will help them to construct the knowledge by doing, in the sense of constructivism.
+  Science is about making the invisible visible.  One notable example
+of an invisible yet important concept is molecules in a gas.  We would
+like students to learn about this, not by rote memorization, but
+through actual experiments and model-building.  With the help of
+computers, students can make a dynamic model and understand it more
+deeply.  This kind of environment will help students construct
+knowledge by doing, in line with the constructivism philosophy of
+education.
 	</p>
 	<p>
-So we set ourselves out to make a prototype of the language, that aims
+<b>This is the motivation behind our prototype of a programming environment
+to create simulations.</b>
+	</p>
+	<p>
+We set ourselves out to make a prototype of the language, that aims
 to satisfy following goals:
 <ul>
 <li> Object-Oriented</li>
@@ -297,9 +295,11 @@ to satisfy following goals:
 </ul>
        <p>
 As the basis for our prototype, we follow the tradition of StarLogo,
-where objects are organized into turtles patches.  For those students
-who have used Scratch, specifying the behavior of one object is
-already familiar. Breeds and patches are straightforward extensions
+where objects are organized into turtles and patches.  For those students
+who have used Scratch, specifying the behavior by code for one object is
+already familiar.  Also, using the "color-touching"
+block to sense the value around a sprite probably is familiar, too.  
+Breeds and patches are straightforward extensions from those concepts,
 and we expect that most students can pick them up easily.
        </p>
        <p>
@@ -334,38 +334,42 @@ immediately.
 <section>
 	<h2 id="a-science-experiment">A Science Experiment</h2>
 <iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
-	  <p>
-We begin with an actual science experiment to motivate the narrative.
-This movie shows a vacuum cannon.  The vacuum cannon is a six foot PVC
-pipe, connected to a vacuum pump.  We put a ping pong ball inside,
-cover the open ends with a soft and sturdy but breakable material such
-as plastic cake plates, and pump the air out.
-	  </p>
-<p>
+	<p>
+We begin with an actual science experiment.
+This movie shows a vacuum cannon.  The cannon is a six foot PVC
+pipe connected to a vacuum pump.  We put a ping pong ball inside the pipe,
+cover the ends with sturdy but breakable material (such as plastic plates),
+and pump the air out.
+	</p>
+	<p>
 The pump reduces the pressure inside the tube to about 20% of full atmospheric pressure.
-	  </p>
-	  <p>
-When the end near the ping pong ball is popped by a box cutter, the
-air molecules that are moving toward the opening keep moving into the
-low pressure space, and the ping pong ball is simply pushed out
-because of it.  
-Our crude setup can accelerate the ball to a speed of over 200 meters/sec
-which is about 60% of the speed of sound.  Others have built experiments
-that can achieve super sonic speed.
+	</p>
+	<p>
+When the end near the ping pong ball is broken open by a box cutter, the
+air molecules that rush into the pipe move into the
+low pressure space and the ping pong ball is pushed out the other end.
+Our crude setup can accelerate the ball to a speed of over 200 meters per second
+(about 60% of the speed of sound).  Others have built similar setups
+that can achieve supersonic speed.
 	</p>
         <p>
-Now Recall the idea that science is about making invisible visible.
-The important point to understand is that it is just movement of
-molecules that is is causing the ball to shoot out.  With this in
-mind, we would like to create an environment where students can
-do the experiment in the real world and then make a simulation of it.
+An interesting point to understand is that it is just movement of
+molecules that is is causing the ball to shoot out; it is not that the
+vacuum is sucking molecules into the pipe.
+</p>
+<p>
+The invisible molecules that cause the ball to shoot out can
+be made &ldquo;visible&rdquo; in a sense not only through this physical experiment,
+but also through a computer simulation that reproduces the same phenomenon.
+Creating such simulations is the purpose of our programming environment.
 	  </p>
 </section>
 <section>
 	<h2 id="shadama-in-Action">Shadama in Action</h2>
 	<p>
 The following movie shows some examples done in our prototype programming environment called Shadama.
-The subtitles below explain the movie.  You can pause the movie at any time, and read through the explanation, but more than anything, please enjoy the beautiful simulations.
+
+The script below provides an explaination of the movie.  You can pause the movie at any time to scroll through and read the explanation.  The captions work better when the movie is not in full screen.
 	</p>
 <!--<iframe width="1024" height="576" src="https://www.youtube.com/embed/g4rloq5FRLM" frameborder="0" allowfullscreen></iframe>-->
   <div id="video">
@@ -480,7 +484,7 @@ ways to attack.  And Science is one of the biggest asset humanhas has.  We hope 
 </section>
 
 <section>
-	<h2 id="language">The Primer of the Shadama Language (The one pager) </h2>
+	<h2 id="language">The Primer of the Shadama Language</h2>
 	<p>
 The Shadama language uses the turtles and patches abstraction, which
 is drawn from the tradition of StarLogo.  Turtles are organized into
