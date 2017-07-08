@@ -399,7 +399,9 @@ translator is written in Ohm[3]
        id="sn-ohm"
        class="margin-toggle"/>
 <span class="sidenote">
+<a href="https://ohmlang.github.io/">
 Ohm: A library and language for building parsers, interpreters, compilers, etc.
+</a>
 </span>.
 </p>
 
@@ -414,7 +416,28 @@ for Etoys.  The name Shadama is an homage to Kedama, but with the
 OpenGL Shading Language as the backend.
 	</p>
 	<p>
-Lately, there are various simulation environments, such as Liquid Fun[4]
+Swift et. al. created a live programming environment for physics based
+on Extempore[4]
+<label for="sn-extempore-pic"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-extempore-pic"
+       class="margin-toggle"/>
+<span class="sidenote">
+Live Programming in Scientific Simulation
+<img src="extempore-pic.png" width="50%" height="50%" alt="Extempore PIC demo screenshot" /><br>
+<a href="https://vimeo.com/99891379">A demo movie of Particle In Cell with Extempore</a>
+</span>.
+This environment provides a flexible and dynamic
+interaction to a sophisticated and optimized physics simulation
+framework (Particle-In-Cell).  The split of it is much in line with
+our work, except that their work uses a third party engine as a black
+box.  We believe that such an engine should be also accessible to the
+leaners.
+	</p>
+	<p>
+Lately, there are various simulation environments, such as Liquid Fun[5]
 <label for="sn-liquidfun"
        class="margin-toggle sidenote-number">
 </label>
@@ -425,7 +448,7 @@ Lately, there are various simulation environments, such as Liquid Fun[4]
 <img src="liquidfun.png" width="50%" height="50%" alt="LiquidFun screenshot" /><br>
 LiquidFun.
 </span>.
-Also providing bindings to GLSL from high-level languages is a hot topic[5]
+Also providing bindings to GLSL from high-level languages is a hot topic[6]
 <label for="sn-ikra"
        class="margin-toggle sidenote-number">
 </label>
@@ -436,7 +459,7 @@ Also providing bindings to GLSL from high-level languages is a hot topic[5]
 Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby.  ARRAY’16, June 2016
 </span>.
 Nicky Case has a simulation
-construction environment based on emoji[6]
+construction environment based on emoji[7]
 <label for="sn-emoji"
        class="margin-toggle sidenote-number">
 </label>
@@ -445,7 +468,7 @@ construction environment based on emoji[6]
        class="margin-toggle"/>
 <span class="sidenote">
   <img src="emoji.png" width="50%" height="50%" alt="Simulation in Emoji screenshot" /><br>
-Simulation in Emoji: Nicky Case, 
+<a href="http://ncase.me/simulating/model/">Simulation in Emoji: Nicky Case</a>
 </span>.
   As of now, Shadama uses a
 textual language, based on the observation that physics simulations
@@ -647,7 +670,7 @@ patch Field (nx, ny)
 </p>
 <p>
 declares a patch, and each cell in the patch variable holds
-two values "nx" and "nyclas".
+two values "nx" and "ny".
 </p>
 
 <p>
@@ -659,7 +682,7 @@ patch to a method, you pass the name of the patch as an argument.
 Each turtle that executes the method can only see the nearest patch
 cell, and accessing a property of patch give the value in the cell.
 For example, this code:
-</pre class="code">
+<pre class="code">
 breed MyTurtle (x, y, r, g, b, a)
 patch Field (r, g, b, a)
 
@@ -910,6 +933,7 @@ Adaptive Systems). MIT Press, 1994.
           </li>
 	  <li>OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
           <li>Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
+          <li>Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
 	  <li>LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
 	  <li>Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
           <li>Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
@@ -918,151 +942,3 @@ Adaptive Systems). MIT Press, 1994.
     </article>
   </body>
 </html>
-
-
-<!--
-
-	<p>
-Here, we try to make a simple physics simulation where many particles
-are following some gravity law.
-	</p>
-	<p>
-In a Shadama program, we declare and use breeds of turtles.  Here, the
-breed called Turtle is created.  Each turtle in the breed has x, y, r,
-g, b and a properties.
-	</p>
-	<p>
-  A method is defined with the keyword "def".  A method is executed on
-each turtle in a breed.  The setColor method uses the turtle's x and y
-coordinate and assign them into r and g.
-	</p>
-	<p>
-In a static function called "setup", we first set the number of
-turtles in the breed to be 3,000, set all turtle's x and y to be a
-random number between 0 and 512.  We run it by hitting Cmd-S to run
-it.  Okay, we don't see the result until we call the setColor method
-and call the draw primitive.  Good.
-	</p>
-	<p>
-Those dots may be hard to see, but we can increase the number of turtles
-to 30,000, 300,000 and 1 million.
-	</p>
-	<p>
-What we want to do next is to move those turtles around.  So we define
-a method called move.  Move increments the x and y of turtles.  I call
-the move method from a static function step.  When I set the clock on
-step and repeatedly execute it, the turtles move.
-	</p>
-	<p>
-Interestingly, while they are moving, I can edit the program on the
-fly and the changes takes effect as soon as I hit Cmd-S.  I can add an
-argument to move, use it in the code, change the call site and the
-turtles that went off screen comes back.
-	</p>
-	<p>
-We would actually like each individual turtle to have its own
-velocity, so we add dx and dy to each turtle.  And then, we use them in
-move.  Here, instead of n, we increment x and y of each turtle with
-their dx and dy.
-	</p>
-	<p>
-We add a primitive to set the dx and dy to be the x and y components
-of a random direction vector.  Now, all turtles move
-to their own directions.  Try again by executing setup,
-	</p>
-	<p>
-We can make this to be a simple gravity simulation.  We add constant
-acceleration to the y component of the velocity.  Now all turtles are
-accelerated toward the bottom.
-	</p>
-	<p>
-We don't want those particles to go out of bounds.  So we extend
-the move method.  First we store dx and dy, as well as the possible
-new location of x and y into local variables.  when newX is going out
-of bounds, we make the turtle bounce back.  When newY is going below,
-we wrap the value around to the top.  After adjusting those variables,
-we write those values back to turtle's properties.  Now one million
-turtles are falling down, bouncing off the side walls, and wrap around
-to the top.
-	</p>
-	<p>
-We are going to add some large objects.  To do so, we use a patch.  A
-patch is a set of 2D grid cells where turtles can store values.  Here,
-we create a patch called Field, and a breed called Filler that
-operates on it.
-	</p>
-	<p>
-We define a method called fill.  This method takes an argument, and
-updates fields, values.  And the setup uses a primitive called
-fillSpace, which create enough number of turtles in the breed and
-locate them at all integral grid point.  When this setup is called,
-and the fill method is called for all turtles in the Filler breed the
-r and g of the patch gets values based on its position and it results
-in this gradation.
-	</p>
-	<p>
-Instead of gradation, let us make some shapes.  So we define
-the fillCircle method instead.  The idea of fillCircle is that each turtle
-checks whether it is within the radius, and only when it is, it writes
-values into the cell.  We define the clear method, and now we use them
-in setup.  We get a circle at (100, 100).
-	</p>
-	<p>
-We can make the program interactive.  Split the setup function and
-create another one called loop.  Notice that there is a variable
-called mousemove, which updates when you move the mouse pointer in the
-display.  That is an indication that we can use the value in our
-program.
-	</p>
-	<p>
-Now let us tie all together.  This code has methods we used
-previously, such as setColor.  FillCircle is slightly modified so that
-it sets the normal vector for the circle in the patch.  In the move
-method, each turtle checks the normal in the patch cell where the turtle is
-on, computes the new direction that uses the dot product.  When I run
-this, particles are bouncing off the circle as expected.
-	</p>
-	<p>
-However, it is a bit hard to see because the colors of turtles are too
-close.  Here, we change the setColor method so that instead of the x
-and y position, we use the the velocity dx and dy to decides its
-color.  Then we call setColor from loop, so that it updates its color
-all the time.
-	</p>
-	<p>
-Here, horizontal velocity is rendered as reddish color, and vertical
-velocity is rendered as greenish color.  As you can see, you can
-change the visualization quickly and observe the simulation in a way
-you like.
-	</p>
-	<p>
-For fun, you can make two circles that moves symmetrically.
-	</p>
-	<p>
-This is a variation of this program.  I replace the code.  Here,
-instead of modeling the gravity pulling downward, the gravity follow
-the inverse square law from the mouse pointer's location.  It appears
-that there is large structure, but the truth is that it is just
-quarter million particles had a regular initial condition, and
-following the inverse square law.
-	</p>
-	<p>
-Shadama allows the user to import an image.  The primitive fillImage
-takes an image object, and creates enough turtles and set their colors
-based on the images pixel values.  This looks like an image but it
-actually a set of turtles.  We define the same move method, set the
-direction vector to random directions, an run the function.  For fun,
-if you use the r and g channel values for the velocity, you can make
-an interesting effect.
-	</p>
-	<p>
-We can try some mathematical functions.  This is a program to
-visualize the mandelbrot set, We can change the color scheme on the
-fly for example.
-	</p>
-	<p>
-And, this is the Game of Life.  Again, we can change the program while
-the simulation is running, and the code change is reflected to the
-simulation right away, without needing to restart it.
-	</p>
--->
