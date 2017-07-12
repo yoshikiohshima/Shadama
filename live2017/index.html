@@ -518,12 +518,15 @@ ways to attack.  And Science is one of the biggest asset humanhas has.  We hope 
 	<h2 id="language">Appendix: The Primer of the Shadama Language</h2>
 	<p>
 The Shadama language uses the turtles and patches abstraction, which
-is drawn from the tradition of StarLogo.  Turtles are organized into
-"breeds".  Each breed can declare its own variables.
+is drawn from the tradition of StarLogo.  A method is defined with the
+"def" statement, and invoked on each turtle in a breed when invoked.
+A static function invokes a method.
 
         <h3 id="breeds">Breeds</h3>
 <p>
-  A breed is declared in the program with the "breed" statement.  For example, a
+Turtles are organized into
+"breeds".  Each breed can declare its own set of properties.
+A breed is declared in the program with the "breed" statement.  For example, a
 statement:
 </p>
 <pre class="code">
@@ -548,13 +551,14 @@ def move() {
 </pre>
 </p>
 <p>
-Intuitively, when this method is invoked for a turtle, the
+Intuitively, when this method is invoked on a turtle, the
 turtle's x property and y property are incremented by one.
 	</p>
 	<p>
-When a method is invoked from a static function, all turtles in the receiving breed executes it at the
-same time.  For
-example, a static function:<br>
+A method is invoked from a static function.  In a static function, The
+breed name is used to specify which group of turtles to execute the
+method, and all turtles in the receiving breed executes it
+concurrently.  For example, a static function:<br>
 <pre class="code">
 static step() {
   MyTurtle.move();
@@ -564,7 +568,7 @@ static step() {
 <p>
 calls the move method on all turtles of the MyTurtle breed.  Besides
 user-defined methods, there are "primitives" that provide certain
-pre-defined features. The following is a list of primitives for
+pre-defined features. The following is the list of primitives for
 breeds.
 <ul>
 <li> <code>aBreed.setCount(count);</code>
@@ -582,16 +586,14 @@ static setup() {
 will set the number of turtles in the MyTurtle breed to 10,000.
 </p>
 <p>
-  In the current implementation, there is a limit on the number of
-turtles for a breed.  The limit is about 1 million.  (It is provided
-by the square of a constant called TEXTURE_SIZE in the
-implementation.)
+In the current implementation, there is a limit on the number of
+turtles in a breed.  The limit by default is 1024 * 1024, or about 1 million.
 	</p>
         </li>
 <li> <code>aBreed.fillRandom(name, min, max);</code>
 	<p>
   The fillRandom primitive sets the property specified by
-  the string to be a random (floating point) number between min
+  the string to be a random number between min
   (inclusive) and max (exclusive).  It does not change the number of
   turtles in the breed.  For example,
   <pre class="code">
@@ -660,9 +662,10 @@ static setup() {
 </p>
 <p>
 (where the value of anImage can be taken from the global variable
-described below), creates the same number of turtles to the pixel
-count of anImage, and stores the anImage's color component values,
-scaled to 1.0, into r, g, b and a properties.
+called anImage.  Different kinds of variables are described below),
+creates the same number of turtles to the pixel count of anImage, and
+stores the anImage's color component values, scaled to 1.0, into r, g,
+b and a properties.
 </ul>
 
 <h3 id="breeds">Patches</h3>
@@ -670,7 +673,7 @@ scaled to 1.0, into r, g, b and a properties.
 Besides breeds of turtles, you can create patches.  A patch
 is a set of "cells" that can hold values.  A patch
 assumes a two-dimentional space of the fixed size (by default
-512x512, specified as FIELD_WIDTH and FIELD_HEIGHT).
+512 * 512).
 For example, a statement:
 <pre class="code">
 patch Field (nx, ny)
@@ -682,14 +685,13 @@ two values "nx" and "ny".
 </p>
 
 <p>
-To manipulate patches, you  pssed them into a method as arguments.
+To manipulate a patch, you pass them to a method as arguments.
 </p>
 <p>
 The caller of a method is always a static function.  To pass in a
 patch to a method, you pass the name of the patch as an argument.
-Each turtle that executes the method can only see the nearest patch
-cell, and accessing a property of patch give the value in the cell.
-For example, this code:
+Each turtle that executes the method can only access the nearest patch
+cell.  For example, this code:
 <pre class="code">
 breed MyTurtle (x, y, r, g, b, a)
 patch Field (r, g, b, a)
@@ -710,9 +712,8 @@ The "setup" function calls the "store" method with "Field" as an
 argument.  The store method, executed for each turtle in Turtle,
 store the turtle's r property into the r property of the nearest cell in Field.
 </p>
-
 <p>
-You can read values out from the patch.  For example, when the following method is executed:
+A turtle can read values out from the patch cell as well.  For example, when the following method is executed:
 <pre class="code">
 def load(field) {
    this.r = field.r;
@@ -743,7 +744,7 @@ def swap(f1, f2) {
 </pre>
 </p>
 <p>
-are valid.
+are valid.  
 </p>
 
 <h3 id="variables">Local and Global Variables</h3>
@@ -754,7 +755,7 @@ regardless where it is declared.  There can be at most one "var"
 declaration for the saem variable name, unlike JavaScript.
 </p>
 <p>
-Static functions have global variables, which are visible to all static functions.
+Static functions can use global variables, which are visible to all static functions.
 For example, if you have two static functions:
 <pre class="code">
 static setup() {
@@ -769,7 +770,7 @@ static loop() {
 </pre>
 </p>
 <p>
-The begin variable can be referred to from both setup and loop,
+the begin variable can be referred to from both setup and loop,
 </p>
 
 <p>
