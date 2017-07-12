@@ -38,3 +38,8 @@ p.caption {
 p.highlight {
   color: blue;
 }
+
+
+.sidenote, .marginnote {
+                      margin-bottom: 1.5rem;
+}
