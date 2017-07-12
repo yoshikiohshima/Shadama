@@ -199,7 +199,7 @@ We present a prototype of a programming system called Shadama, which
 is designed to help writing programs that creates large number of
 objects, control them and visualize them.  Shadama's basic execution
 model follows the tradition of StarLogo and its "turtles and patches"
-abstraction
+abstraction.
 <label for="sn-starlogo"
        class="margin-toggle sidenote-number">
 </label>
@@ -211,8 +211,8 @@ abstraction
 in Massively Parallel Microworlds (Complex
 Adaptive Systems). MIT Press, 1994.
 <img src="starlogo-book.jpg" width="50%" height="50%"/>
-</span>.
-The abstraction is proven to be effective and easy to
+</span>
+&nbsp; The abstraction is proven to be effective and easy to
 use.  The primary audience intended of the language is high-school
 level students to make physics simulations.
 	</p>
@@ -222,7 +222,7 @@ program, the code change immediately takes effects on the running
 simulation without needing to restart the simulation.
 	</p>
         <p>
-The user code is translated to the Open GL Shading Language
+The user code is translated to the Open GL Shading Language.
 <label for="sn-glsl"
        class="margin-toggle sidenote-number">
 </label>
@@ -231,7 +231,7 @@ The user code is translated to the Open GL Shading Language
        class="margin-toggle"/>
 <span class="sidenote">
 OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)
-</span>.
+</span> &nbsp;
 The runtime data of the program is stored and kept in the memory of
 graphics card for fast execution.
 	</p>
@@ -419,7 +419,7 @@ One of the authors implemented a particle system as an extension of Etoys in the
 <span class="sidenote">
 Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System.<br>
 <img src="kedama.png" width="50%" height="50%" alt="Kedama screenshot" /><br>
-</span>. &nbsp;    Shadama can be seen as another attempt to bring the idea a new life.  Shadama's target audience is older than Kedama's.
+</span> &nbsp;    Shadama can be seen as another attempt to bring the idea a new life.  Shadama's target audience is older than Kedama's.
 	</p>
 	<p>
 The biggest inspiration for Shadama (and Kedama) was Resnick's
@@ -428,8 +428,8 @@ upon StarLogo's.  In fact, Shadama is missing some features
 compared to StarLogo, as described in introdcution.
 	</p>
 	<p>
-Swift et. al. created a live programming environment for physics based
-on Extempore
+Swift et al. created a live programming environment for physics based
+on Extempore.
 <label for="sn-extempore-pic"
        class="margin-toggle sidenote-number">
 </label>
@@ -439,7 +439,7 @@ on Extempore
 <span class="sidenote">
 Live Programming in Scientific Simulation
 <img src="extempore-pic.png" width="50%" height="50%" alt="Extempore PIC demo screenshot" /><br>
-</span>.
+</span> &nbsp;
 This environment provides a flexible and dynamic
 code swap and interactive data inspection to a sophisticated and optimized physics simulation
 framework (called Particle-In-Cell).  The split of this environment is much in line with
@@ -448,7 +448,7 @@ box.  We believe that such an engine should be also accessible to the
 leaners.
 	</p>
 	<p>
-Lately, there are various simulation environments, such as Liquid Fun
+Lately, there are various simulation environments, such as Liquid Fun.
 <label for="sn-liquidfun"
        class="margin-toggle sidenote-number">
 </label>
@@ -459,7 +459,10 @@ Lately, there are various simulation environments, such as Liquid Fun
 LiquidFun.<br>
 <img src="liquidfun.png" width="50%" height="50%" alt="LiquidFun screenshot" />
 </span>
-.&nbsp;  Also providing bindings to GLSL to high-level languages is a hot topic
+&nbsp;  But the language for Liquid Fun is not designed for end-users.
+</p>
+<p>
+Providing bindings to GLSL to high-level languages is a hot topic.
 <label for="sn-ikra"
        class="margin-toggle sidenote-number">
 </label>
@@ -479,10 +482,10 @@ construction environment based on emoji
 <span class="sidenote">
 <a href="http://ncase.me/simulating/model/">Simulation in Emoji</a><br>
   <img src="emoji.png" width="50%" height="50%" alt="Simulation in Emoji screenshot" />
-</span>. &nbsp;  The authors think that Shadama can occupy a unique position for the blance of the performance and ease of use.
+</span> &nbsp;  They use more sophisticated compilation techniques and use CUDA to fully utilize the power of GPU, yet again, the blance is toward the performance and power, rather than ease of use.  The authors think that Shadama can occupy a unique position at striking a good blance betewen the performance and ease of use.
 	</p>
 	<p>
-There are blocks laungages for massively parallel particles, such as StarLogo-TNG.
+There are blocks laungages for massively parallel particles, such as StarLogo Nova.
 Currently, Shadama uses a textual language, based on the observation
 that physics simulations often only takes concise problem description
 so coding part is not the major obstacle.  But we are not ruling out
