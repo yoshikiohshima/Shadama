@@ -199,7 +199,7 @@ We present a prototype of a programming system called Shadama, which
 is designed to help writing programs that creates large number of
 objects, control them and visualize them.  Shadama's basic execution
 model follows the tradition of StarLogo and its "turtles and patches"
-abstraction[1]
+abstraction
 <label for="sn-starlogo"
        class="margin-toggle sidenote-number">
 </label>
@@ -210,6 +210,7 @@ abstraction[1]
  M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
 in Massively Parallel Microworlds (Complex
 Adaptive Systems). MIT Press, 1994.
+<img src="starlogo-book.jpg" width="50%" height="50%"/>
 </span>.
 The abstraction is proven to be effective and easy to
 use.  The primary audience intended of the language is high-school
@@ -221,7 +222,7 @@ program, the code change immediately takes effects on the running
 simulation without needing to restart the simulation.
 	</p>
         <p>
-The user code is translated to the Open GL Shading Language[2]
+The user code is translated to the Open GL Shading Language
 <label for="sn-glsl"
        class="margin-toggle sidenote-number">
 </label>
@@ -391,7 +392,7 @@ is used to write back the changes to multiple properties at once.
 <p>
 From the user code, the vertex shader code and fragment shader code,
 along with some support code in JavaScript are generated.  The
-translator is written in Ohm[3]
+translator is written in Ohm.
 <label for="sn-ohm"
        class="margin-toggle sidenote-number">
 </label>
@@ -402,27 +403,33 @@ translator is written in Ohm[3]
 <a href="https://ohmlang.github.io/">
 Ohm: A library and language for building parsers, interpreters, compilers, etc.
 </a>
-</span>.
+</span>
 </p>
 
 <section>
 	<h2 id="related-work">Related Work</h2>
 	<p>
-Shadama is another attempt after one
-of the authors did a particle extension called Kedama
-for Etoys[4].  The name Shadama is an homage to Kedama, but with the
-OpenGL Shading Language as the backend.
+One of the authors implemented a particle system as an extension of Etoys in the past.
+<label for="sn-kedama"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-kedama"
+       class="margin-toggle"/>
+<span class="sidenote">
+Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System.<br>
+<img src="kedama.png" width="50%" height="50%" alt="Kedama screenshot" /><br>
+</span>. &nbsp;    Shadama can be seen as another attempt to bring the idea a new life.  Shadama's target audience is older than Kedama's.
 	</p>
 	<p>
 The biggest inspiration for Shadama (and Kedama) was Resnick's
 StarLogo.  The basic organization of Shadama objects is largely drawn
-upon StarLogo's.  For instance, fact, Shadama is missing some key
-features compared to StarLogo.  Shadama's turtles lack the ability
-access other turtles nearby.
+upon StarLogo's.  In fact, Shadama is missing some features
+compared to StarLogo, as described in introdcution.
 	</p>
 	<p>
 Swift et. al. created a live programming environment for physics based
-on Extempore[5]
+on Extempore
 <label for="sn-extempore-pic"
        class="margin-toggle sidenote-number">
 </label>
@@ -432,7 +439,6 @@ on Extempore[5]
 <span class="sidenote">
 Live Programming in Scientific Simulation
 <img src="extempore-pic.png" width="50%" height="50%" alt="Extempore PIC demo screenshot" /><br>
-<a href="https://vimeo.com/99891379">A demo movie of Particle In Cell with Extempore</a>
 </span>.
 This environment provides a flexible and dynamic
 code swap and interactive data inspection to a sophisticated and optimized physics simulation
@@ -442,7 +448,7 @@ box.  We believe that such an engine should be also accessible to the
 leaners.
 	</p>
 	<p>
-Lately, there are various simulation environments, such as Liquid Fun[6]
+Lately, there are various simulation environments, such as Liquid Fun
 <label for="sn-liquidfun"
        class="margin-toggle sidenote-number">
 </label>
@@ -450,10 +456,10 @@ Lately, there are various simulation environments, such as Liquid Fun[6]
        id="sn-liquidfun"
        class="margin-toggle"/>
 <span class="sidenote">
-<img src="liquidfun.png" width="50%" height="50%" alt="LiquidFun screenshot" /><br>
-LiquidFun.
+LiquidFun.<br>
+<img src="liquidfun.png" width="50%" height="50%" alt="LiquidFun screenshot" />
 </span>
-.&nbsp;  Also providing bindings to GLSL to high-level languages is a hot topic[7]
+.&nbsp;  Also providing bindings to GLSL to high-level languages is a hot topic
 <label for="sn-ikra"
        class="margin-toggle sidenote-number">
 </label>
@@ -461,9 +467,9 @@ LiquidFun.
        id="sn-ikra"
        class="margin-toggle"/>
 <span class="sidenote">
-Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby.  ARRAY’16, June 2016
+Object Support in an Array-based GPGPU Extension for Ruby (ARRAY’16)
 </span>.  &nbsp; Nicky Case has a simulation
-construction environment based on emoji[8]
+construction environment based on emoji
 <label for="sn-emoji"
        class="margin-toggle sidenote-number">
 </label>
@@ -471,12 +477,12 @@ construction environment based on emoji[8]
        id="sn-emoji"
        class="margin-toggle"/>
 <span class="sidenote">
-  <img src="emoji.png" width="50%" height="50%" alt="Simulation in Emoji screenshot" /><br>
-<a href="http://ncase.me/simulating/model/">Simulation in Emoji: Nicky Case</a>
+<a href="http://ncase.me/simulating/model/">Simulation in Emoji</a><br>
+  <img src="emoji.png" width="50%" height="50%" alt="Simulation in Emoji screenshot" />
 </span>. &nbsp;  The authors think that Shadama can occupy a unique position for the blance of the performance and ease of use.
 	</p>
 	<p>
-There are blocks laungages for massively parallel particles, such as StarLogo-TNG[9].
+There are blocks laungages for massively parallel particles, such as StarLogo-TNG.
 Currently, Shadama uses a textual language, based on the observation
 that physics simulations often only takes concise problem description
 so coding part is not the major obstacle.  But we are not ruling out
@@ -514,6 +520,23 @@ ways to attack.  And Science is one of the biggest asset humanhas has.  We hope 
 	</p>
 </section>
 
+      <section>
+        <h2>References</h2>
+	<ol type="1">
+	  <li>
+M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
+in Massively Parallel Microworlds (Complex
+Adaptive Systems). MIT Press, 1994.
+          </li>
+	  <li>OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
+          <li>Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
+	    <li>Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
+          <li>Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
+	  <li>LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
+	  <li>Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
+          <li>Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
+        </ol>
+      </section>
 <section>
 	<h2 id="language">Appendix: The Primer of the Shadama Language</h2>
 	<p>
@@ -932,23 +955,6 @@ and "x", which are referred to from the function.
 </p>
 </section>
 
-      <section>
-        <h2>References</h2>
-	<ol type="1">
-	  <li>
-M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
-in Massively Parallel Microworlds (Complex
-Adaptive Systems). MIT Press, 1994.
-          </li>
-	  <li>OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
-          <li>Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
-	    <li>Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
-          <li>Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
-	  <li>LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
-	  <li>Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
-          <li>Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
-        </ol>
-      </section>
     </article>
   </body>
 </html>
