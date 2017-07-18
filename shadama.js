@@ -20,6 +20,7 @@ var readPixelCallback;
 
 var runTests = false;
 var showAllEnv = true;
+var degaussdemo = false;
 
 var breedVAO;
 var patchVAO;
@@ -1391,7 +1392,6 @@ function initEnv(callback) {
     initAudio("degauss.mp3", "degauss");
     initImage("mask.png", "mask");
     initImage("blur.png", "blur");
-    initImage("modelT.jpg", "modelT");
     initImage("blur-big.png", "blurBig");
     initImage("windows.png", "windows");
     initImage("button.png", "button");
@@ -1631,7 +1631,17 @@ function initFileList(optSelection) {
 onload = function() {
     runTests = /test.?=/.test(window.location.search);
     showAllEnv = !(/allEnv=/.test(window.location.search));
+    degaussdemo = /degaussdemo/.test(window.location.search);
+    var defaultProgName = "forward.shadama";
+    
 
+    if (degaussdemo) {
+	FIELD_WIDTH = 1024;
+	FIELD_HEIGHT = 768
+	defaultProgName = "degauss.shadama";
+        document.getElementById("bigTitle").innerHTML = "<button onclick='goFullScreen()'>Full Screen</button>";
+    }
+    
     var match;
     match = /fw=([0-9]+)/.exec(window.location.search);
     FW = (match && match.length == 2) ? parseInt(match[1]) : FIELD_WIDTH;
@@ -1727,7 +1737,7 @@ onload = function() {
     }
 
     initEnv(function() {
-        var source = loadShadama("forward.shadama");
+        var source = loadShadama(defaultProgName);
         if (editor) {
             editor.doc.setValue(source);
         }
