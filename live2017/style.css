@@ -43,3 +43,8 @@ p.highlight {
 .sidenote, .marginnote {
                       margin-bottom: 1.5rem;
 }
+
+
+.sidenote-number:after, .sidenote:before {
+    font-family: 'Vollkorn', serif;
+}
