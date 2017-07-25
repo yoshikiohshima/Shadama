@@ -407,7 +407,7 @@ Ohm: A library and language for building parsers, interpreters, compilers, etc.
 <section>
 	<h2 id="related-work">Related Work</h2>
 	<p>
-One of the authors implemented a particle system as an extension of Etoys in the past.
+Previously, one of the authors implemented a particle system called Kedama as an extension of Etoys.
 <label for="sn-kedama"
        class="margin-toggle sidenote-number">
 </label>
@@ -417,17 +417,17 @@ One of the authors implemented a particle system as an extension of Etoys in the
 <span class="sidenote">
 Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System.<br>
 <img src="kedama.png" width="50%" height="50%" style="margin-left: 20%" alt="Kedama screenshot" /><br>
-</span> &nbsp;    Shadama can be seen as another attempt to bring the idea a new life.  Shadama's target audience is older than Kedama's.
+
+</span> &nbsp;    Shadama can be considered an attempt to give the same idea new life.
+Kedama's target audience was middle school children, while Shadama's target audience is high school students.
 	</p>
 	<p>
-The biggest inspiration for Shadama (and Kedama) was Resnick's
-StarLogo.  The basic organization of Shadama objects is largely drawn
-upon StarLogo's.  In fact, Shadama is missing some features
-compared to StarLogo, as described in introdcution.
+The biggest inspiration for Shadama (and Kedama) was Resnick's StarLogo.
+The basic organization of Shadama objects is largely based upon StarLogo.
+However, StarLogo has certain features that Shadama does not, as mentioned in the introduction.
 	</p>
 	<p>
-Swift et al. created a live programming environment for physics based
-on Extempore.
+Based on Extempore, Swift et al. created a live programming environment for physics.
 <label for="sn-extempore-pic"
        class="margin-toggle sidenote-number">
 </label>
@@ -438,15 +438,14 @@ on Extempore.
 Live Programming in Scientific Simulation
 <img src="extempore-pic.png" width="50%" height="50%" style="margin-left: 20%" alt="Extempore PIC demo screenshot" /><br>
 </span> &nbsp;
-This environment provides a flexible and dynamic
-code swap and interactive data inspection to a sophisticated and optimized physics simulation
-framework (called Particle-In-Cell).  The split of this environment is much in line with
-our work, except that their work uses a third party engine as a black
-box.  We believe that such an engine should be also accessible to the
-leaners.
+This environment brings dynamic code swapping and interactive data inspection to
+a sophisticated and optimized particle-in-cell simulation framework.
+The spirit of this work is much in line with
+ours, except that their environment depends on a third-party engine as a black box.
+We believe that such an engine should instead be accessible to the user.
 	</p>
 	<p>
-Lately, there are various simulation environments, such as Liquid Fun.
+Although many simulation environments such as Liquid Fun
 <label for="sn-liquidfun"
        class="margin-toggle sidenote-number">
 </label>
@@ -457,20 +456,11 @@ Lately, there are various simulation environments, such as Liquid Fun.
 LiquidFun.<br>
 <img src="liquidfun.png" width="50%" height="50%" style="margin-left: 20%" alt="LiquidFun screenshot" />
 </span>
-&nbsp;  But the language for Liquid Fun is not designed for end-users.
+are available today, they do not provide an end-user language.
 </p>
 <p>
-Providing bindings to GLSL to high-level languages is a hot topic.
-<label for="sn-ikra"
-       class="margin-toggle sidenote-number">
-</label>
-<input type="checkbox"
-       id="sn-ikra"
-       class="margin-toggle"/>
-<span class="sidenote">
-Object Support in an Array-based GPGPU Extension for Ruby (ARRAY’16)
-</span>.  &nbsp; Nicky Case has a simulation
-construction environment based on emoji
+
+Nicky Case has a simulation construction environment based on emoji.
 <label for="sn-emoji"
        class="margin-toggle sidenote-number">
 </label>
@@ -480,15 +470,32 @@ construction environment based on emoji
 <span class="sidenote">
 Simulation in Emoji<br>
   <img src="emoji.png" width="50%" height="50%" style="margin-left: 20%" alt="Simulation in Emoji screenshot" />
-</span> &nbsp;  They use more sophisticated compilation techniques and use CUDA to fully utilize the power of GPU, yet again, the blance is toward the performance and power, rather than ease of use.  The authors think that Shadama can occupy a unique position at striking a good blance betewen the performance and ease of use.
+</span>
+</p>
+<p>
+Programming the GPU from a high-level language is a hot topic.
+<label for="sn-ikra"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-ikra"
+       class="margin-toggle"/>
+<span class="sidenote">
+Object Support in an Array-based GPGPU Extension for Ruby (ARRAY’16)
+</span>&nbsp;  Researchers in this area aim for better performance through
+increasingly sophisticated compilation techniques and the use of the CUDA API to more directly access the GPU.
+Ease of use is given little consideration.
+The authors think that Shadama can occupy a unique position
+by striking a better balance between performance and ease of use.
 	</p>
 	<p>
-There are blocks laungages for massively parallel particles, such as StarLogo Nova.
-Currently, Shadama uses a textual language, based on the observation
-that physics simulations often only takes concise problem description
-so coding part is not the major obstacle.  But we are not ruling out
-the other possiblities of syntax, or even visual representation of
-program.
+Some languages for programming massively parallel particle simulations
+are based on visual programming blocks.
+StarLogo Nova is a notable example.
+Shadama is currently text-based because we feel that physics simulations
+can be naturally expressed with concise text.
+However, we have not ruled out other possiblities for syntax,
++including a visual representation of the program.
 	</p>
 </section>
 <section>
