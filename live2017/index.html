@@ -401,6 +401,25 @@ fragment shader and JavaScript code from the Shadama program.
 Ohm: A library and language for building parsers, interpreters, compilers, etc.
 </span>
 </p>
+<p>
+As described in the movie and appendix below, turtles behavior is
+described in methods.  The compiler analyzes the method code,
+construct the list of input and output properties.  The used
+properties are passed in via the texture units.
+</p>
+<p>
+The computation in a method is translated to the vertex shader code.
+A turtle is logically identified by the attribute
+(called <code>a_index</code>) of a vertex, which is a vec2 value that
+specifies an integral grid point used to index into a texture that
+represents a property of a breed.  The translated vertex shader code
+fetches the texel based on the <code>a_index</code> from textures by
+using <code>texelFetch()</code>, executes the computation, and passes
+the resulting values to be written back textures to the generated
+fragment shader code.  The fragment shader code uses the multiple
+render target (MRT) feature of GLSL 3.0 and simply write the values
+into designated textures.
+</p>
 
 <section>
 	<h2 id="related-work">Related Work</h2>
