@@ -205,10 +205,11 @@ The basic execution model follows the tradition of StarLogo and its "turtles and
        id="sn-starlogo"
        class="margin-toggle"/>
 <span class="sidenote">
- M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
+<a href="#starlogo">M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
 in Massively Parallel Microworlds (Complex
 Adaptive Systems). MIT Press, 1994.<br>
 <img src="starlogo-book.jpg" width="50%" height="50%" style="margin-left: 20.2%"/>
+</a>
 </span>
 &nbsp; This abstraction has been proven to be effective and easy to use.
 The primary goal of the language is to facilitate the writing of scientific simulations by students
@@ -229,7 +230,7 @@ Shadama programs are run on the GPU by means of code translation to the OpenGL S
        id="sn-glsl"
        class="margin-toggle"/>
 <span class="sidenote">
-OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)
+<a href="#glsl">OpenGL Shading Language</a>
 </span> &nbsp;
 Program data resides entirely on the GPU, which enables high performance.
 	</p>
@@ -251,10 +252,10 @@ the late '90s, but now we expect smart phones to reach this same milestone soon.
 Computing performance will only continue to increase in the future.
 	</p>
 	<p>
-But what are people using this power for?  Not to be critical
-of our friends and family, but people are generally more
-interested in watching cat videos and playing games than trying to
-invent self-piloting personal airplanes or discover the graviton.
+But what are people using this power for?  Not to be critical, but
+people are generally more interested in watching cat videos and
+playing games than trying to invent self-piloting personal airplanes
+or discover the graviton.
 
 All joking aside, one of the big problems we face today is our
 struggle to advance science literacy, even within a
@@ -281,10 +282,45 @@ deeply.  This kind of environment will help students construct
 knowledge by doing, in line with the constructivism philosophy of
 education.
 	</p>
+</section>
+
+<section>
+	<h2 id="a-science-experiment">A Science Experiment</h2>
+  <br>
+<iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
 	<p>
-<b>This is the motivation behind our programming environment
-for creating simulations.</b>
+Before going into the detail of the programming system, we would like
+to show one of the examples students would try as a physics
+experiment, that later may be modeled and simulated on computer.
+</p>
+<p>
+This movie shows a vacuum cannon.  The cannon is a six foot PVC
+pipe connected to a vacuum pump.  We put a ping pong ball inside the pipe,
+cover the ends with sturdy but breakable material (such as plastic plates),
+and pump the air out.
 	</p>
+	<p>
+The pump reduces the pressure inside the tube to about 20% of full atmospheric pressure.
+	</p>
+	<p>
+When the end near the ping pong ball is broken open by a box cutter, the
+air molecules that rush into the pipe move into the
+low pressure space and the ping pong ball is pushed out the other end.
+Our crude setup can accelerate the ball to a speed of over 200 meters per second
+(about 60% of the speed of sound).  Others have built similar setups
+that can achieve supersonic speed.
+	</p>
+        <p>
+An interesting point to understand is that it is just movement of
+molecules that is causing the ball to shoot out. It is not that the
+vacuum is sucking molecules into the pipe.
+</p>
+<p>
+The invisible molecules that cause the ball to shoot out can
+be made &ldquo;visible&rdquo; in a sense not only through this physical experiment,
+but also through a computer simulation that reproduces the same phenomenon.
+Creating such simulations is the purpose of our programming environment.
+	  </p>
 </section>
 
 <section>
@@ -329,40 +365,6 @@ to apply.
 </section>
 
 <section>
-	<h2 id="a-science-experiment">A Science Experiment</h2>
-  <br>
-<iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
-	<p>
-We begin with an actual science experiment.
-This movie shows a vacuum cannon.  The cannon is a six foot PVC
-pipe connected to a vacuum pump.  We put a ping pong ball inside the pipe,
-cover the ends with sturdy but breakable material (such as plastic plates),
-and pump the air out.
-	</p>
-	<p>
-The pump reduces the pressure inside the tube to about 20% of full atmospheric pressure.
-	</p>
-	<p>
-When the end near the ping pong ball is broken open by a box cutter, the
-air molecules that rush into the pipe move into the
-low pressure space and the ping pong ball is pushed out the other end.
-Our crude setup can accelerate the ball to a speed of over 200 meters per second
-(about 60% of the speed of sound).  Others have built similar setups
-that can achieve supersonic speed.
-	</p>
-        <p>
-An interesting point to understand is that it is just movement of
-molecules that is causing the ball to shoot out. It is not that the
-vacuum is sucking molecules into the pipe.
-</p>
-<p>
-The invisible molecules that cause the ball to shoot out can
-be made &ldquo;visible&rdquo; in a sense not only through this physical experiment,
-but also through a computer simulation that reproduces the same phenomenon.
-Creating such simulations is the purpose of our programming environment.
-	  </p>
-</section>
-<section>
 	<h2 id="shadama-in-Action">Shadama in Action</h2>
 	<p>
 The following movie shows some examples using our prototype programming environment called Shadama.
@@ -398,7 +400,7 @@ fragment shader and JavaScript code from the Shadama program.
        id="sn-ohm"
        class="margin-toggle"/>
 <span class="sidenote">
-Ohm: A library and language for building parsers, interpreters, compilers, etc.
+<a href="#ohm">Ohm: A library and language for building parsers, interpreters, compilers, etc.</a>
 </span>
 </p>
 <p>
@@ -432,8 +434,9 @@ Previously, one of the authors implemented a particle system called Kedama as an
        id="sn-kedama"
        class="margin-toggle"/>
 <span class="sidenote">
+<a href="#kedama">
 Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System.<br>
-<img src="kedama.png" width="50%" height="50%" style="margin-left: 20%" alt="Kedama screenshot" /><br>
+<img src="kedama.png" width="50%" height="50%" style="margin-left: 20%" alt="Kedama screenshot" /></a><br>
 
 </span> &nbsp;    Shadama can be considered an attempt to give the same idea new life.
 Kedama's target audience was middle school children, while Shadama's target audience is high school students.
@@ -452,8 +455,8 @@ Based on Extempore, Swift et al. created a live programming environment for phys
        id="sn-extempore-pic"
        class="margin-toggle"/>
 <span class="sidenote">
-Live Programming in Scientific Simulation
-<img src="extempore-pic.png" width="50%" height="50%" style="margin-left: 20%" alt="Extempore PIC demo screenshot" /><br>
+<a href="#extempore">Live Programming in Scientific Simulation<br>
+<img src="extempore-pic.png" width="50%" height="50%" style="margin-left: 20%" alt="Extempore PIC demo screenshot" /></a><br>
 </span> &nbsp;
 This environment brings dynamic code swapping and interactive data inspection to
 a sophisticated and optimized particle-in-cell simulation framework.
@@ -470,8 +473,8 @@ Although many simulation environments such as Liquid Fun
        id="sn-liquidfun"
        class="margin-toggle"/>
 <span class="sidenote">
-LiquidFun.<br>
-<img src="liquidfun.png" width="50%" height="50%" style="margin-left: 20%" alt="LiquidFun screenshot" />
+<a href="#liquidfun">LiquidFun.<br>
+<img src="liquidfun.png" width="50%" height="50%" style="margin-left: 20%" alt="LiquidFun screenshot" /></a>
 </span>
 are available today, they do not provide an end-user language.
 </p>
@@ -485,9 +488,9 @@ Nicky Case has a simulation construction environment based on emoji.
        id="sn-emoji"
        class="margin-toggle"/>
 <span class="sidenote">
-Simulation in Emoji<br>
-  <img src="emoji.png" width="50%" height="50%" style="margin-left: 20%" alt="Simulation in Emoji screenshot" />
-</span>
+<a href="#emoji">Simulation in Emoji<br>
+  <img src="emoji.png" width="50%" height="50%" style="margin-left: 20%" alt="Simulation in Emoji screenshot" /></a>
+</span>  &nbsp; The design and the style of the system has nice and friendly for end-users to try different models and simulations.  By design, however, the number of cells and objects are limited to a few hundreds, but not millions.
 </p>
 <p>
 Programming the GPU from a high-level language is a hot topic.
@@ -498,7 +501,7 @@ Programming the GPU from a high-level language is a hot topic.
        id="sn-ikra"
        class="margin-toggle"/>
 <span class="sidenote">
-Object Support in an Array-based GPGPU Extension for Ruby (ARRAY’16)
+<a href="#ikra">Object Support in an Array-based GPGPU Extension for Ruby (ARRAY’16)</a>
 </span>&nbsp;  Researchers in this area aim for better performance through
 increasingly sophisticated compilation techniques and the use of the CUDA API to more directly access the GPU.
 Ease of use is given little consideration.
@@ -516,7 +519,7 @@ StarLogo Nova is a notable example.
        id="sn-slnova"
        class="margin-toggle"/>
 <span class="sidenote">
-StarLogo Nova
+<a href="#slnova">StarLogo Nova</a>
 </span>
 Shadama is currently text-based because we feel that physics simulations
 can be naturally expressed with concise text.
@@ -553,9 +556,7 @@ Ideally, the environment would gradually introduce the user to new, more difficu
 We would like to conclude this report by stressing the importance of
 education. Education raises our awareness and enables us to see our world from new perspectives.
 Thus, we are empowered with new approaches to solve problems.
-This is particularly true in the case of science education,
-which motivates this work.
-Science is one of the biggest asset human has.  We hope that ideas like Shadama will help future education.
+This is particularly true in the case of science education, which motivates this work.
 <!-- HARC's mission to ensure human wisdom exceeds human power,
 by inventing technology that allows all humans to see further and understand more deeply.-->
 	</p>
@@ -564,19 +565,19 @@ by inventing technology that allows all humans to see further and understand mor
       <section>
         <h2>References</h2>
 	<ol type="1">
-	  <li>
+	  <li id="starlogo">
 M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
 in Massively Parallel Microworlds (Complex
 Adaptive Systems). MIT Press, 1994.
           </li>
-	  <li>OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
-          <li>Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
-	    <li>Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
-          <li>Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
-	  <li>LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
-          <li>Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
-	  <li>Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
-	  <li>StarLogo Nova (<a href="http://slnova.org/">project page</a>)</li>
+	  <li id="glsl">OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
+          <li id="ohm">Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
+	    <li id="kedama">Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
+          <li id="extempore">Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
+	  <li id="liquidfun">LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
+          <li id="emoji">Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
+	  <li id="ikra">Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
+	  <li id="slnova">StarLogo Nova (<a href="http://slnova.org/">project page</a>)</li>
         </ol>
       </section>
 <section>
