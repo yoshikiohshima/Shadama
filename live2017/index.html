@@ -195,11 +195,9 @@ simulation right away, without needing to restart.`, 537]];
 
       <section id="abstract">
         <p>
-We present a prototype of a programming system called Shadama, which
-is designed to help writing programs that creates large number of
-objects, control them and visualize them.  Shadama's basic execution
-model follows the tradition of StarLogo and its "turtles and patches"
-abstraction.
+We present a prototype of a programming system called Shadama.
+Shadama is designed for writing programs that create, control and visualize large numbers of objects.
+The basic execution model follows the tradition of StarLogo and its "turtles and patches" abstraction.
 <label for="sn-starlogo"
        class="margin-toggle sidenote-number">
 </label>
@@ -212,17 +210,19 @@ in Massively Parallel Microworlds (Complex
 Adaptive Systems). MIT Press, 1994.<br>
 <img src="starlogo-book.jpg" width="50%" height="50%" style="margin-left: 20.2%"/>
 </span>
-&nbsp; The abstraction is proven to be effective and easy to
-use.  The primary audience intended of the language is high-school
-level students to make physics simulations.
+&nbsp; This abstraction has been proven to be effective and easy to use.
+The primary goal of the language is to facilitate the writing of scientific simulations by students
+at the high school level.
+	</p>
+
+        <p>
+<!-- supports? or provides? -->
+The Shadama environment supports <i>liveness</i>.
+Once changes to the program are saved, the effect on the running simulation is immediate.
+There is no need to restart the simulation.
 	</p>
         <p>
-The environment supports <i>liveness</i>.  When the user saves the
-program, the code change immediately takes effects on the running
-simulation without needing to restart the simulation.
-	</p>
-        <p>
-The user code is translated to the Open GL Shading Language.
+Shadama programs are run on the GPU by means of code translation to the OpenGL Shading Language.
 <label for="sn-glsl"
        class="margin-toggle sidenote-number">
 </label>
@@ -232,9 +232,9 @@ The user code is translated to the Open GL Shading Language.
 <span class="sidenote">
 OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)
 </span> &nbsp;
-The runtime data of the program is stored and kept in the memory of
-graphics card for fast execution.
+Program data resides entirely on the GPU, which enables high performance.
 	</p>
+
         <p>
 A prototype of Shadama can be found <a href="http://tinlizzie.org/~ohshima/shadama2">here</a>.
 Be aware that Shadama requires WebGL 2 and is affected by the floating point precision provided
@@ -255,7 +255,7 @@ Computing performance will only continue to increase in the future.
 But what are people using this power for?  Not to be critical
 of our friends and family, but people are generally more
 interested in watching cat videos and playing games than trying to
-invent self-flying personal airplanes or discover the graviton.
+invent self-piloting personal airplanes or discover the graviton.
 
 All joking aside, one of the big problems we face today is our
 struggle to advance science literacy, even within a
@@ -263,14 +263,17 @@ technologically-advanced society.  We need the next
 generation to embrace science more, not less.
 	</p>
 	<p>
-We think now is a good time to redouble our efforts to provide an
-environment where students, artists, and even professional
+We think now is a good time to redouble our efforts to provide
+environments where students, artists, and even professional
 programmers can tap into the computing power that is available.
 	</p>
 	<p>
+  <!-- Now we're saying that Shadama is for scientific ideas,
+       but in the abstract we said it was for physics simulations.
+       So I'm changing this to physics now. -->
 To this end, we have been working on a prototype of a
 programming language intended for high school students to explore
-scientific ideas.
+physics concepts.
 	</p>
 	<p>
   Science is about making the invisible visible.  One notable example
@@ -283,57 +286,56 @@ knowledge by doing, in line with the constructivism philosophy of
 education.
 	</p>
 	<p>
-<b>This is the motivation behind our prototype of a programming environment
-to create simulations.</b>
+<b>This is the motivation behind our programming environment
+for creating simulations.</b>
 	</p>
-	<p>
-We set ourselves out to make a prototype of the language, that aims
-to satisfy following goals:
+</section>
+
+<section>
+	<h2 id="language-goals">Language Goals</h2>
+
+<p>
+We had the following goals when designing Shadama:
 <ul>
-<li> Object-Oriented</li>
-<li> Large number of objects</li>
+<li> Easy to learn</li>
+<li> Support for large numbers of particles</li>
 <li> Liveness</li>
 </ul>
-       <p>
-As the basis for our prototype, we follow the tradition of StarLogo,
-where objects are organized into turtles and patches.  For those students
-who have used Scratch, specifying the behavior by code for one object is
-already familiar.  Also, using the "color-touching"
-block to sense the value around a sprite probably is familiar, too.  
-Breeds and patches are straightforward extensions from those concepts,
-and we expect that most students can pick them up easily.
-       </p>
-       <p>
-For the second point, there is a trade-off between having easy
-language semantics and providing high performance.  On one hand, we
-would like an end-user language to be free from constraints imposed by
-the particular nature of hardware.  On the other hand, however, there
-are some fundamental limitations in the execution model of today's
-graphics hardware.  In particular, sharing turtles' own states
-directly with others, or dynamically constructing a list of turtles in
-its neighborhood, are not implementable.  But we found that the
-indirect communication scheme facilitated by patches mitigates the
-limitation.
-       </p>
-       <p>
-For the third point, the environment should show the effects of user
-actions, in this case code changes, as soon as possible.  However,
-when the user already has a running real-time simulation, we would not
-want to restart the simulation for each and every key stroke.  We
-think that the user rather want to batch code changes to a
-<i>chunk of meaningful code change</i> before the system adapts to it.
 </p>
+
 <p>
-An example of a meaningful chunk is to change the arity of a function:
-it is not sensible to run the program until both the function
-definition and its caller have been changed.  After changing those
-different places in the code, the user can make a minimum gesture
-(such as hitting Cmd-S for save), and the change can take effects
-immediately.
-       </p>
+To make learning Shadama easy, we based our language on StarLogo,
+whose turtles and patches approach has proved intuitive to young learners.
+In addition, we expect students familiar with Scratch to
+learn Shadama easily because of similarites in how object behavior
+is programmed and how objects can sense values near them spatially.
+</p>
+
+<p>
+To support large numbers of particles, we designed the language
+to execute on graphics hardware. Graphics processors today
+are capable of computing on massive amounts of data.
+Unfortunately, this requires a trade-off between ease of use and
+high performance, because there are fundamental limitations in
+the execution model of today's graphics hardware.
+Although Shadama has some features to mitigate these limitations,
+certain behaviors cannot be implemented.
+</p>
+
+<p>
+<!-- or "To support live programming..." -->
+To provide liveness, we designed the Shadama environment to show
+the effects of code changes immediately. Of course,
+a running simulation should not be updated for each and every key stroke.
+Instead, the user submits a batch of code changes for the environment
+to apply.
+</p>
+
 </section>
+
 <section>
 	<h2 id="a-science-experiment">A Science Experiment</h2>
+  <br>
 <iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
 	<p>
 We begin with an actual science experiment.
@@ -355,7 +357,7 @@ that can achieve supersonic speed.
 	</p>
         <p>
 An interesting point to understand is that it is just movement of
-molecules that is is causing the ball to shoot out; it is not that the
+molecules that is causing the ball to shoot out. It is not that the
 vacuum is sucking molecules into the pipe.
 </p>
 <p>
@@ -368,7 +370,7 @@ Creating such simulations is the purpose of our programming environment.
 <section>
 	<h2 id="shadama-in-Action">Shadama in Action</h2>
 	<p>
-The following movie shows some examples done in our prototype programming environment called Shadama.
+The following movie shows some examples using our prototype programming environment called Shadama.
 
 The script below provides an explaination of the movie.  You can pause the movie at any time to scroll through and read the explanation.  The captions work better when the movie is not in full screen.
 	</p>
@@ -383,16 +385,18 @@ The script below provides an explaination of the movie.  You can pause the movie
 	<h2 id="implementation">Implementation</h2>
 </section>
 <p>
-Shadama is a web-based technology.  It uses WebGL 2.0 and the OpenGL
-Shading Language version 3.0.  A property for all turtles in a breed
-is stored in one texture.  The type texture type is "R32F" to treat
-them as a vector of scalar values.  The multiple render target feature
-is used to write back the changes to multiple properties at once.
+<!-- We could say a lot more about implementation here, such as how the OpenGL pipeline is used,
+     what type of shaders are generated, etc. -->
+Shadama is built on web technologies, including WebGL 2.0 and OpenGL
+Shading Language version 3.0. All the values for a given property and breed
+are stored in a single OpenGL texture. All textures have the OpenGL "R32F"
+type to best match their use as a vector of scalar values.
+Methods that write to multiple properties are implemented using the
+multiple render targets feature of OpenGL.
 </p>
 <p>
-From the user code, the vertex shader code and fragment shader code,
-along with some support code in JavaScript are generated.  The
-translator is written in Ohm.
+Our code translator is written in Ohm and generates vertex shader,
+fragment shader and JavaScript code from the Shadama program.
 <label for="sn-ohm"
        class="margin-toggle sidenote-number">
 </label>
@@ -507,33 +511,42 @@ However, we have not ruled out other possiblities for syntax,
 including a visual representation of the program.
 	</p>
 </section>
+
 <section>
 	<h2 id="conclusions-and-future-work">Conclusions and Future Work</h2>
 	<p>
-This is an early prototype of the concept of a simulation language in
-which users can make simulations, interactive art and various
-visualization.  The liveliness of the environment encourages the
-exploratory style of programming, that is handy to try different ideas
-quickly.  An anecdotal observation is that a bug in a program often
-produces interesting visual effects, and that is motivating.
+  <!-- It's weird to bring up art here. It was only brought up in passing in the introduction.
+       We're never said directly that this is for art, so bring this up in the conclusion seems strange. -->
+We have presented an early prototype of a language in
+which users can make enlightening simulations, interactive art and
+intricate visualizations.  The liveliness of the environment encourages an
+exploratory style of programming that enables trying out different ideas quickly.
+We have also discovered that such an interactive and graphical environment
+can be motivating even as bugs appear, because of the spectacular
+unintentional visual effects that are produced.
 	</p>
 	<p>
-We are thinking about various improvements to the system.  One major
-addition is to fully support simulations in 3D.
-While the numeric computation itself only uses scalar values and is agnostic to dimensionality, the primitives and concepts the system provides only work well for 2D applications. We will need new ideas to manage spatial data.
+We are considering various improvements to the system.  One major
+addition would be to fully support simulations in 3D, not just 2D.
+While computation in Shadama only uses scalar values and is agnostic to dimensionality,
+the primitives and concepts the system provides only work well currently for 2D applications.
+We will need new ideas to manage 3D spatial data.
 	</p>
 	<p>
-We plan to support more mathematics, such as vectors and matrices is in
-our plans. While a first-time user may not use matrices and vectors
-initially, we would eventually like them to learn these powerful concepts. 
-Ideally the language will gradually introduce the user to these powerful mathematical tools.
+We also plan to support more mathematical concepts, such as vectors and matrices.
+While first-time users may not have use for such abstractions initially,
+we would like them to eventually learn and use these powerful concepts. 
+Ideally, the environment would gradually introduce the user to new, more difficult approaches.
 	</p>
 	<p>
 We would like to conclude this report by stressing the importance of
-education.  Education raises the awareness, and allow people to see
-things with different light.  By seeing things differently, they will
-find more problems but those problems are solvable if they know more
-ways to attack.  And Science is one of the biggest asset humanhas has.  We hope that ideas like Shadama will help future education.
+education. Education raises our awareness and enables us to see our world from new perspectives.
+Thus, we are empowered with new approaches to solve problems.
+This is particularly true in the case of science education,
+which motivates this work, and is an important part of
+<!-- Is it still appropriate to end talking about HARC and its mission statement? -->
+HARC's mission to ensure human wisdom exceeds human power,
+by inventing technology that allows all humans to see further and understand more deeply.
 	</p>
 </section>
 
