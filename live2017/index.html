@@ -691,8 +691,8 @@ to be the integral grid points spanning (0, 0) to (99, 99), inclusive.
 </p>
 </li>
 
-<li> <code>aBreed.fillImage(xName, yName, rName, gName, bName, aName, anImageData);</code>
-	<p>
+<li> <pre class="primitive">aBreed.fillImage(xName, yName, rName, gName, bName, aName, anImageData);</pre>
+	<span>
   The fillImage primitive converts a 2D image into a breed of turtles.
   The "anImageData" argument is a Javascript ImageData object containing the data used
   to populate the breed. The turtle count is set to be "anImageData.width" × "anImageData.height".
@@ -708,13 +708,12 @@ static setup() {
   MyBreed.fillImage("x", "y", "r", "g", "b", "a", anImage);
 }
 </pre>
-</p>
-<p>
+</span>
+<span>
 <!-- I don't think we need to reiterate the description above for this example. Lots of detail was
   given already. -->
 (Global variables, such as "anImage", are described below.)
-</p>
-
+</span>
 </ul>
 
 <h3 id="patches">Patches</h3>
@@ -797,11 +796,43 @@ The "var" statement declares a local variable within a method.
 The scope of local variables is the whole method,
 regardless of where in the method they are declared.
 In the same method, there can be no more than one declaration for a given variable name.
-This is in contrast to variable declarations in JavaScript.
+This is in contrast to variable declarations in JavaScript.  
+For example:
+<pre class="code">
+def average() {
+  var avg = (this.x + this.y) / 2.0;
+  this.x = avg;
+  this.y = avg;
+}
+</pre>
+<p>
+defines a local variable called avg, and use the value for x and y properties.  But the following code would raise an error as the variable diff is declared twice:
+<pre class="code">
+def gcd() {
+  if (this.a > this.b) {
+    var diff = this.a - this.b;
+    this.a = diff;
+  } else {
+    var diff = this.b - this.a;
+    this.b = diff;
+  }
+</pre>
 </p>
-
+<p>
+It would have to be written:
+<pre class="code">
+def gcd() {
+  var diff;
+  if (this.a > this.b) {
+    diff = this.a - this.b;
+    this.a = diff;
+  } else {
+    diff = this.b - this.a;
+    this.b = diff;
+  }
+</pre>
+</p>
 <!-- How about an example of a local variable declaration and use? -->
-
 <p>
 Global variables are declared within static functions, also using the "var" statement.
 <!-- Is the following correct? -->
@@ -825,7 +856,6 @@ The two static functions above refer to the same "begin" variable.
 
 <p>
 Shadama provides the following built-in global variables:
-</p>
 <ul>
   <!-- This list needs work. I think you need to explain a bit more than just that an object has properties x and y.
        Also, I don't even understand what Display is from the description. -->
@@ -834,9 +864,20 @@ Shadama provides the following built-in global variables:
 <li> <code>mousedown</code>: an object which has property x and y</li>
 <li> <code>time</code>:       a floating point value in seconds since the last time a specially named metho setup is called.</li>
 <li> <code> width, height</code>: the width and height of the visible 2D space.</li>
-<li> <code>Display</code>:           a stand in to be a left of the dot notation</li>
 </ul>
-
+<p>
+In addition to them, there is a variable called <code>Display</code>.
+It is a system-defined object, and method invocaton on it causes a
+primitive to run.  For example:
+<pre class="code">
+static loop() {
+  Display.clear();
+  MyPatch.draw();
+}
+</pre>
+<p>
+clears the display area and then draw MyPatch.
+</p>
 <p>
 Be aware that mouse event objects are JavaScript objects. Thus, they can't be passed to methods because
 methods can only take scalar arguments.

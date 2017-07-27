@@ -23,6 +23,11 @@ pre.code {
   font-family: Consolas, Monaco, Courier, monospace;
 }
 
+pre.primitive {
+  font-family: Consolas, Monaco, Courier, monospace;
+  font-size: 1.2rem;
+}
+
 div.caption {
       margin-left: 0px;
       overflow-y: scroll;
@@ -39,6 +44,9 @@ p.highlight {
   color: blue;
 }
 
+section>ul {
+  width: 50%;
+}
 
 .sidenote, .marginnote {
                       margin-bottom: 1.5rem;
@@ -47,4 +55,8 @@ p.highlight {
 
 .sidenote-number:after, .sidenote:before {
     font-family: 'Vollkorn', serif;
+}
+
+@media (max-width: 760px) {
+   section>ul { width: 95%; }
 }
