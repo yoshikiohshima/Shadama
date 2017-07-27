@@ -48,6 +48,11 @@ section>ul {
   width: 50%;
 }
 
+section>ol {
+  width: 50%;
+}
+
+
 .sidenote, .marginnote {
                       margin-bottom: 1.5rem;
 }
@@ -59,4 +64,5 @@ section>ul {
 
 @media (max-width: 760px) {
    section>ul { width: 95%; }
+   section>ol { width: 95%; }
 }

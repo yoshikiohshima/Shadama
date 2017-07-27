@@ -216,7 +216,6 @@ at the high school level.
 	</p>
 
         <p>
-<!-- supports? or provides? -->
 The Shadama environment supports <i>liveness</i>.
 Once changes to the program are saved, the effect on the running simulation is immediate.
 There is no need to restart the simulation.
@@ -268,12 +267,9 @@ environments where students, artists, and even professional
 programmers can tap into the computing power that is available.
 	</p>
 	<p>
-  <!-- Now we're saying that Shadama is for scientific ideas,
-       but in the abstract we said it was for physics simulations.
-       So I'm changing this to physics now. -->
 To this end, we have been working on a prototype of a
 programming language intended for high school students to explore
-physics concepts.
+scientific concepts.
 	</p>
 	<p>
   Science is about making the invisible visible.  One notable example
@@ -323,7 +319,6 @@ certain behaviors cannot be implemented.
 </p>
 
 <p>
-<!-- or "To support live programming..." -->
 To provide liveness, we designed the Shadama environment to show
 the effects of code changes immediately. Of course,
 a running simulation should not be updated for each and every key stroke.
@@ -374,7 +369,6 @@ The following movie shows some examples using our prototype programming environm
 
 The script below provides an explaination of the movie.  You can pause the movie at any time to scroll through and read the explanation.  The captions work better when the movie is not in full screen.
 	</p>
-<!--<iframe width="1024" height="576" src="https://www.youtube.com/embed/g4rloq5FRLM" frameborder="0" allowfullscreen></iframe>-->
   <div id="video">
     <div id="player"></div>
   </div>
@@ -515,15 +509,13 @@ including a visual representation of the program.
 <section>
 	<h2 id="conclusions-and-future-work">Conclusions and Future Work</h2>
 	<p>
-  <!-- It's weird to bring up art here. It was only brought up in passing in the introduction.
-       We're never said directly that this is for art, so bring this up in the conclusion seems strange. -->
 We have presented an early prototype of a language in
-which users can make enlightening simulations, interactive art and
-intricate visualizations.  The liveliness of the environment encourages an
+which users can make enlightening simulations and intricate visualizations.
+The liveliness of the environment encourages an
 exploratory style of programming that enables trying out different ideas quickly.
 We have also discovered that such an interactive and graphical environment
 can be motivating even as bugs appear, because of the spectacular
-unintentional visual effects that are produced.
+unintentional visual effects that are produced.  In other words, the results often have eye-pleasing, fun quality.
 	</p>
 	<p>
 We are considering various improvements to the system.  One major
@@ -543,10 +535,10 @@ We would like to conclude this report by stressing the importance of
 education. Education raises our awareness and enables us to see our world from new perspectives.
 Thus, we are empowered with new approaches to solve problems.
 This is particularly true in the case of science education,
-which motivates this work, and is an important part of
-<!-- Is it still appropriate to end talking about HARC and its mission statement? -->
-HARC's mission to ensure human wisdom exceeds human power,
-by inventing technology that allows all humans to see further and understand more deeply.
+which motivates this work.
+Science is one of the biggest asset human has.  We hope that ideas like Shadama will help future education.
+<!-- HARC's mission to ensure human wisdom exceeds human power,
+by inventing technology that allows all humans to see further and understand more deeply.-->
 	</p>
 </section>
 
@@ -574,7 +566,7 @@ Adaptive Systems). MIT Press, 1994.
 <p>
 <!-- The rest of this paragraph contained content that is properly introduced later. As it was,
      it was confusing because it assumed the reader already understood terms that aren't introduced yet -->
-The Shadama language uses a turtles and patches abstraction, drawn from the tradition of StarLogo.
+The Shadama language uses a breed of turtles and patches abstraction, drawn from the tradition of StarLogo.
 </p>
 
         <h3 id="breeds">Breeds</h3>
@@ -583,19 +575,18 @@ Turtles are organized into
 "breeds".  Each breed has its own set of properties.
 A breed is declared in a program with the "breed" statement.  For example:
 </p>
-<!-- It is a bit confusing to call the breed "MyTurtle", because my turtle is singular. -->
 <pre class="code">
 breed MyBreed (x, y)
 </pre>
 <p>
-creates a breed of turtle called MyBreed, and declares that each
-turtle in the breed has individual properties "x" and "y".
+creates a breed of turtle called <code>MyBreed</code>, and declares that each
+turtle in the breed has individual properties <code>x</code> and <code>y</code>.
 </p>
 <p>
 Currently, properties in Shadama can only be scalar floating-point numbers.
 </p>
 <p>
-Methods provide turtle behavior. The "def" statement is used to define
+Methods provide turtle behavior. The <code>def</code> statement is used to define
 methods, as follows:
 </p>
 <pre class="code">
@@ -606,7 +597,7 @@ def move() {
 </pre>
 <p>
 As expected, when this method is invoked on a turtle, the
-turtle's "x" and "y" properties are incremented by one.
+turtle's x and y properties are incremented by one.
 </p>
 <p>
 Methods are invoked from static functions. Methods are invoked
@@ -620,7 +611,7 @@ static step() {
 }
 </pre>
 <p>
-The "step" function above calls the "move" method on all turtles of the MyBreed breed.
+The <code>step</code> function above calls the <code>move</code> method on all turtles of the <code>MyBreed</code> breed.
 </p>
 
 <p>
@@ -628,90 +619,86 @@ Shadama provides many built-in features made available through primitive methods
 </p>
 <ul>
 
-<li> <code>aBreed.setCount(count);</code>
-  <p>
-  The setCount primitive sets the number of turtles in the breed.
-
-  For example:
+<li> <pre class="primitive">aBreed.setCount(count);</pre>
+  <span>
+  The <code>setCount</code> primitive sets the number of turtles in the breed.
+For example:
+</span>
 <pre class="code">
 static setup() {
   MyBreed.setCount(10000);
 }
 </pre>
-<p>
-Invoking this static function will set the number of MyBreed turtles to 10,000.
-</p>
-<p>
+<span>
+Invoking this static function will set the number of <code>MyBreed</code> turtles to 10,000.
 In the current implementation, the number of turtles in a breed is limited to
 1024 × 1024, or about 1 million.
-</p>
+</span>
 </li>
 
-<li> <code>aBreed.fillRandom(name, min, max);</code>
-	<p>
-  The fillRandom primitive sets the property specified by "name"
-  to be a random number between "min"
-  (inclusive) and "max" (exclusive) for each turtle in the breed.
+<li> <pre class="primitive">aBreed.fillRandom(name, min, max);</pre>
+<span>
+  The <code>fillRandom</code> primitive sets the property specified by <code>name</code>
+  to be a random number between <code>min</code>
+  (inclusive) and <code>max</code> (exclusive) for each turtle in the breed.
   For example:
-  <pre class="code">
+</span>
+<pre class="code">
 static setup() {
   MyBreed.setCount(10000);
   MyBreed.fillRandom("x", 0, 100);
 }
-  </pre>
-  </p>
-  <p>
-  The above will set each of the 10,000 turtles "x" property to be a
+</pre>
+<span>
+  The above will set each of the 10,000 turtles <code>x</code> property to be a
   random floating-point number between 0 and 100.
- </p>
+</span>
 </li>
 
-<li> <code>aBreed.fillRandomDir(dxName, dyName);</code>
-	<p>
-
-<!-- People can google for "2d unit vector" if they need to, the explanation here just cluttered things up. -->
-  The fillRandomDir primitive generates random 2D unit vectors.
-  This is done for each turtle, and the "x" and "y" components of the result are stored
-  in the properties "dxName" and "dyName" of the turtles.
+<li> <pre class="primitive">aBreed.fillRandomDir(dxName, dyName);</pre>
+<span>
+  The <code>fillRandomDir</code> primitive generates random 2D unit vectors.
+  This is done for each turtle, and the x and y components of the result are stored
+  in the properties <code>dxName</code> and <code>dyName</code> of the turtles.
   For example:
-  <pre class="code">
+</span>
+<pre class="code">
 static setup() {
   MyBreed.setCount(10000);
   MyBreed.fillRandomDir("dx", "dy");
 }
 </pre>
-</p>
-<p>
-The above sets the "dx" and "dy" properties of the turtles with the x and y components of the randomly generated unit vectors.
-</p>
+<span>
+The above sets the <code>dx</code> and <code>dy</code> properties of the turtles with the x and y components of the randomly generated unit vectors.
+</span>
 </li>
 
-<li> <code>aBreed.fillSpace(xName, yName, xDim, yDim);</code>
-	<p>
+<li> <pre class="primitive">aBreed.fillSpace(xName, yName, xDim, yDim);</pre>
+	<span>
 The fillSpace primitive first sets the number of turtles in the breed
-to be "xDim" × "yDim".  Then, it places the turtles on integral 2D grid points
-within the (0..xDim, 0..yDim) area, storing into the "xName" and "yName" turtle properties.
+to be <code>xDim</code> × <code>yDim</code>.  Then, it places the turtles on integral 2D grid points
+within the (0..<code>xDim</code>, 0..<code>yDim</code>) area, storing into the <code>xName</code> and <code>yName</code> turtle properties.
 For example:
+</span>
 <pre class="code">
 static setup() {
   MyBreed.fillSpace("x", "y", 100, 100);
 }
 </pre>
-</p>
-<p>
-The above creates 10,000 turtles of the MyBreed breed, setting the turtle's "x" and "y" properties
+<span>
+The above creates 10,000 turtles of the MyBreed breed, setting the turtle's <code>x</code> and <code>y</code> properties
 to be the integral grid points spanning (0, 0) to (99, 99), inclusive.
-</p>
+</span>
 </li>
 
 <li> <pre class="primitive">aBreed.fillImage(xName, yName, rName, gName, bName, aName, anImageData);</pre>
 	<span>
   The fillImage primitive converts a 2D image into a breed of turtles.
-  The "anImageData" argument is a Javascript ImageData object containing the data used
-  to populate the breed. The turtle count is set to be "anImageData.width" × "anImageData.height".
-  Similar to fillSpace, the turtles are placed on the 2D grid points within the image extent.
-  The turtle properties given by "rName", "gName", "bName", and "aName" are populated with the RGBA
-  color component values of the image. Note that while the color components in "anImageData" range
+  The <code>anImageData</code> argument is a Javascript ImageData object containing the data used
+  to populate the breed. The turtle count is set to be <code>anImageData.width</code> × <code>anImageData.height</code>.
+  Similar to <code>fillSpace</code>, the turtles are placed on the 2D grid points within the image extent.
+  The turtle properties given by <code>rName</code>, <code>gName</code>, <code>bName</code>, and <code>aName</code> are populated with the RGBA
+  color component values of the image. Note that while the color components in <code>anImageData</code> range
   from 0 and 255 (integral values), the values in Shadama will be normalized to range from 0.0 and 1.0,
   inclusive (floating-point).
   For example:
@@ -723,9 +710,7 @@ static setup() {
 </pre>
 </span>
 <span>
-<!-- I don't think we need to reiterate the description above for this example. Lots of detail was
-  given already. -->
-(Global variables, such as "anImage", are described below.)
+(Global variables, such as <code>anImage</code>, are described below.)
 </span>
 </ul>
 
@@ -740,7 +725,7 @@ patch Field (nx, ny)
 </pre>
 </p>
 <p>
-Each cell in this patch stores two values, "nx" and "ny".
+Each cell in this patch stores two values, <code>nx</code> and <code>ny</code>.
 </p>
 
 <p>
@@ -763,9 +748,9 @@ static setup() {
 </pre>
 </p>
 <p>
-The above declares a patch called Field which is used as an argument to "store".
-When "store" is executed for each turtle in MyBreed, the turtle's "r" property
-is stored in "r" property of the nearest cell in Field.
+The above declares a patch called Field which is used as an argument to <code>store</code>.
+When <code>store</code> is executed for each turtle in <code>MyBreed</code>, the turtle's <code>r</code> property
+is stored in <code>r</code> property of the nearest cell in Field.
 </p>
 
 <p>
@@ -777,10 +762,9 @@ def load(field) {
 </pre>
 </p>
 <p>
-When the above method is executed, each turtle reads the "r" property of the nearest patch cell
-and stores the value into its own "r" property.
+When the above method is executed, each turtle reads the <code>r</code> property of the nearest patch cell
+and stores the value into its own <code>r</code> property.
 </p>
-
 <p>
 Methods can receive multiple patches as arguments.
 For example:
@@ -805,7 +789,7 @@ def swap(f1, f2) {
 
 <h3 id="variables">Local and Global Variables</h3>
 <p>
-The "var" statement declares a local variable within a method.
+The <code>var</code> statement declares a local variable within a method.
 The scope of local variables is the whole method,
 regardless of where in the method they are declared.
 In the same method, there can be no more than one declaration for a given variable name.
@@ -819,7 +803,7 @@ def average() {
 }
 </pre>
 <p>
-defines a local variable called avg, and use the value for x and y properties.  But the following code would raise an error as the variable diff is declared twice:
+defines a local variable called <code>avg</code>, and use the value for <code>x</code> and <code>y</code> properties.  But the following code would raise an error as the variable <code>diff</code> is declared twice:
 <pre class="code">
 def gcd() {
   if (this.a > this.b) {
@@ -832,7 +816,7 @@ def gcd() {
 </pre>
 </p>
 <p>
-It would have to be written:
+The variable declaration has to be hoisted to outside:
 <pre class="code">
 def gcd() {
   var diff;
@@ -845,10 +829,8 @@ def gcd() {
   }
 </pre>
 </p>
-<!-- How about an example of a local variable declaration and use? -->
 <p>
 Global variables are declared within static functions, also using the "var" statement.
-<!-- Is the following correct? -->
 Global variables are not available to methods, but are visible to all static functions.
 For example:
 <pre class="code">
@@ -864,17 +846,15 @@ static loop() {
 </pre>
 </p>
 <p>
-The two static functions above refer to the same "begin" variable.
+The two static functions above refer to the same <code>begin</code> variable.
 </p>
 
 <p>
 Shadama provides the following built-in global variables:
 <ul>
-  <!-- This list needs work. I think you need to explain a bit more than just that an object has properties x and y.
-       Also, I don't even understand what Display is from the description. -->
-<li> <code>mousemove</code>: an object which has property x and y</li>
-<li> <code>mouseup</code>:  an object which has property x and y</li>
-<li> <code>mousedown</code>: an object which has property x and y</li>
+<li> <code>mousemove</code>: an object which has property x and y.</li>
+<li> <code>mouseup</code>:  an object which has property x and y.</li>
+<li> <code>mousedown</code>: an object which has property x and y.</li>
 <li> <code>time</code>:       a floating point value in seconds since the last time a specially named metho setup is called.</li>
 <li> <code> width, height</code>: the width and height of the visible 2D space.</li>
 </ul>
@@ -889,7 +869,7 @@ static loop() {
 }
 </pre>
 <p>
-clears the display area and then draw MyPatch.
+clears the display area and then draw <code>MyPatch</code>.
 </p>
 <p>
 Be aware that mouse event objects are JavaScript objects. Thus, they can't be passed to methods because
@@ -899,11 +879,8 @@ methods can only take scalar arguments.
 <h3 id="parallelism-considerations">Parallelism Considerations</h3>
 <p>
 It's possible for two or more nearby turtles to write into the same patch cell.
-<!-- non-determinisic, or undefined? It could be that a given implementation does give deterministic results, but you
-  don't want them to depend on it. -->
 Which value gets stored in the patch is non-deterministic.
 </p>
-
 <p>
 Also, updates to turtle properties and patch properties are not visible until after the method is run.
 Consider the following method:
@@ -919,13 +896,13 @@ def test() {
 </pre>
 </p>
 <p>
-Even though the last line reads "<code>this.b = this.r;</code>", the "r" property and "b" property will
-not be equal after the invocation. This is because the update to the "r" property seen earlier does not take effect
-until after the method call is finished. Thus, the "b" property will have the previous "r" value.
+Even though the last line reads "<code>this.b = this.r;</code>", the <code>r</code> property and <code>b</code> property will
+not be equal after the invocation. This is because the update to the <code>r</code> property seen earlier does not take effect
+until after the method call is finished. Thus, the "b" property will have the previous <code>r</code> value.
 </p>
 
 <p>
-The properties "this.b" and "this.r" can have the same value
+The properties <code>this.b</code> and <code>this.r</code> can have the same value
 through the following use of a local variable:
 <pre class="code">
 def test() {
@@ -943,8 +920,8 @@ def test() {
 
 <h3 id="control-structures">Control Structures</h3>
 <p>
-The "if" statement is the only control structure that Shadama supports.
-Loops may be supported in the future because the OpenGL shader language version 3.0
+The <code>if</code> statement is the only control structure that Shadama supports.
+Loops may be supported in the future version of Shadama because the OpenGL shader language version 3.0
 does support variable-count loops.
 </p>
 <p>
@@ -955,7 +932,6 @@ does support variable-count loops.
 There are a number of primitive functions that can be called from methods.
 Most of them actually result in a direct call to a GLSL built-in function.
 For example:
-
 <pre class="code">
 def prims(x) {
   var c = cos(x);
@@ -969,7 +945,7 @@ def prims(x) {
 </p>
 <p>
 The above code uses several primitive functions to compute a contrived value which
-is then stored into the turtle's "r" property.
+is then stored into the turtle's <code>r</code> property.
 </p>
 
 <h3 id="method-binding">Method Binding</h3>
@@ -995,9 +971,9 @@ static test() {
 </pre>
 </p>
 <p>
-The "set" method above can be called for both breed A and breed B.
-This is the not the case for breed C because it does not have an "x" property, which is
-referenced in "set".
+The <code>set</code> method above can be called for both breed <code>A</code> and breed <code>B</code>.
+This is the not the case for breed C because it does not have an <code>x</code> property, which is
+referenced in <code>set</code>.
 </p>
 
 <h3 id="limitations">Limitations</h3>
@@ -1009,7 +985,6 @@ The following are important limitations of the Shadama language.
 <p>
 Methods can not take breeds as arguments.
 For example, the following code is invalid:
-
 <pre class="code">
 breed A (x, y)
 breed B (x, y)
@@ -1026,9 +1001,9 @@ static step() {
 </p>
 
 <p>
-The "step" function passes breed B as an argument to the "hit" method, which is not allowed.
-Even if it were, it is not clear which turtle from breed B should
-be bound to the argument "other".
+The <code>step</code> function passes breed B as an argument to the <code>hit</code> method, which is not allowed.
+Even if it were, it is not clear which turtle from breed <code>B</code> should
+be bound to the argument <code>other</code>.
 </p>
 
 <p>
