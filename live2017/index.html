@@ -118,6 +118,7 @@ simulation right away, without needing to restart.`, 525]];
        var transcript;
        var interval;
        var caption;
+       var scroller;
 
        function processOne(event) {
            var p = document.createElement("div");
@@ -167,6 +168,21 @@ simulation right away, without needing to restart.`, 525]];
          }
        }
 
+
+       function smoothScrollTo(top, start, duration) {
+           cancelAnimationFrame(scroller);
+           var current = caption.scrollTop;
+           if (current !== top) {
+               var t = Date.now() - start;
+               if (t >= duration) {
+                   caption.scrollTop = top;
+               } else {
+                   caption.scrollTop = current + t / duration * (top - current);
+                   scroller = requestAnimationFrame(function() {smoothScrollTo(top, start, duration)});
+               }
+           }
+       }
+
        function updateEventHighlight() {
            Array.from(document.getElementsByClassName('highlight')).forEach(function (p) {
                p.classList.remove('highlight');
@@ -176,8 +192,9 @@ simulation right away, without needing to restart.`, 525]];
            if (!event) {
                return;
            }
-           caption.scrollTop = event.offsetTop - eventDivs[0][0].offsetTop;
            event.firstChild.classList.add("highlight");
+           //caption.scrollTop = event.offsetTop - eventDivs[0][0].offsetTop;
+           smoothScrollTo(event.offsetTop - eventDivs[0][0].offsetTop, Date.now(), 300);
        }
 
        function initialize() {
