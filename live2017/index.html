@@ -10,8 +10,8 @@
 
     <script>
 var shadamaEvents = [
-    [`Our first example of Shadama is a simple physics simulation of particles and gravity.`, 0], 
-    [`As in the LOGO programming language, we refer to mobile objects as turtles. Here, we 
+    [`Our first example of Shadama is a simple physics simulation of particles and gravity.`, 0],
+    [`As in the LOGO programming language, we refer to mobile objects as turtles. Here, we
       declare a breed of turtle such that each turtle will have properties
       "x", "y", "r", "g", "b" and "a".`, 5],
     [`A method is defined with the keyword "def". Methods are executed on
@@ -59,7 +59,7 @@ turtles executing this method update the patch cell value at their x and y coord
     [`We modify "setup" to use a primitive called
 "fillSpace", which creates turtles of the Filler breed and
 places them at all integral grid points. When this "setup" is called,
-and the "fill" method is called, each "r" and "g" of the patch get values derived from its position, resulting 
+and the "fill" method is called, each "r" and "g" of the patch get values derived from its position, resulting
 in this color gradient.`, 208],
     [`Let's make some shapes now. We define
 the "fillCircle" method to replace "fill". Let's also add the "clear" method, which clears the field's values.`, 225],
@@ -87,7 +87,7 @@ color.`, 336],
     [`Then we call "setColor" from "loop", so that the colors are updated continuously.`, 349],
     [`Here, horizontal velocity corresponds with reddish color, and vertical
 velocity corresponds with greenish color. The visualization can be quickly adjusted
-to match how you prefer to view the simulation.`, 354], 
+to match how you prefer to view the simulation.`, 354],
     [`For fun, you can make two circles that move symmetrically.`, 364],
     [`Here's an interesting variation of our program. Instead of modeling gravity as pulling downward, gravity follows
 the inverse square law in relation to the mouse pointer location. It looks like
@@ -120,10 +120,10 @@ simulation right away, without needing to restart.`, 525]];
        var caption;
 
        function processOne(event) {
-	   var p = document.createElement("div");
-	   p.innerHTML = "<p class='caption'>" + event[0] + "</p>";
+           var p = document.createElement("div");
+           p.innerHTML = "<p class='caption'>" + event[0] + "</p>";
            caption.appendChild(p);
-	   return [p, event[1]];
+           return [p, event[1]];
        }
 
        /* YouTube Javascript API stuff */
@@ -133,56 +133,56 @@ simulation right away, without needing to restart.`, 525]];
        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
        var player;
        function onYouTubeIframeAPIReady() {
-	   player = new YT.Player('player', {
-	       height: '576',
-	       width:  '1024',
-	       videoId: 'R81egpgDzbY',
-	       events: { 'onStateChange': onPlayerStateChange },
-	       playerVars: {rel: 0, showinfo: 0},
-	   });
+           player = new YT.Player('player', {
+               height: '576',
+               width:  '1024',
+               videoId: 'R81egpgDzbY',
+               events: { 'onStateChange': onPlayerStateChange },
+               playerVars: {rel: 0, showinfo: 0},
+           });
        }
        function onPlayerStateChange(e) {
-	   if (e.data == YT.PlayerState.PLAYING) {
-	       interval = window.setInterval(updateEventHighlight, 500); // update every half-second
-	       updateEventHighlight();
-	   }
-	   if (e.data == YT.PlayerState.ENDED  ||
+           if (e.data == YT.PlayerState.PLAYING) {
+               interval = window.setInterval(updateEventHighlight, 500); // update every half-second
+               updateEventHighlight();
+           }
+           if (e.data == YT.PlayerState.ENDED  ||
                e.data == YT.PlayerState.PAUSED ||
                e.data == YT.PlayerState.BUFFERING) {
-	       window.clearInterval(interval);
-	   }
+               window.clearInterval(interval);
+           }
        }
 
        function findEvent(time, events) {
          for (var i = 0; i < events.length - 1; i++) {
-	     var pair = events[i];
-	     var next = events[i+1];
+             var pair = events[i];
+             var next = events[i+1];
              if (pair[1] <= time && time < next[1]) {
-		 return pair[0];
-	     }
-	 }
-	 var pair = events[events.length -1];
+                 return pair[0];
+             }
+         }
+         var pair = events[events.length -1];
          if (pair[1] < time) {
-	     return pair[0];
-	 }
+             return pair[0];
+         }
        }
 
        function updateEventHighlight() {
-	   Array.from(document.getElementsByClassName('highlight')).forEach(function (p) {
-	       p.classList.remove('highlight');
-	   });
-	   var time = parseFloat(player.getCurrentTime());
-	   var event = findEvent(time, eventDivs);
-	   if (!event) {
-	       return;
-	   }
-	   caption.scrollTop = event.offsetTop - eventDivs[0][0].offsetTop;
-	   event.firstChild.classList.add("highlight");
+           Array.from(document.getElementsByClassName('highlight')).forEach(function (p) {
+               p.classList.remove('highlight');
+           });
+           var time = parseFloat(player.getCurrentTime());
+           var event = findEvent(time, eventDivs);
+           if (!event) {
+               return;
+           }
+           caption.scrollTop = event.offsetTop - eventDivs[0][0].offsetTop;
+           event.firstChild.classList.add("highlight");
        }
 
        function initialize() {
-	   caption = document.getElementById("caption");
-	   eventDivs = shadamaEvents.map(processOne); // [[div, time]]  As a side-effect it adds divs to caption
+           caption = document.getElementById("caption");
+           eventDivs = shadamaEvents.map(processOne); // [[div, time]]  As a side-effect it adds divs to caption
        }
        onload = initialize;
   </script>
@@ -214,13 +214,13 @@ Adaptive Systems). MIT Press, 1994.<br>
 &nbsp; This abstraction has been proven to be effective and easy to use.
 The primary goal of the language is to facilitate the writing of scientific simulations by students
 at the high school level.
-	</p>
+        </p>
 
         <p>
 The Shadama environment supports <i>liveness</i>.
 Once changes to the program are saved, the effect on the running simulation is immediate.
 There is no need to restart the simulation.
-	</p>
+        </p>
         <p>
 Shadama programs are run on the GPU by means of code translation to the OpenGL Shading Language.
 <label for="sn-glsl"
@@ -233,7 +233,7 @@ Shadama programs are run on the GPU by means of code translation to the OpenGL S
 <a href="#glsl">OpenGL Shading Language</a>
 </span> &nbsp;
 Program data resides entirely on the GPU, which enables high performance.
-	</p>
+        </p>
 
         <p>
 A prototype of Shadama can be found <a href="http://tinlizzie.org/~ohshima/shadama2">here</a>.
@@ -250,8 +250,8 @@ The computing power available to us today is astounding.  Achieving
 one teraflop of performance was a milestone for a building-sized supercomputer in
 the late '90s, but now we expect smart phones to reach this same milestone soon.
 Computing performance will only continue to increase in the future.
-	</p>
-	<p>
+        </p>
+        <p>
 But what are people using this power for?  Not to be critical, but
 people are generally more interested in watching cat videos and
 playing games than trying to invent self-piloting personal airplanes
@@ -261,18 +261,18 @@ All joking aside, one of the big problems we face today is our
 struggle to advance science literacy, even within a
 technologically-advanced society.  We need the next
 generation to embrace science more, not less.
-	</p>
-	<p>
+        </p>
+        <p>
 We think now is a good time to redouble our efforts to provide
 environments where students, artists, and even professional
 programmers can tap into the computing power that is available.
-	</p>
-	<p>
+        </p>
+        <p>
 To this end, we have been working on a prototype of a
 programming language intended for high school students to explore
 scientific concepts.
-	</p>
-	<p>
+        </p>
+        <p>
   Science is about making the invisible visible.  One notable example
 of an invisible yet important concept is molecules in a gas.  We would
 like students to learn about this, not by rote memorization, but
@@ -281,14 +281,14 @@ computers, students can make a dynamic model and understand it more
 deeply.  This kind of environment will help students construct
 knowledge by doing, in line with the constructivism philosophy of
 education.
-	</p>
+        </p>
 </section>
 
 <section>
-	<h2 id="a-science-experiment">A Science Experiment</h2>
+        <h2 id="a-science-experiment">A Science Experiment</h2>
   <br>
 <iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
-	<p>
+        <p>
 Before going into the detail of the programming system, we would like
 to show one of the examples students would try as a physics
 experiment, that later may be modeled and simulated on computer.
@@ -298,18 +298,18 @@ This movie shows a vacuum cannon.  The cannon is a six foot PVC
 pipe connected to a vacuum pump.  We put a ping pong ball inside the pipe,
 cover the ends with sturdy but breakable material (such as plastic plates),
 and pump the air out.
-	</p>
-	<p>
+        </p>
+        <p>
 The pump reduces the pressure inside the tube to about 20% of full atmospheric pressure.
-	</p>
-	<p>
+        </p>
+        <p>
 When the end near the ping pong ball is broken open by a box cutter, the
 air molecules that rush into the pipe move into the
 low pressure space and the ping pong ball is pushed out the other end.
 Our crude setup can accelerate the ball to a speed of over 200 meters per second
 (about 60% of the speed of sound).  Others have built similar setups
 that can achieve supersonic speed.
-	</p>
+        </p>
         <p>
 An interesting point to understand is that it is just movement of
 molecules that is causing the ball to shoot out. It is not that the
@@ -320,11 +320,11 @@ The invisible molecules that cause the ball to shoot out can
 be made &ldquo;visible&rdquo; in a sense not only through this physical experiment,
 but also through a computer simulation that reproduces the same phenomenon.
 Creating such simulations is the purpose of our programming environment.
-	  </p>
+          </p>
 </section>
 
 <section>
-	<h2 id="language-goals">Language Goals</h2>
+        <h2 id="language-goals">Language Goals</h2>
 
 <p>
 We had the following goals when designing Shadama:
@@ -365,12 +365,12 @@ to apply.
 </section>
 
 <section>
-	<h2 id="shadama-in-Action">Shadama in Action</h2>
-	<p>
+        <h2 id="shadama-in-Action">Shadama in Action</h2>
+        <p>
 The following movie shows some examples using our prototype programming environment called Shadama.
 
 The script below provides an explaination of the movie.  You can pause the movie at any time to scroll through and read the explanation.  The captions work better when the movie is not in full screen.
-	</p>
+        </p>
   <div id="video">
     <div id="player"></div>
   </div>
@@ -378,7 +378,7 @@ The script below provides an explaination of the movie.  You can pause the movie
   <hr>
 </section>
 <section>
-	<h2 id="implementation">Implementation</h2>
+        <h2 id="implementation">Implementation</h2>
 </section>
 <p>
 <!-- We could say a lot more about implementation here, such as how the OpenGL pipeline is used,
@@ -424,8 +424,8 @@ into designated textures.
 </p>
 
 <section>
-	<h2 id="related-work">Related Work</h2>
-	<p>
+        <h2 id="related-work">Related Work</h2>
+        <p>
 Previously, one of the authors implemented a particle system called Kedama as an extension of Etoys.
 <label for="sn-kedama"
        class="margin-toggle sidenote-number">
@@ -440,13 +440,13 @@ Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System.<
 
 </span> &nbsp;    Shadama can be considered an attempt to give the same idea new life.
 Kedama's target audience was middle school children, while Shadama's target audience is high school students.
-	</p>
-	<p>
+        </p>
+        <p>
 The biggest inspiration for Shadama (and Kedama) was Resnick's StarLogo.
 The basic organization of Shadama objects is largely based upon StarLogo.
 However, StarLogo has certain features that Shadama does not, as mentioned in the introduction.
-	</p>
-	<p>
+        </p>
+        <p>
 Based on Extempore, Swift et al. created a live programming environment for physics.
 <label for="sn-extempore-pic"
        class="margin-toggle sidenote-number">
@@ -463,8 +463,8 @@ a sophisticated and optimized particle-in-cell simulation framework.
 The spirit of this work is much in line with
 ours, except that their environment depends on a third-party engine as a black box.
 We believe that such an engine should instead be accessible to the user.
-	</p>
-	<p>
+        </p>
+        <p>
 Although many simulation environments such as Liquid Fun
 <label for="sn-liquidfun"
        class="margin-toggle sidenote-number">
@@ -507,8 +507,8 @@ increasingly sophisticated compilation techniques and the use of the CUDA API to
 Ease of use is given little consideration.
 The authors think that Shadama can occupy a unique position
 by striking a better balance between performance and ease of use.
-	</p>
-	<p>
+        </p>
+        <p>
 Some languages for programming massively parallel particle simulations
 are based on visual programming blocks.
 StarLogo Nova is a notable example.
@@ -525,12 +525,12 @@ Shadama is currently text-based because we feel that physics simulations
 can be naturally expressed with concise text.
 However, we have not ruled out other possiblities for syntax,
 including a visual representation of the program.
-	</p>
+        </p>
 </section>
 
 <section>
-	<h2 id="conclusions-and-future-work">Conclusions and Future Work</h2>
-	<p>
+        <h2 id="conclusions-and-future-work">Conclusions and Future Work</h2>
+        <p>
 We have presented an early prototype of a language in
 which users can make enlightening simulations and intricate visualizations.
 The liveliness of the environment encourages an
@@ -538,50 +538,50 @@ exploratory style of programming that enables trying out different ideas quickly
 We have also discovered that such an interactive and graphical environment
 can be motivating even as bugs appear, because of the spectacular
 unintentional visual effects that are produced.  In other words, the results often have eye-pleasing, fun quality.
-	</p>
-	<p>
+        </p>
+        <p>
 We are considering various improvements to the system.  One major
 addition would be to fully support simulations in 3D, not just 2D.
 While computation in Shadama only uses scalar values and is agnostic to dimensionality,
 the primitives and concepts the system provides only work well currently for 2D applications.
 We will need new ideas to manage 3D spatial data.
-	</p>
-	<p>
+        </p>
+        <p>
 We also plan to support more mathematical concepts, such as vectors and matrices.
 While first-time users may not have use for such abstractions initially,
-we would like them to eventually learn and use these powerful concepts. 
+we would like them to eventually learn and use these powerful concepts.
 Ideally, the environment would gradually introduce the user to new, more difficult approaches.
-	</p>
-	<p>
+        </p>
+        <p>
 We would like to conclude this report by stressing the importance of
 education. Education raises our awareness and enables us to see our world from new perspectives.
 Thus, we are empowered with new approaches to solve problems.
 This is particularly true in the case of science education, which motivates this work.
 <!-- HARC's mission to ensure human wisdom exceeds human power,
 by inventing technology that allows all humans to see further and understand more deeply.-->
-	</p>
+        </p>
 </section>
 
       <section>
         <h2>References</h2>
-	<ol type="1">
-	  <li id="starlogo">
+        <ol type="1">
+          <li id="starlogo">
 M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
 in Massively Parallel Microworlds (Complex
 Adaptive Systems). MIT Press, 1994.
           </li>
-	  <li id="glsl">OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
+          <li id="glsl">OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
           <li id="ohm">Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
-	    <li id="kedama">Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
+            <li id="kedama">Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
           <li id="extempore">Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
-	  <li id="liquidfun">LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
+          <li id="liquidfun">LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
           <li id="emoji">Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
-	  <li id="ikra">Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
-	  <li id="slnova">StarLogo Nova (<a href="http://slnova.org/">project page</a>)</li>
+          <li id="ikra">Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
+          <li id="slnova">StarLogo Nova (<a href="http://slnova.org/">project page</a>)</li>
         </ol>
       </section>
 <section>
-	<h2 id="language">Appendix: A Primer for the Shadama Language</h2>
+        <h2 id="language">Appendix: A Primer for the Shadama Language</h2>
 
 <p>
 <!-- The rest of this paragraph contained content that is properly introduced later. As it was,
@@ -694,7 +694,7 @@ The above sets the <code>dx</code> and <code>dy</code> properties of the turtles
 </li>
 
 <li> <pre class="primitive">aBreed.fillSpace(xName, yName, xDim, yDim);</pre>
-	<span>
+        <span>
 The fillSpace primitive first sets the number of turtles in the breed
 to be <code>xDim</code> × <code>yDim</code>.  Then, it places the turtles on integral 2D grid points
 within the (0..<code>xDim</code>, 0..<code>yDim</code>) area, storing into the <code>xName</code> and <code>yName</code> turtle properties.
@@ -712,7 +712,7 @@ to be the integral grid points spanning (0, 0) to (99, 99), inclusive.
 </li>
 
 <li> <pre class="primitive">aBreed.fillImage(xName, yName, rName, gName, bName, aName, anImageData);</pre>
-	<span>
+        <span>
   The fillImage primitive converts a 2D image into a breed of turtles.
   The <code>anImageData</code> argument is a Javascript ImageData object containing the data used
   to populate the breed. The turtle count is set to be <code>anImageData.width</code> × <code>anImageData.height</code>.
@@ -813,7 +813,7 @@ The <code>var</code> statement declares a local variable within a method.
 The scope of local variables is the whole method,
 regardless of where in the method they are declared.
 In the same method, there can be no more than one declaration for a given variable name.
-This is in contrast to variable declarations in JavaScript.  
+This is in contrast to variable declarations in JavaScript.
 For example:
 <pre class="code">
 def average() {
@@ -909,7 +909,7 @@ def test() {
   if (this.r > 0) {
      this.r = 0;
   } else {
-     this.r = 1; 
+     this.r = 1;
   }
   this.b = this.r;
 }
@@ -930,7 +930,7 @@ def test() {
   if (r > 0) {
      r = 0;
   } else {
-     r = 1; 
+     r = 1;
   }
   this.r = r;
   this.b = r;
@@ -958,7 +958,7 @@ def prims(x) {
   var s = step(0.5, x);
   var a = abs(x);
   var f = fract(x); // the fraction part of x
-  
+
   this.r = c * s * a * f;
 }
 </pre>
@@ -969,7 +969,7 @@ is then stored into the turtle's <code>r</code> property.
 </p>
 
 <h3 id="method-binding">Method Binding</h3>
-<p> 
+<p>
 Methods are not defined for any particular breed, but a given
 method can only be applied to breeds that have the properties referenced
 in the method.
