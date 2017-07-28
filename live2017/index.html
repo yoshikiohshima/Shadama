@@ -347,6 +347,7 @@ Creating such simulations is the purpose of our programming environment.
 We had the following goals when designing Shadama:
 <ul>
 <li> Easy to learn</li>
+<li> Openness</li>
 <li> Support for large numbers of particles</li>
 <li> Liveness</li>
 </ul>
@@ -359,7 +360,18 @@ In addition, we expect students familiar with Scratch to
 learn Shadama easily because of similarites in how object behavior
 is programmed and how objects can sense values near them spatially.
 </p>
-
+<p>
+We would like such an learning environment to be open, in a sense that
+a learner should be able to understand sense of the system but not
+being told to simply "trust" a third party package as a black box.
+This is especially important in learning science.  There are
+sophisticated physics packages already exist, but it would be better
+when the student can at least look at the inside and make sense of
+them, rather than just use them blindly.  If the student needs a
+gravity simulation algorithm, we would like her to write it at least
+once, rather than use a package without the possibility of
+understanding it.
+</p>
 <p>
 To support large numbers of particles, we designed the language
 to execute on graphics hardware. Graphics processors today
@@ -370,7 +382,6 @@ the execution model of today's graphics hardware.
 Although Shadama has some features to mitigate these limitations,
 certain behaviors cannot be implemented.
 </p>
-
 <p>
 To provide liveness, we designed the Shadama environment to show
 the effects of code changes immediately. Of course,
@@ -475,11 +486,14 @@ Based on Extempore, Swift et al. created a live programming environment for phys
 <a href="#extempore">Live Programming in Scientific Simulation<br>
 <img src="extempore-pic.png" width="50%" height="50%" style="margin-left: 20%" alt="Extempore PIC demo screenshot" /></a><br>
 </span> &nbsp;
-This environment brings dynamic code swapping and interactive data inspection to
-a sophisticated and optimized particle-in-cell simulation framework.
-The spirit of this work is much in line with
-ours, except that their environment depends on a third-party engine as a black box.
-We believe that such an engine should instead be accessible to the user.
+This environment brings dynamic code swapping and
+interactive data inspection to a sophisticated and optimized
+particle-in-cell simulation engine.  The spirit of this work is much
+in line with ours.  Even though the Extempore interface uses the simulation
+engine as a third party library, parts of the engine can be migrated
+to the Extempore environment to support more real time changes.  On the
+other hand, the design of the system is catered toward professionals
+and not for high school level learners.
         </p>
         <p>
 Although many simulation environments such as Liquid Fun
