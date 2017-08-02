@@ -222,9 +222,9 @@ The basic execution model follows the tradition of StarLogo and its "turtles and
        id="sn-starlogo"
        class="margin-toggle"/>
 <span class="sidenote">
-<a href="#starlogo">M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
-in Massively Parallel Microworlds (Complex
-Adaptive Systems). MIT Press, 1994.<br>
+<a href="#starlogo">
+<i>Turtles, Termites, and Traffic Jams: Explorations in Massively Parallel Microworlds</i>
+<br>
 <img src="starlogo-book.jpg" width="50%" height="50%" style="margin-left: 20.2%"/>
 </a>
 </span>
@@ -235,8 +235,8 @@ at the high school level.
 
         <p>
 The Shadama environment supports <i>liveness</i>.
-Once changes to the program are saved, the effect on the running simulation is immediate.
-There is no need to restart the simulation.
+Once changes to the program are saved, the effect on the running simulation is immediate;
+there is no need to restart the simulation.
         </p>
         <p>
 Shadama programs are run on the GPU by means of code translation to the OpenGL Shading Language.
@@ -247,7 +247,7 @@ Shadama programs are run on the GPU by means of code translation to the OpenGL S
        id="sn-glsl"
        class="margin-toggle"/>
 <span class="sidenote">
-<a href="#glsl">OpenGL Shading Language</a>
+<a href="#glsl">The OpenGL Shading Language</a>
 </span> &nbsp;
 Program data resides entirely on the GPU, which enables high performance.
         </p>
@@ -281,10 +281,8 @@ generation to embrace science more, not less.
         </p>
         <p>
 We think now is a good time to redouble our efforts to provide
-environments where students, artists, and even professional
-programmers can tap into the computing power that is available.
-        </p>
-        <p>
+environments where students and even professional
+programmers can more easily tap into the computing power that is available.
 To this end, we have been working on a prototype of a
 programming language intended for high school students to explore
 scientific concepts.
@@ -303,15 +301,14 @@ education.
 
 <section>
         <h2 id="a-science-experiment">A Science Experiment</h2>
-  <br>
-<iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
         <p>
-Before going into the detail of the programming system, we would like
-to show one of the examples students would try as a physics
-experiment, that later may be modeled and simulated on computer.
+Before introducing the Shadama programming environment, we first
+give an example of a physics experiment that could also be modeled
+and simulated on a computer.
 </p>
+<iframe width="640" height="360" src="https://www.youtube.com/embed/07D0nB3mgLA" frameborder="0" allowfullscreen></iframe>
 <p>
-This movie shows a vacuum cannon.  The cannon is a six foot PVC
+This movie demonstrates a vacuum cannon.  The cannon is a six foot PVC
 pipe connected to a vacuum pump.  We put a ping pong ball inside the pipe,
 cover the ends with sturdy but breakable material (such as plastic plates),
 and pump the air out.
@@ -360,29 +357,39 @@ In addition, we expect students familiar with Scratch to
 learn Shadama easily because of similarites in how object behavior
 is programmed and how objects can sense values near them spatially.
 </p>
+
 <p>
-We think that a learning environment should be open, 
-in the sense that a learner should be able to see, change and understand the
-relevant parts of the environment.  There are sophisticated physics
-packages and simulation environments already exist, but it would be
-better when the student can look inside of these packages, rather than
-be told to "trust" them.  Ideally then, such packages should be written in the same language and edited in the same tool.
-We would also argue that if the student needs a gravity simulation
-algorithm, we would like her to write it at least once by herself, rather than
-use a package without the pathway for her to open the hood of it.
+To encourage openness, we designed Shadama to be capable of implementing
+complex behavior in the language itself, with as few primitives as possible.
+We think that a learning environment should be open
+in the sense that a student should be able to see, change and understand
+how the various parts of the system work.
+Although many sophisticated scientific software packages and simulation environments
+exist, they are presented as immutable black boxes,
+which limits understanding and stifles curiousity.
+When additional software support is required, it should be provided in the
+end-user's programming language, and it should be capable of modification
+within the end-user's environment.
+<!-- The final sentence in the previous version of this
+     was too hard to make into a clear, simple point.
+     Besides, I think we've already given enough detail about openness.
+     This section is just meant to present high-level goals.
+-->
 </p>
+
 <p>
 To support large numbers of particles, we designed the language
 to execute on graphics hardware. Graphics processors today
 are capable of computing on massive amounts of data.
 Unfortunately, this requires a trade-off between ease of use and
-high performance, because there are fundamental limitations in
+high performance because there are fundamental limitations in
 the execution model of today's graphics hardware.
 Although Shadama has some features to mitigate these limitations,
 certain behaviors cannot be implemented.
 </p>
+
 <p>
-To provide liveness, we designed the Shadama environment to show
+To support liveness, we designed the Shadama environment to show
 the effects of code changes immediately. Of course,
 a running simulation should not be updated for each and every key stroke.
 Instead, the user submits a batch of code changes for the environment
@@ -394,9 +401,16 @@ to apply.
 <section>
         <h2 id="shadama-in-Action">Shadama in Action</h2>
         <p>
-The following movie shows some examples using our prototype programming environment called Shadama.
+The following movie introduces our prototype programming environment through several examples.
+For details on the language, see the appendix.
+The script for the narration of the movie is included below.
+You can pause the movie at any time to scroll through and read the script.
 
-The script below provides an explaination of the movie.  You can pause the movie at any time to scroll through and read the explanation.  The captions work better when the movie is not in full screen.
+<!-- I really don't know what this part below means. If by 'captions' you mean the script, well, it
+     doesn't work worse, it just doesn't work at all in full screen. Now, if you mean the automatically
+     generated closed captions from google, they work just fine for me in full screen. So I'm just commenting
+     this part below out. -->
+<!-- The captions work better when the movie is not in full screen. -->
         </p>
   <div id="video">
     <div id="player"></div>
@@ -408,18 +422,9 @@ The script below provides an explaination of the movie.  You can pause the movie
         <h2 id="implementation">Implementation</h2>
 </section>
 <p>
-<!-- We could say a lot more about implementation here, such as how the OpenGL pipeline is used,
-     what type of shaders are generated, etc. -->
 Shadama is built on web technologies, including WebGL 2.0 and OpenGL
-Shading Language version 3.0. All the values for a given property and breed
-are stored in a single OpenGL texture. All textures have the OpenGL "R32F"
-type to best match their use as a vector of scalar values.
-Methods that write to multiple properties are implemented using the
-multiple render targets feature of OpenGL.
-</p>
-<p>
-Our code translator is written in Ohm and generates vertex shader,
-fragment shader and JavaScript code from the Shadama program.
+Shading Language version 3.0.
+Our code translator is written in Ohm
 <label for="sn-ohm"
        class="margin-toggle sidenote-number">
 </label>
@@ -429,25 +434,19 @@ fragment shader and JavaScript code from the Shadama program.
 <span class="sidenote">
 <a href="#ohm">Ohm: A library and language for building parsers, interpreters, compilers, etc.</a>
 </span>
+and generates vertex shader, fragment shader and JavaScript code from the Shadama program.
+All the values for a given breed and property are stored in a single OpenGL texture.
+These textures are created with the OpenGL type "R32F", to match
+their use as an array of floating-point scalar values.
+The values for a given patch and property are similarly represented.
 </p>
 <p>
-As described in the movie and appendix below, turtles behavior is
-described in methods.  The compiler analyzes the method code,
-construct the list of input and output properties.  The used
-properties are passed in via the texture units.
-</p>
-<p>
-The computation in a method is translated to the vertex shader code.
-A turtle is logically identified by the attribute
-(called <code>a_index</code>) of a vertex, which is a vec2 value that
-specifies an integral grid point used to index into a texture that
-represents a property of a breed.  The translated vertex shader code
-fetches the texel based on the <code>a_index</code> from textures by
-using <code>texelFetch()</code>, executes the computation, and passes
-the resulting values to be written back textures to the generated
-fragment shader code.  The fragment shader code uses the multiple
-render target (MRT) feature of GLSL 3.0 and simply write the values
-into designated textures.
+Shadama static functions are translated to Javascript code that
+runs OpenGL shaders derived from the Shadama methods.
+For each method, a vertex shader is generated to fetch property values
+from textures and perform the computation required for that method.
+A generated fragment shader stores the property values back
+into textures, using the multiple render targets feature of OpenGL.
 </p>
 
 <section>
@@ -470,7 +469,7 @@ Kedama's target audience was middle school children, while Shadama's target audi
         </p>
         <p>
 The biggest inspiration for Shadama (and Kedama) was Resnick's StarLogo.
-The basic organization of Shadama objects is largely based upon StarLogo.
+As such, it provided the basis for the basic organization of objects in Shadama.
 However, StarLogo has certain features that Shadama does not, as mentioned in the introduction.
         </p>
         <p>
@@ -487,31 +486,19 @@ Based on Extempore, Swift et al. created a live programming environment for phys
 </span> &nbsp;
 This environment brings dynamic code swapping and interactive data
 inspection to a sophisticated and optimized particle-in-cell
-simulation engine.  The spirit of this work is much in line with ours,
-but it differs in some key aspects.  The environment is designed for
-researchers who already understand the concepts.  Even though parts of
-the engine can be migrated to the interactive Extempore environment
-for real time introspection and intercession, the interaction model is
-catered toward researchers to quickly observe the simulation
-and make changes.
-        </p>
-        <p>
-Although many simulation environments such as Liquid Fun
-<label for="sn-liquidfun"
-       class="margin-toggle sidenote-number">
-</label>
-<input type="checkbox"
-       id="sn-liquidfun"
-       class="margin-toggle"/>
-<span class="sidenote">
-<a href="#liquidfun">LiquidFun.<br>
-<img src="liquidfun.png" width="50%" height="50%" style="margin-left: 20%" alt="LiquidFun screenshot" /></a>
-</span>
-are available today, they do not provide an end-user language.
+simulation engine. The spirit of this work is much in line with ours,
+although their environment uses a third-party engine as a black box.
+This is a reflection of their concentration on empowering scientific researchers,
+who aren't focused on better understanding the concepts behind the simulation.
+As explained earlier, we believe that environments must be open
+in order to facilitate understanding and foster curiosity in students.
+<!-- I don't think we need to bring up that Swift et al. could have or could still
+     migrate parts of the engine into Extempore. They didn't. Until they
+     have, it's not an important point. -->
+
 </p>
 <p>
-
-Nicky Case has a simulation construction environment based on emoji.
+Recently, Nicky Case released a simulation construction environment based on emoji.
 <label for="sn-emoji"
        class="margin-toggle sidenote-number">
 </label>
@@ -519,9 +506,11 @@ Nicky Case has a simulation construction environment based on emoji.
        id="sn-emoji"
        class="margin-toggle"/>
 <span class="sidenote">
-<a href="#emoji">Simulation in Emoji<br>
+<a href="#emoji">Simulating the World (in Emoji)<br>
   <img src="emoji.png" width="50%" height="50%" style="margin-left: 20%" alt="Simulation in Emoji screenshot" /></a>
-</span>  &nbsp; The design and the style of the system has nice and friendly for end-users to try different models and simulations.  By design, however, the number of cells and objects are limited to a few hundreds, but not millions.
+</span>  &nbsp;
+The system features a user-friendly design for creating many types of open-ended models.
+However, it is only designed to handle a few hundred particles and cells.
 </p>
 <p>
 Programming the GPU from a high-level language is a hot topic.
@@ -532,7 +521,7 @@ Programming the GPU from a high-level language is a hot topic.
        id="sn-ikra"
        class="margin-toggle"/>
 <span class="sidenote">
-<a href="#ikra">Object Support in an Array-based GPGPU Extension for Ruby (ARRAY’16)</a>
+<a href="#ikra">Object Support in an Array-based GPGPU Extension for Ruby</a>
 </span>&nbsp;  Researchers in this area aim for better performance through
 increasingly sophisticated compilation techniques and the use of the CUDA API to more directly access the GPU.
 Ease of use is given little consideration.
@@ -550,13 +539,32 @@ StarLogo Nova is a notable example.
        id="sn-slnova"
        class="margin-toggle"/>
 <span class="sidenote">
-<a href="#slnova">StarLogo Nova</a>
+<a href="#slnova">
+StarLogo Nova: A Programming Environment For Students and Teachers to
+Create 3D Games and Simulations for Understanding Complex Systems
+</a>
 </span>
-Shadama is currently text-based because we feel that physics simulations
+Shadama is currently text-based because we feel that scientific simulations
 can be naturally expressed with concise text.
 However, we have not ruled out other possiblities for syntax,
 including a visual representation of the program.
         </p>
+
+        <p>
+Although many simulation environments such as Liquid Fun
+<label for="sn-liquidfun"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="sn-liquidfun"
+       class="margin-toggle"/>
+<span class="sidenote">
+<a href="#liquidfun">LiquidFun: A 2D Rigid-body and Fluid Simulation C++ Library for Games Based Upon Box2D<br>
+<img src="liquidfun.png" width="50%" height="50%" style="margin-left: 20%" alt="LiquidFun screenshot" /></a>
+</span>
+are available today, they do not provide an end-user language.
+</p>
+
 </section>
 
 <section>
@@ -567,29 +575,34 @@ which users can make enlightening simulations and intricate visualizations.
 The liveliness of the environment encourages an
 exploratory style of programming that enables trying out different ideas quickly.
 We have also discovered that such an interactive and graphical environment
-can be motivating even as bugs appear, because of the spectacular
-unintentional visual effects that are produced.  In other words, the results often have eye-pleasing, fun quality.
+can be motivating even as bugs appear because of the spectacular
+unintentional visual effects that are produced.
+<!-- I'm really sorry, but I think the below sentence is redundant and distracting.
+     It's enough to say "spectacular unintentional effects" above. Also, the tone of the other sentence
+     is out of place. -->
+<!-- In other words, the results often have an eye-pleasing, fun quality. -->
         </p>
         <p>
 We are considering various improvements to the system.  One major
 addition would be to fully support simulations in 3D, not just 2D.
 While computation in Shadama only uses scalar values and is agnostic to dimensionality,
-the primitives and concepts the system provides only work well currently for 2D applications.
+the primitives and concepts the system currently provides only work well for 2D applications.
 We will need new ideas to manage 3D spatial data.
         </p>
         <p>
 We also plan to support more mathematical concepts, such as vectors and matrices.
-While first-time users may not have use for such abstractions initially,
+While first-time users may not initially have use for such abstractions,
 we would like them to eventually learn and use these powerful concepts.
 Ideally, the environment would gradually introduce the user to new, more difficult approaches.
         </p>
         <p>
-We would like to conclude this report by stressing the importance of
+We would like to conclude this paper by stressing the importance of
 education. Education raises our awareness and enables us to see our world from new perspectives.
-Thus, we are empowered with new approaches to solve problems.
-This is particularly true in the case of science education, which motivates this work.
-<!-- HARC's mission to ensure human wisdom exceeds human power,
-by inventing technology that allows all humans to see further and understand more deeply.-->
+In this way, we are empowered with new approaches to solve problems.
+For the next generation to solve the challenges of the future, their science literacy
+is imperative. Our aim with Shadama is to leverage the power and ubiquity of
+computing devices to improve science literacy for high school students by providing an engaging, open
+environment in which to explore scientific concepts.
         </p>
 </section>
 
@@ -597,27 +610,52 @@ by inventing technology that allows all humans to see further and understand mor
         <h2>References</h2>
         <ol type="1">
           <li id="starlogo">
-M. Resnick, Turtles, Termites, and Traffic Jams: Explorations
-in Massively Parallel Microworlds (Complex
-Adaptive Systems). MIT Press, 1994.
+            Mitchel Resnick. <i>Turtles, Termites, and Traffic Jams: Explorations
+            in Massively Parallel Microworlds</i>. MIT Press, Cambridge, MA, USA, 1994.
           </li>
-          <li id="glsl">OpenGL Shading Language (<a href="https://khronos.org/registry/OpenGL/">OpenGL Registry</a>)</li>
-          <li id="ohm">Ohm: A library and language for building parsers, interpreters, compilers, etc. (<a href="https://ohmlang.github.io/">project page</a>)
-            <li id="kedama">Kedama: A GUI-Based Interactive Massively Parallel Particle Programming System: Yoshiki Ohshima.  VL/HCC 2005, pp 91-98.</li>
-          <li id="extempore">Live Programming in Scientific Simulation: Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, Viktor K. Decyk, Supercomputing Frontiers and Innovations, p. 4-15, Mar. 2016. (<a href="http://superfri.org/superfri/article/view/72">Journal page</a>)</li>
-          <li id="liquidfun">LiquidFun: (<a href="http://google.github.io/liquidfun/">the project page</a>)</li>
-          <li id="emoji">Simulation in Emoji: Nicky Case, (<a href="http://ncase.me/simulating/model/">project page</a>)</li>
-          <li id="ikra">Matthias Springer and Hidehiko Masuhara, Object Support in an Array-based GPGPU Extension for Ruby Proceedings of the 3rd ACM SIGPLAN International Workshop on Libraries, Languages, and Compilers for Array Programming (ARRAY’16), June 2016</li>
-          <li id="slnova">StarLogo Nova (<a href="http://slnova.org/">project page</a>)</li>
+          <li id="glsl">
+            The OpenGL Shading Language
+            (<a href="https://www.khronos.org/registry/OpenGL/index_gl.php">Khronos OpenGL Registry</a>)
+          </li>
+          <li id="ohm">
+            Ohm: A library and language for building parsers, interpreters, compilers, etc.
+            (<a href="https://ohmlang.github.io/">project page</a>)
+          </li>
+          <li id="kedama">
+            Yoshiki Ohshima. Kedama: A GUI-based Interactive Massively Parallel Particle Programming System.
+            In <i>2005 IEEE Symposium on Visual Languages and Human-Centric Computing (VL/HCC’05)</i>, pages 91–98, Sept 2005.
+          </li>
+          <li id="extempore">
+            Ben Swift, Andrew Sorensen, Henry Gardner, Peter Davis, and Viktor K Decyk.
+            Live Programming in Scientific Simulation. <i>Supercomputing Frontiers and Innovations</i>, 2(4):4–15, March 2015.
+            (<a href="http://dx.doi.org/10.14529/jsfi150401">DOI</a>)
+          </li>
+          <li id="liquidfun">
+            LiquidFun: A 2D Rigid-body and Fluid Simulation C++ Library for Games Based Upon Box2D
+            (<a href="http://google.github.io/liquidfun/">project page</a>)
+          </li>
+          <li id="emoji">
+            Nicky Case. Simulating the World (in Emoji)
+            (<a href="http://ncase.me/simulating">project page</a>)
+          </li>
+          <li id="ikra">
+            Matthias Springer and Hidehiko Masuhara. Object Support in an Array-based GPGPU Extension for Ruby.
+            In <i>Proceedings of the 3rd ACM SIGPLAN International Workshop on
+            Libraries, Languages, and Compilers for Array Programming</i>,
+            ARRAY 2016, pages 25–31, New York, NY, USA, 2016.
+          </li>
+          <li id="slnova">
+            StarLogo Nova: A Programming Environment For Students and Teachers to
+            Create 3D Games and Simulations for Understanding Complex Systems
+            (<a href="http://education.mit.edu/portfolio_page/starlogonova/">project page</a>)
+          </li>
         </ol>
       </section>
 <section>
         <h2 id="language">Appendix: A Primer for the Shadama Language</h2>
 
 <p>
-<!-- The rest of this paragraph contained content that is properly introduced later. As it was,
-     it was confusing because it assumed the reader already understood terms that aren't introduced yet -->
-The Shadama language uses a breed of turtles and patches abstraction, drawn from the tradition of StarLogo.
+The Shadama language uses a turtles and patches abstraction, drawn from the tradition of StarLogo.
 </p>
 
         <h3 id="breeds">Breeds</h3>
@@ -630,7 +668,7 @@ A breed is declared in a program with the "breed" statement.  For example:
 breed MyBreed (x, y)
 </pre>
 <p>
-creates a breed of turtle called <code>MyBreed</code>, and declares that each
+The above creates a breed of turtle called <code>MyBreed</code>, and declares that each
 turtle in the breed has individual properties <code>x</code> and <code>y</code>.
 </p>
 <p>
@@ -651,7 +689,7 @@ As expected, when this method is invoked on a turtle, the
 turtle's x and y properties are incremented by one.
 </p>
 <p>
-Methods are invoked from static functions. Methods are invoked
+Methods can only be invoked from static functions. Methods calls are made
 by first specifying a breed, then the method name.
 The method is applied to all turtles in the breed concurrently.
 For example:
@@ -710,7 +748,7 @@ static setup() {
 <span>
   The <code>fillRandomDir</code> primitive generates random 2D unit vectors.
   This is done for each turtle, and the x and y components of the result are stored
-  in the properties <code>dxName</code> and <code>dyName</code> of the turtles.
+  in the <code>dxName</code> and <code>dyName</code> properties of the turtles.
   For example:
 </span>
 <pre class="code">
@@ -750,7 +788,7 @@ to be the integral grid points spanning (0, 0) to (99, 99), inclusive.
   Similar to <code>fillSpace</code>, the turtles are placed on the 2D grid points within the image extent.
   The turtle properties given by <code>rName</code>, <code>gName</code>, <code>bName</code>, and <code>aName</code> are populated with the RGBA
   color component values of the image. Note that while the color components in <code>anImageData</code> range
-  from 0 and 255 (integral values), the values in Shadama will be normalized to range from 0.0 and 1.0,
+  from 0 and 255 (integral values), those values in Shadama will be normalized to range from 0.0 and 1.0,
   inclusive (floating-point).
   For example:
 <pre class="code">
@@ -761,7 +799,7 @@ static setup() {
 </pre>
 </span>
 <span>
-(Global variables, such as <code>anImage</code>, are described below.)
+Global variables, such as <code>anImage</code>, are described below.
 </span>
 </ul>
 
@@ -801,7 +839,7 @@ static setup() {
 <p>
 The above declares a patch called Field which is used as an argument to <code>store</code>.
 When <code>store</code> is executed for each turtle in <code>MyBreed</code>, the turtle's <code>r</code> property
-is stored in <code>r</code> property of the nearest cell in Field.
+is stored in the <code>r</code> property of the nearest cell in Field.
 </p>
 
 <p>
@@ -829,7 +867,7 @@ def transfer(f1, f2) {
 </pre>
 </p>
 <p>
-The following code is also valid:
+The following code is also valid, and correctly swaps values between patches.
 <pre class="code">
 def swap(f1, f2) {
   f2.r = f1.r;
@@ -838,11 +876,12 @@ def swap(f1, f2) {
 </pre>
 </p>
 
-<h3 id="variables">Local and Global Variables</h3>
+<h3 id="local-variables">Local Variables</h3>
+
 <p>
 The <code>var</code> statement declares a local variable within a method.
-The scope of local variables is the whole method,
-regardless of where in the method they are declared.
+The scope of a local variables is the whole method,
+regardless of where in the method it is declared.
 In the same method, there can be no more than one declaration for a given variable name.
 This is in contrast to variable declarations in JavaScript.
 For example:
@@ -854,7 +893,8 @@ def average() {
 }
 </pre>
 <p>
-defines a local variable called <code>avg</code>, and use the value for <code>x</code> and <code>y</code> properties.  But the following code would raise an error as the variable <code>diff</code> is declared twice:
+The above code properly defines and uses a local variable called <code>avg</code>.
+However, the following code would raise an error because the variable <code>diff</code> is declared in two places:
 <pre class="code">
 def gcd() {
   if (this.a > this.b) {
@@ -867,7 +907,7 @@ def gcd() {
 </pre>
 </p>
 <p>
-The variable declaration has to be hoisted to outside:
+The variable declaration has to be manually hoisted, as follows:
 <pre class="code">
 def gcd() {
   var diff;
@@ -880,6 +920,9 @@ def gcd() {
   }
 </pre>
 </p>
+
+<h3 id="global-variables">Global Variables</h3>
+
 <p>
 Global variables are declared within static functions, also using the "var" statement.
 Global variables are not available to methods, but are visible to all static functions.
@@ -903,16 +946,42 @@ The two static functions above refer to the same <code>begin</code> variable.
 <p>
 Shadama provides the following built-in global variables:
 <ul>
-<li> <code>mousemove</code>: an object which has property x and y.</li>
-<li> <code>mouseup</code>:  an object which has property x and y.</li>
-<li> <code>mousedown</code>: an object which has property x and y.</li>
-<li> <code>time</code>:       a floating point value in seconds since the last time a specially named metho setup is called.</li>
-<li> <code> width, height</code>: the width and height of the visible 2D space.</li>
+  <li>
+    <code>mousemove</code>:
+    an object whose <code>x</code> and <code>y</code> properties refer to the most recent mouse cursor location.
+  </li>
+  <li>
+    <code>mousedown</code>:
+    an object whose <code>x</code> and <code>y</code> properties refer to the most
+    recent location where the user pressed the mouse button down.
+  </li>
+  <li>
+    <code>mouseup</code>:
+    an object whose <code>x</code> and <code>y</code> properties refer to the most
+    recent location where the user lifted the mouse button up.
+  </li>
+  <li>
+    <code>time</code>:
+    the number of seconds elapsed since the last time the <code>setup</code> function was called (in floating-point).
+  </li>
+  <li>
+    <code>width, height</code>:
+    the width and height of the Shadama canvas.
+  </li>
 </ul>
+
 <p>
-In addition to them, there is a variable called <code>Display</code>.
-It is a system-defined object, and method invocaton on it causes a
-primitive to run.  For example:
+Be aware that mouse event objects are JavaScript objects. Thus, they can't be passed to methods because
+methods can only take scalar arguments.
+</p>
+
+<p>
+There is one additional variable called <code>Display</code>
+for invoking built-in static functions.
+<!-- I know that these are actually methods on an object, but in Shadama, methods
+  are explained above as only for turtles/breeds. I think these system methods are closer to
+  global static functions than Shadama methods, so that's why called them functions above. -->
+For example:
 <pre class="code">
 static loop() {
   Display.clear();
@@ -920,12 +989,16 @@ static loop() {
 }
 </pre>
 <p>
-clears the display area and then draw <code>MyPatch</code>.
+The above code clears the canvas and then draws <code>MyPatch</code>.
 </p>
-<p>
-Be aware that mouse event objects are JavaScript objects. Thus, they can't be passed to methods because
-methods can only take scalar arguments.
-</p>
+<!-- There's another problem: you've introduced methods (see far above) only as things invoked on breeds.
+     Now all of a sudden, you're invoking a method on a patch. To avoid this complication,
+     I'd just remove the MyPatch.draw() line.
+     But the real fix is to explain above in the patch section that methods can be applied to patches
+     also, but only built-in methods that are meant only for patches. No user-defined patch methods.
+     And then list the built-in patch methods.
+     Is this worth the trouble? I'd just remove the MyPatch.draw() line.
+-->
 
 <h3 id="parallelism-considerations">Parallelism Considerations</h3>
 <p>
@@ -947,9 +1020,9 @@ def test() {
 </pre>
 </p>
 <p>
-Even though the last line reads "<code>this.b = this.r;</code>", the <code>r</code> property and <code>b</code> property will
+Even though the last line reads <code>this.b = this.r;</code>, the <code>r</code> property and <code>b</code> property will
 not be equal after the invocation. This is because the update to the <code>r</code> property seen earlier does not take effect
-until after the method call is finished. Thus, the "b" property will have the previous <code>r</code> value.
+until after the method call is finished. Thus, the <code>b</code> property will have the previous <code>r</code> value.
 </p>
 
 <p>
@@ -972,7 +1045,7 @@ def test() {
 <h3 id="control-structures">Control Structures</h3>
 <p>
 The <code>if</code> statement is the only control structure that Shadama supports.
-Loops may be supported in the future version of Shadama because the OpenGL shader language version 3.0
+Loops may be supported in a future version of Shadama because the OpenGL shader language version 3.0
 does support variable-count loops.
 </p>
 <p>
