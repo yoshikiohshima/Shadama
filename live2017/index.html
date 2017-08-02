@@ -367,14 +367,6 @@ how the various parts of the system work.
 Although many sophisticated scientific software packages and simulation environments
 exist, they are presented as immutable black boxes,
 which limits understanding and stifles curiousity.
-When additional software support is required, it should be provided in the
-end-user's programming language, and it should be capable of modification
-within the end-user's environment.
-<!-- The final sentence in the previous version of this
-     was too hard to make into a clear, simple point.
-     Besides, I think we've already given enough detail about openness.
-     This section is just meant to present high-level goals.
--->
 </p>
 
 <p>
@@ -405,12 +397,6 @@ The following movie introduces our prototype programming environment through sev
 For details on the language, see the appendix.
 The script for the narration of the movie is included below.
 You can pause the movie at any time to scroll through and read the script.
-
-<!-- I really don't know what this part below means. If by 'captions' you mean the script, well, it
-     doesn't work worse, it just doesn't work at all in full screen. Now, if you mean the automatically
-     generated closed captions from google, they work just fine for me in full screen. So I'm just commenting
-     this part below out. -->
-<!-- The captions work better when the movie is not in full screen. -->
         </p>
   <div id="video">
     <div id="player"></div>
@@ -487,18 +473,15 @@ Based on Extempore, Swift et al. created a live programming environment for phys
 This environment brings dynamic code swapping and interactive data
 inspection to a sophisticated and optimized particle-in-cell
 simulation engine. The spirit of this work is much in line with ours,
-although their environment uses a third-party engine as a black box.
+although their environment uses a third-party engine that cannot be modified from the same environment.
 This is a reflection of their concentration on empowering scientific researchers,
-who aren't focused on better understanding the concepts behind the simulation.
-As explained earlier, we believe that environments must be open
-in order to facilitate understanding and foster curiosity in students.
+who are already familiar with the concepts behind the simulation and desire to quickly interact with it.  While they can rewrite a subroutine of PIC in Extempore and enable more interactivity, the audience we intend would not be able to do so.
 <!-- I don't think we need to bring up that Swift et al. could have or could still
      migrate parts of the engine into Extempore. They didn't. Until they
      have, it's not an important point. -->
-
 </p>
 <p>
-Recently, Nicky Case released a simulation construction environment based on emoji.
+A simulation construction environment by Nicky Case demonstrates an inteesting point in the design space.
 <label for="sn-emoji"
        class="margin-toggle sidenote-number">
 </label>
@@ -799,7 +782,7 @@ static setup() {
 </pre>
 </span>
 <span>
-Global variables, such as <code>anImage</code>, are described below.
+static function variables, such as <code>anImage</code>, are described below.
 </span>
 </ul>
 
@@ -921,11 +904,11 @@ def gcd() {
 </pre>
 </p>
 
-<h3 id="global-variables">Global Variables</h3>
+<h3 id="static-function-variables">Static Function Variables</h3>
 
 <p>
-Global variables are declared within static functions, also using the "var" statement.
-Global variables are not available to methods, but are visible to all static functions.
+Static function variables are declared within static functions, also using the "var" statement.
+static function variables are not available to methods, but are visible to all static functions.
 For example:
 <pre class="code">
 static setup() {
@@ -944,7 +927,7 @@ The two static functions above refer to the same <code>begin</code> variable.
 </p>
 
 <p>
-Shadama provides the following built-in global variables:
+Shadama provides the following built-in static function variables:
 <ul>
   <li>
     <code>mousemove</code>:
@@ -977,10 +960,8 @@ methods can only take scalar arguments.
 
 <p>
 There is one additional variable called <code>Display</code>
-for invoking built-in static functions.
-<!-- I know that these are actually methods on an object, but in Shadama, methods
-  are explained above as only for turtles/breeds. I think these system methods are closer to
-  global static functions than Shadama methods, so that's why called them functions above. -->
+for invoking some system primitives.
+
 For example:
 <pre class="code">
 static loop() {
@@ -989,16 +970,8 @@ static loop() {
 }
 </pre>
 <p>
-The above code clears the canvas and then draws <code>MyPatch</code>.
+The above code clears the canvas and then draws <code>MyPatch</code> by calling the <code>draw</code> primitive.
 </p>
-<!-- There's another problem: you've introduced methods (see far above) only as things invoked on breeds.
-     Now all of a sudden, you're invoking a method on a patch. To avoid this complication,
-     I'd just remove the MyPatch.draw() line.
-     But the real fix is to explain above in the patch section that methods can be applied to patches
-     also, but only built-in methods that are meant only for patches. No user-defined patch methods.
-     And then list the built-in patch methods.
-     Is this worth the trouble? I'd just remove the MyPatch.draw() line.
--->
 
 <h3 id="parallelism-considerations">Parallelism Considerations</h3>
 <p>
