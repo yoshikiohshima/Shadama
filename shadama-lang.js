@@ -829,7 +829,16 @@ uniform sampler2D u_that_y;
                 function isOther(i) {
                     var realTable = table[method];
                     if (!realTable) {return false}
-                    var r = realTable.usedAsOther(realTable.param.at(i)[2]);
+		    var p = realTable.param.at(i);
+		    if (!p) {
+			var error = new Error("semantic error");
+			error.reason = `argument count does not match for method ${method.sourceString}`;
+			error.expected = `argument count does not match for method ${method.sourceString}`;
+			error.pos = h.source.endIdx;
+			error.src = null;
+			throw error;
+		    }
+		    var r = realTable.usedAsOther(p[2]);
                     return r;
                 };
                 h.static(table, js, method, isOther(0));
@@ -1163,7 +1172,7 @@ uniform sampler2D u_that_y;
 		    var error = new Error("semantic error");
 		    error.reason = `argument count does not match for method ${n.sourceString}`;
 		    error.expected = `argument count does not match for method ${n.sourceString}`;
-		    error.pos = myTable.methodPos;
+		    error.pos = as.source.endIdx;
 		    error.src = null;
 		    throw error;
                 }
