@@ -367,6 +367,9 @@ how the various parts of the system work.
 Although many sophisticated scientific software packages and simulation environments
 exist, they are presented as immutable black boxes,
 which limits understanding and stifles curiousity.
+When additional software support is required, it should be provided in the
+end-user's programming language, and it should be capable of modification
+within the end-user's environment.
 </p>
 
 <p>
@@ -473,15 +476,15 @@ Based on Extempore, Swift et al. created a live programming environment for phys
 This environment brings dynamic code swapping and interactive data
 inspection to a sophisticated and optimized particle-in-cell
 simulation engine. The spirit of this work is much in line with ours,
-although their environment uses a third-party engine that cannot be modified from the same environment.
-This is a reflection of their concentration on empowering scientific researchers,
-who are already familiar with the concepts behind the simulation and desire to quickly interact with it.  While they can rewrite a subroutine of PIC in Extempore and enable more interactivity, the audience we intend would not be able to do so.
-<!-- I don't think we need to bring up that Swift et al. could have or could still
-     migrate parts of the engine into Extempore. They didn't. Until they
-     have, it's not an important point. -->
+although their environment uses a third-party engine that cannot be modified from this same environment.
+This is a reflection of their focus on empowering scientific researchers.
+Such users are already familiar with the concepts behind the simulation and
+value the tight interaction offered by this approach.
+While it is possible to rewrite parts of the third-party engine in Extempore,
+this is beyond the ability of most users, especially our target audience.
 </p>
 <p>
-A simulation construction environment by Nicky Case demonstrates an inteesting point in the design space.
+Nicky Case's simulation construction environment represents an interesting point in the design space.
 <label for="sn-emoji"
        class="margin-toggle sidenote-number">
 </label>
@@ -560,10 +563,6 @@ exploratory style of programming that enables trying out different ideas quickly
 We have also discovered that such an interactive and graphical environment
 can be motivating even as bugs appear because of the spectacular
 unintentional visual effects that are produced.
-<!-- I'm really sorry, but I think the below sentence is redundant and distracting.
-     It's enough to say "spectacular unintentional effects" above. Also, the tone of the other sentence
-     is out of place. -->
-<!-- In other words, the results often have an eye-pleasing, fun quality. -->
         </p>
         <p>
 We are considering various improvements to the system.  One major
@@ -782,7 +781,7 @@ static setup() {
 </pre>
 </span>
 <span>
-static function variables, such as <code>anImage</code>, are described below.
+Static function variables, such as <code>anImage</code>, are described below.
 </span>
 </ul>
 
@@ -908,7 +907,7 @@ def gcd() {
 
 <p>
 Static function variables are declared within static functions, also using the "var" statement.
-static function variables are not available to methods, but are visible to all static functions.
+Static function variables are not available to methods, but are visible to all static functions.
 For example:
 <pre class="code">
 static setup() {
@@ -931,25 +930,25 @@ Shadama provides the following built-in static function variables:
 <ul>
   <li>
     <code>mousemove</code>:
-    an object whose <code>x</code> and <code>y</code> properties refer to the most recent mouse cursor location.
+    An object whose <code>x</code> and <code>y</code> properties refer to the most recent mouse cursor location.
   </li>
   <li>
     <code>mousedown</code>:
-    an object whose <code>x</code> and <code>y</code> properties refer to the most
+    An object whose <code>x</code> and <code>y</code> properties refer to the most
     recent location where the user pressed the mouse button down.
   </li>
   <li>
     <code>mouseup</code>:
-    an object whose <code>x</code> and <code>y</code> properties refer to the most
+    An object whose <code>x</code> and <code>y</code> properties refer to the most
     recent location where the user lifted the mouse button up.
   </li>
   <li>
     <code>time</code>:
-    the number of seconds elapsed since the last time the <code>setup</code> function was called (in floating-point).
+    The number of seconds elapsed since the last time the <code>setup</code> function was called (in floating-point).
   </li>
   <li>
     <code>width, height</code>:
-    the width and height of the Shadama canvas.
+    The width and height of the Shadama canvas.
   </li>
 </ul>
 
@@ -960,7 +959,7 @@ methods can only take scalar arguments.
 
 <p>
 There is one additional variable called <code>Display</code>
-for invoking some system primitives.
+for invoking certain system primitives.
 
 For example:
 <pre class="code">
