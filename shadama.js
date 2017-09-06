@@ -683,7 +683,7 @@ uniform sampler2D u_value;
 out float fragColor;
 
 void main(void) {
-  ivec2 fc = ivec2(gl_FragCoord.s + 0.5, gl_FragCoord.t+0.5);
+  ivec2 fc = ivec2(gl_FragCoord.s - 0.5, gl_FragCoord.t - 0.5);
   fragColor = texelFetch(u_value, fc, 0).r;
 }`,
   "drawBreed.vert":
