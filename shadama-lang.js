@@ -767,7 +767,7 @@ uniform sampler2D u_that_y;
                     } else {
                         vert.push("texelFetch(" +
                                   table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                  ", ivec2(_pos), 0).r");
+                                  ", ivec2(_pos+vec2(0.5, 0.5)), 0).r");
                     }
                 }
             },
@@ -1447,7 +1447,7 @@ class SymTable {
     uniformDefaults() {
         return this.varyingTable.keysAndValuesCollect((key, entry) => {
             var u_entry = ["propIn", entry[1], entry[2]];
-            var ind = entry[1] === "this" ? "ivec2(a_index)" : "ivec2(_pos)";
+            var ind = entry[1] === "this" ? "ivec2(a_index)" : "ivec2(_pos+vec2(0.5, 0.5))";
             return `${this.varying(entry)} = texelFetch(${this.uniform(u_entry)}, ${ind}, 0).r;`;
         })
     }

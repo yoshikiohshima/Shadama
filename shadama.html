@@ -10,203 +10,7 @@
         <script src="shadama-lang.js"></script>
         <script src="shadama.js" type="text/javascript"></script>
         <script src="shadama-tests.js" type="text/javascript"></script>
-        <script id="copy.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_position;
 
-void main(void) {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-}
-        </script>
-
-        <script id="copy.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-
-uniform sampler2D u_value;
-
-out float fragColor;
-
-void main(void) {
-  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-  fragColor = texelFetch(u_value, fc, 0).r;
-}
-        </script>
-
-
-        <script id="drawBreed.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_index;
-
-uniform vec2 u_resolution;
-uniform float u_particleLength;
-uniform sampler2D u_x;
-uniform sampler2D u_y;
-
-uniform sampler2D u_r;
-uniform sampler2D u_g;
-uniform sampler2D u_b;
-uniform sampler2D u_a;
-
-out vec4 v_color;
-
-void main(void) {
-    vec2 zeroToOne = a_index / u_particleLength;
-    float x = texelFetch(u_x, ivec2(a_index), 0).r;
-    float y = texelFetch(u_y, ivec2(a_index), 0).r;
-    vec2 dPos = vec2(x, y);   // (0-resolution, 0-resolution)
-    vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
-    vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
-    gl_Position = vec4(clipPos, 0, 1.0);
-
-    float r = texelFetch(u_r, ivec2(a_index), 0).r;
-    float g = texelFetch(u_g, ivec2(a_index), 0).r;
-    float b = texelFetch(u_b, ivec2(a_index), 0).r;
-    float a = texelFetch(u_a, ivec2(a_index), 0).r;
-    v_color = vec4(r, g, b, a);
-    gl_PointSize = 1.0;
-}
-        </script>
-
-        <script id="drawBreed.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-
-in vec4 v_color;
-
-out vec4 fragColor;
-
-void main(void) {
-  fragColor = v_color;
-}
-        </script>
-
-        <script id="drawPatch.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_position;
-
-void main(void) {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-}
-        </script>
-
-        <script id="drawPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-
-uniform sampler2D u_r;
-uniform sampler2D u_g;
-uniform sampler2D u_b;
-uniform sampler2D u_a;
-
-out vec4 fragColor;
-
-void main(void) {
-  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-  float r = texelFetch(u_r, fc, 0).r;
-  float g = texelFetch(u_g, fc, 0).r;
-  float b = texelFetch(u_b, fc, 0).r;
-  float a = texelFetch(u_a, fc, 0).r;
-  fragColor = vec4(r, g, b, a);
-}
-        </script>
-        <script id="diffusePatch.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_position;
-
-void main(void) {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-}
-        </script>
-
-        <script id="diffusePatch.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-uniform sampler2D u_value;
-
-const float weight[9] = float[9](
-    0.077847, 0.123317, 0.077847,
-    0.123317, 0.195346, 0.123317,
-    0.077847, 0.123317, 0.077847
-);
-
-out float fragColor;
-
-void main(void) {
-  ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-  float v;
-  v = texelFetch(u_value, fc + ivec2(-1, -1), 0).r * weight[0];
-  v += texelFetch(u_value, fc + ivec2(-1,  0), 0).r * weight[1];
-  v += texelFetch(u_value, fc + ivec2(-1,  1), 0).r * weight[2];
-  v += texelFetch(u_value, fc + ivec2( 0, -1), 0).r * weight[3];
-  v += texelFetch(u_value, fc + ivec2( 0,  0), 0).r * weight[4];
-  v += texelFetch(u_value, fc + ivec2( 0,  1), 0).r * weight[5];
-  v += texelFetch(u_value, fc + ivec2( 1, -1), 0).r * weight[6];
-  v += texelFetch(u_value, fc + ivec2( 1,  0), 0).r * weight[7];
-  v += texelFetch(u_value, fc + ivec2( 1,  1), 0).r * weight[8];
-  v = v <= (1.0/256.0) ? 0.0 : v;
-  fragColor = v;
-}
-        </script>
-
-        <script id="debugPatch.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_position;
-
-void main(void) {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-}
-        </script>
-
-        <script id="debugPatch.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-uniform sampler2D u_value;
-
-out vec4 fragColor;
-
-void main(void) {
-    ivec2 fc = ivec2(gl_FragCoord.s, gl_FragCoord.t);
-    fragColor = texelFetch(u_value, fc, 0);
-}
-        </script>
-
-        <script id="debugFrame.vert" type="x-shader/x-vertex">#version 300 es
-layout (location = 0) in vec2 a_index;
-uniform vec2 u_resolution;
-uniform float u_particleLength;
-uniform sampler2D u_this_r;
-uniform sampler2D u_this_g;
-uniform sampler2D u_this_b;
-uniform sampler2D u_this_a;
-out float v_this_r;
-out float v_this_g;
-out float v_this_b;
-out float v_this_a;
-void main() {
-
-  vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;
-  v_this_r = texelFetch(u_this_r, ivec2(a_index), 0).r;
-  v_this_g = texelFetch(u_this_g, ivec2(a_index), 0).r;
-  v_this_b = texelFetch(u_this_b, ivec2(a_index), 0).r;
-  v_this_a = texelFetch(u_this_a, ivec2(a_index), 0).r;
-  v_this_r = 1.0;
-  v_this_g = 0.0;
-  v_this_b = 1.0;
-  v_this_a = 1.0;
-
-  gl_Position = vec4(oneToOne, 0.0, 1.0);
-  gl_PointSize = 1.0;
-}
-
-        </script>
-        <script id="debugFrame.frag" type="x-shader/x-fragment">#version 300 es
-precision highp float;
-in float v_this_r;
-in float v_this_g;
-in float v_this_b;
-in float v_this_a;
-layout (location = 0) out float o_this_r;
-layout (location = 1) out float o_this_g;
-layout (location = 2) out float o_this_b;
-layout (location = 3) out float o_this_a;
-void main() {
-  o_this_r = v_this_r;
-  o_this_g = v_this_g;
-  o_this_b = v_this_b;
-  o_this_a = v_this_a;
-}
-        </script>
         <script id="forward.shadama" type="x-shadama">
 program "Bounce"
 
@@ -307,6 +111,7 @@ static loop(env) {
   Filler.fillCircle(mousemove.x, mousemove.y, 25, Field);
   Filler.fillCircle(300, 95, 25, Field);
   Turtle.bounce(Field);
+  Display.clear();
   Field.draw();
   Turtle.draw();
 }
@@ -397,6 +202,7 @@ static rrestore() {
 }
 
 static loop() {
+  Display.clear();
   if (mousemove.x > 950) {
     if (showButton == 0) {
       showButton = 1;
