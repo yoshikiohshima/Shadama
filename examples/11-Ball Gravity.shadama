@@ -83,6 +83,7 @@ static loop() {
   Filler.clear(Field);
   Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
   Turtle.bounce(Field, mousemove.x, mousemove.y);
+  Display.clear();
   Field.draw();
   Turtle.draw();
 }

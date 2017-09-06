@@ -106,6 +106,7 @@ static loop(env) {
   } else {
     Turtle.goIn();
   }
+  Display.clear();
   Field.draw();
   Turtle.draw();
 }

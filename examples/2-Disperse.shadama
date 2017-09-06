@@ -26,6 +26,7 @@ static setup() {
 }
 
 static step() {
+  Display.clear();
   Turtle.move();
   Turtle.draw();
 }

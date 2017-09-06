@@ -9,5 +9,6 @@ def move() {
 static setup() {
   Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
   Turtle.fillRandomDir("dx", "dy");
+  Display.clear();
   Turtle.draw();
 }

@@ -99,5 +99,6 @@ static loop() {
 
   Turtle.comp(Field);
   Turtle.color(Field);
+  Display.clear();
   Field.draw();
 }

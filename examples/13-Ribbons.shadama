@@ -76,5 +76,6 @@ static setup() {
 
 static loop() {
   Turtle.bounce(Field, mousedown.x, mousedown.y);
+  Display.clear();
   Turtle.draw();
 }

@@ -57,5 +57,6 @@ static setup(env) {
 static loop() {
   Turtle.step(Field);
   Turtle.incr();
+  Display.clear();
   Field.draw();
 }

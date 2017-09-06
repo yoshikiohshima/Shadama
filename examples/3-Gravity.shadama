@@ -47,6 +47,7 @@ static setup() {
 }
 
 static loop(env) {
+  Display.clear();
   Turtle.move();
   Turtle.draw();
 }

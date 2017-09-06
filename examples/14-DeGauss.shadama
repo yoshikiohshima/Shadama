@@ -82,6 +82,7 @@ static rrestore() {
 }
 
 static loop() {
+  Display.clear();
   if (mousemove.x > 950) {
     if (showButton == 0) {
       showButton = 1;

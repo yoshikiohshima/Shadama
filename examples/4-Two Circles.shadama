@@ -26,5 +26,6 @@ static setup() {
   Filler.clear(Field);
   Filler.fillCircle(75, 75, 20, Field);
   Filler.fillCircle(300, 95, 25, Field);
+  Display.clear();
   Field.draw();
 }
