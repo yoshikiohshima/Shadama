@@ -1095,9 +1095,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	}
 	this.cleanUpEditorState();
 	try {
-	    var result = translate(source, "TopLevel", reportError);
+	    var result = translate(source, "TopLevel", this.reportError.bind(this));
 	} catch (e) {
-	    reportError(e);
+	    this.reportError(e);
 	    return;
 	}
 	this.compilation = result;
@@ -1110,14 +1110,16 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	delete result["_programName"];
 
 	for (var k in result) {
-            if (typeof result[k] === "string") { // static function case
-		this.statics[k] = this.evalShadama(result[k]);
+	    var entry = result[k];
+            if (entry[0] == "static") { // static function case
+		var src = entry[2];
+		var js = entry[1];
+		this.statics[k] = this.evalShadama(js);
 		this.staticsList.push(k);
 		if (k === "setup") {
-                    newSetupCode = result[k];
+                    newSetupCode = src;
 		}
             } else {
-		var entry = result[k];
 		var js = entry[3];
 		if (js[0] === "updateBreed") {
                     update(Breed, js[1], js[2], this.env);
@@ -1306,7 +1308,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 		return;
             }
 	    code = "program " + '"' + this.programName + '"\n' + code;
-            this.editor.setValue(code);
+            editor.setValue(code);
 	}
 	localStorage.setItem(this.programName + ".shadama", code);
 	this.initFileList(this.programName);
@@ -1319,7 +1321,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	    try {
 		this.statics["setup"](this.env);
 	    } catch (e) {
-		reportError(e);
+		this.reportError(e);
 		return false;
 	    }
 	}
@@ -1353,9 +1355,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	document.addEventListener('keypress', function(evt) {
 	    if (evt.target === document.body) {
 		if (evt.key =='`') {
-		    this.callSetup();
+		    that.callSetup();
 		} else if (evt.key == "\\") {
-		    this.toggleScript("loop");
+		    that.toggleScript("loop");
 		}
 	    }
 	}, true);
@@ -1474,7 +1476,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	this.env.width = FW;
 	this.env.height = FH;
 
-	this.env["Display"] = new Display();
+	this.env["Display"] = new Display(this);
 
 	if (standalone) {
 	    this.initAudio("degauss.mp3", "degauss");
@@ -1636,8 +1638,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
 		console.log("loading: " + name);
 		this.resetSystem();
 		this.loadShadama(null, source);
-		if (this.editor) {
-		    this.editor.doc.setValue(source);
+		if (editor) {
+		    editor.doc.setValue(source);
 		}
 		this.env["Display"].clear();
 		this.maybeRunner();
@@ -1738,7 +1740,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	editorType = type;
     }
 
-    function Display() {
+    function Display(shadama) {
+	this.shadama = shadama;
 	if (standalone) {
 	    this.clearColor = 'white';
 	} else {
@@ -1771,6 +1774,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	}
     }
 
+    Display.prototype.playSound = function(name) {
+	var buffer = this.shadama.env[name];
+	if (!buffer) {return}
+	var source = audioContext.createBufferSource(); // creates a sound source
+	source.buffer = buffer;                    // tell the source which sound to play
+	source.connect(audioContext.destination);       // connect the source to the context's destination (the speakers)
+	source.start(0);                           // play the source now
+    }
 
     Shadama.prototype.emptyImageData = function(width, height) {
 	var ary = new Uint8ClampedArray(width * height * 4);
@@ -2130,7 +2141,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
     var showError;
 
-    function reportError(match, src) {
+    Shadama.prototype.reportError = function(error) {
 	function toDOM(x) {
             if (x instanceof Array) {
 		var xNode = document.createElement(x[0]);
@@ -2145,24 +2156,34 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
 	if (editor) {
 	    if (editorType == "CodeMirror") {
-		setTimeout(
-		    function() {
-			if (editor.getValue() === src && !parseErrorWidget) {
-			    function repeat(x, n) {
-				var xs = [];
-				while (n-- > 0) {
-				    xs.push(x);
+		if (error.message != "runtime error") {
+		    setTimeout(
+			function() {
+			    var msg = error.expected;
+			    var pos = error.pos;
+			    var src = error.src;
+			    if ((!src || editor.getValue() === src) && !parseErrorWidget) {
+				function repeat(x, n) {
+				    var xs = [];
+				    while (n-- > 0) {
+					xs.push(x);
+				    }
+				    return xs.join('');
 				}
-				return xs.join('');
+				var docPos = editor.doc.posFromIndex(pos);
+				var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
+				console.log(widget);
+				parseErrorWidget = editor.addLineWidget(docPos.line, widget);
 			    }
-			    var msg = 'Expected: ' + match.getExpectedText();
-			    var pos = editor.doc.posFromIndex(match.getRightmostFailurePosition());
-			    var error = toDOM(['parseerror', repeat(' ', pos.ch) + '^\n' + msg]);
-			    parseErrorWidget = editor.addLineWidget(pos.line, error);
-			}
-		    },
-		    2500
-		);
+			},
+			2500
+		    );
+		} else {
+		    for (var n in this.steppers) {
+			this.stopScript(n);
+		    }
+		    alert(error.expected);
+		}
 	    }
 	    if (editorType == "Carota") {
 	     	var scale = 8; // need to compute it
@@ -2227,7 +2248,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 		}
 	    }
 	} catch(e) {
-	    reportError(e);
+	    this.reportError(e);
 	}
     }
 
@@ -2299,6 +2320,20 @@ function ShadamaFactory(threeRenderer, optDimension) {
 	    Breed: Breed,
 	    Patch: Patch,
 	    SymTable: SymTable,
+	}
+    }
+
+    function goFullScreen() {
+	var rx = window.innerWidth / FW;
+	var ry = window.innerHeight / FH;
+	
+	fullScreenScale = Math.min(rx, ry);
+	
+	var req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen;
+	if (req) {
+	    req.call(shadamaCanvas);
+	    shadamaCanvas.style.width = FW * fullScreenScale + 'px';
+	    shadamaCanvas.style.height = FH * fullScreenScale + 'px';
 	}
     }
 
@@ -3494,7 +3529,16 @@ uniform sampler2D u_that_y;
                     function isOther(i) {
 			var realTable = table[method];
 			if (!realTable) {return false}
-			var r = realTable.usedAsOther(realTable.param.at(i)[2]);
+			var p = realTable.param.at(i);
+			if (!p) {
+			    var error = new Error("semantic error");
+			    error.reason = `argument count does not match for method ${method}`;
+			    error.expected = `argument count does not match for method ${method}`;
+			    error.pos = h.source.endIdx;
+			    error.src = null;
+			    throw error;
+			}
+			var r = realTable.usedAsOther(p[2]);
 			return r;
                     };
                     h.static(table, js, method, isOther(0));
@@ -3543,7 +3587,7 @@ uniform sampler2D u_that_y;
                     js.push(") ");
                     b.static(table, js, method, false);
                     js.push(")");
-                    return {[n.sourceString]: js.contents()};
+                    return {[n.sourceString]: ["static", js.contents(), this.sourceString]};
 		},
 
 		Block(_o, ss, _c) {
@@ -3824,8 +3868,14 @@ uniform sampler2D u_that_y;
                     }
 
                     if (formals && (actuals.length !== formals.size())) {
-			throw "number of arguments don't match.";
+			var error = new Error("semantic error");
+			error.reason = `argument count does not match for method ${n.sourceString}`;
+			error.expected = `argument count does not match for method ${n.sourceString}`;
+			error.pos = as.source.endIdx;
+			error.src = null;
+			throw error;
                     }
+
                     var params = new CodeStream();
                     var objectsString = new CodeStream();
 
@@ -3853,6 +3903,14 @@ uniform sampler2D u_that_y;
                     var callProgram = `
 (function() {
     var data = scripts["${n.sourceString}"];
+    if (!data) {
+	var error = new Error("semantic error");
+	error.reason = "Method named ${n.sourceString} does not exist";
+	error.expected = "Method named ${n.sourceString} does not exist";
+	error.pos = ${_c.source.endIdx};
+	error.src = null;
+	throw error;
+    }
     var func = data[0];
     var ins = data[1][0]; // [[name, <fieldName>]]
     var formals = data[1][1];
@@ -3992,7 +4050,12 @@ uniform sampler2D u_that_y;
             }
 
             if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
-		throw "shadama cannot write into this and others from the same script."
+		var error = new Error("semantic error");
+		error.reason = "shadama cannot write into this and others from the same script.";
+		error.expected = "Make sure " + this.methodName + " only writes into either properties of 'this', or properties of method arguments";
+		error.pos = this.methodPos;
+		error.src = null;
+		throw error;
             } else {
 		this.forBreed = this.thisOut.size() > 0;
             }
@@ -4257,12 +4320,13 @@ highp float random(float seed) {
 	if (!match.succeeded()) {
             console.log(str);
             console.log("did not parse: " + str);
-            if (errorCallback) {
-		return errorCallback(match, str);
-            }
-            return null;
+	    var error = new Error("parse error");
+	    error.reason = "parse error";
+	    error.expected = "Expected: " + match.getExpectedText();
+	    error.pos = match.getRightmostFailurePosition();
+	    error.src = str;
+	    throw error;
 	}
-
 	var n = s(match);
 	var symTable = n.symTable(null);
 	return n.glsl(symTable, null, null);
@@ -4445,7 +4509,9 @@ static loop() {
 	    FIELD_WIDTH = 1024;
 	    FIELD_HEIGHT = 768
 	    defaultProgName = "degauss.shadama";
-            document.getElementById("bigTitle").innerHTML = "<button onclick='goFullScreen()'>Full Screen</button>";
+            document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
+	    debugger;
+	    document.getElementById("bigTitle").firstChild.onclick = goFullScreen;
 	}
 	var match;
 	match = /fw=([0-9]+)/.exec(window.location.search);
