@@ -1461,7 +1461,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             that.env["time"] = (window.performance.now() / 1000) - that.loadTime;
             if (that.statics[entry.scriptName]) {
                 try {
-                    that.statics[entry.scriptName](env);
+                    that.statics[entry.scriptName](that.env);
                 } catch (e) {
                     that.reportError(e);
                 }
