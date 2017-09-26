@@ -801,7 +801,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     function programFromTable3(table, vert, frag, name) {
         return (function () {
             var debugName = name;
-            if (debugName === "get") {
+            if (debugName === "setCoreColor") {
             }
             var prog = createProgram(createShader(name + ".vert", vert),
                                      createShader(name + ".frag", frag));
@@ -837,7 +837,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-                if (debugName === "get") {
+                if (debugName === "setCoreColor") {
                 }
                 var object = objects["this"];
 
@@ -850,7 +850,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
                 state.useProgram(prog);
                 gl.bindVertexArray(vao);
-                normalBlend();
+                noBlend();
 
                 gl.uniform2f(uniLocations["u_resolution"], VW, VH);
                 gl.uniform3f(uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
@@ -1643,10 +1643,12 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.clearColor(0.0, 0.0, 0.0, 0.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
         } else {
-            this.otherColor.copy(renderer.getClearColor());
-            renderer.setClearColor(this.clearColor);
-            renderer.clearColor();
-            renderer.setClearColor(this.otherColor);
+            if (dimension == 3) { // ???
+                this.otherColor.copy(renderer.getClearColor());
+                renderer.setClearColor(this.clearColor);
+                renderer.clearColor();
+                renderer.setClearColor(this.otherColor);
+            }
         }
 
         if (!t) {
@@ -3003,6 +3005,7 @@ Shadama {
 
                     var breedPrologue =
 `#version 300 es
+precision highp float;
 layout (location = 0) in vec2 a_index;
 uniform vec2 u_resolution;
 uniform float u_particleLength;
