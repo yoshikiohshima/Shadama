@@ -46,7 +46,7 @@ static setup() {
   Turtle.setColor();
 }
 
-static loop(env) {
+static loop() {
   Display.clear();
   Turtle.move();
   Turtle.draw();

@@ -63,7 +63,7 @@ def color(field) {
   }
 }
 
-static setup(env) {
+static setup() {
   Turtle.fillSpace("x", "y", width, height);
   Turtle.reset(Field);
   Turtle.color(Field);

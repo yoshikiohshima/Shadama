@@ -93,7 +93,7 @@ static setup() {
   Turtle.fillD();
 }
 
-static loop(env) {
+static loop() {
   Filler.clear(Field);
   Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
   Turtle.bounce(Field, time);

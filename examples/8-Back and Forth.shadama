@@ -96,7 +96,7 @@ static setup() {
   var goOut = true;
 }
 
-static loop(env) {
+static loop() {
   goOut = (floor(time / 10.0) % 2) == 0;
 
   Filler.clear(Field);

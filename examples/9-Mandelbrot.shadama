@@ -48,7 +48,7 @@ def step(field) {
   }
 }
 
-static setup(env) {
+static setup() {
   Turtle.fillSpace("x", "y", width, height);
   Turtle.fill(Field);
   Turtle.reset();

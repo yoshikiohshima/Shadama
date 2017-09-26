@@ -374,10 +374,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
         return {program: prog, uniLocations: uniLocations, vao: vao};
     }
 
-    function copyPatchProgram() {
-        return makePrimitive("copy", ["u_textureSize", "u_value"], patchVAO);
-    }
-
     function drawBreedProgram() {
         return makePrimitive("drawBreed", ["u_resolution", "u_particleLength", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
     }
@@ -2144,7 +2140,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 while (times.length > 1 && now - times[0].start > 500) { times.shift() };
                 var frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
                 var stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
-                readout.innerHTML = "compute: " + stepTime.toFixed(3) + " msecs/step, real time: " + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
+                readout.innerHTML = "" + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
                 this.updateEnv();
             }
 
@@ -2158,7 +2154,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
         }
     }
-
 
     Shadama.prototype.destroy = function() {
         if (editorType == "Carota") {
@@ -4470,8 +4465,6 @@ static loop() {
     initPatchVAO();
     initCompiler();
 
-    programs["copyBreed"] = copyBreedProgram();
-    programs["copyPatch"] = copyPatchProgram();
     programs["drawBreed"] = drawBreedProgram();
     programs["drawPatch"] = drawPatchProgram();
     programs["debugPatch"] = debugPatchProgram();
