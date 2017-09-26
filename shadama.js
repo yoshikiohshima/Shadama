@@ -1171,7 +1171,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.updateCode = function() {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         var code = editor.getValue();
         this.loadShadama(null, code);
         this.maybeRunner();
@@ -1203,7 +1203,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.addListeners = function(aCanvas) {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         var that = this;
         var set = function(e, symbol) {
             var rect = aCanvas.getBoundingClientRect();
@@ -1239,7 +1239,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.initServerFiles = function() {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         var location = window.location.toString();
         var examples = [
             "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama"
@@ -1271,7 +1271,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.initAudio = function(name, keyName, callback) {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         var location = window.location.toString();
         var that = this;
 
@@ -1312,7 +1312,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.initImage = function(name, keyName, callback) {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         var that = this;
         var img = document.createElement("img");
         var tmpCanvas = document.createElement("canvas");
@@ -1452,7 +1452,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.makeEntry = function(name) {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         var entry = document.createElement("div");
         var aClock = this.makeClock();
         var that = this;
@@ -1478,7 +1478,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.detectEntry = function(name) {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         for (var j = 0; j < watcherList.children.length; j++) {
             var oldEntry = watcherList.children[j];
             if (oldEntry.scriptName === name) {return oldEntry;}
@@ -1487,21 +1487,21 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.removeAll = function() {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         while (watcherList.firstChild) {
             watcherList.removeChild(watcherList.firstChild);
         }
     }
 
     Shadama.prototype.addAll = function(elems) {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         for (var j = 0; j < elems.length; j++) {
             watcherList.appendChild(elems[j]);
         }
     }
 
     Shadama.prototype.updateClocks = function() {
-	if (!standalone) {return;}
+        if (!standalone) {return;}
         for (var j = 0; j < watcherList.children.length; j++) {
             var child = watcherList.children[j];
             var aClock = child.clock;
@@ -1930,8 +1930,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.uniform1i(prog.uniLocations["u_a"], 3);
 
             if (standalone) {
-		gl.viewport(0, 0, FW, FH);
-	    }
+                gl.viewport(0, 0, FW, FH);
+            }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
 
             gl.drawArrays(gl.POINTS, 0, FW * FH);
@@ -2052,7 +2052,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                                 }
                                 var docPos = editor.doc.posFromIndex(pos);
                                 var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
-                                console.log(widget);
+                                console.log(pos, msg);
                                 parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                             }
                         },
@@ -2537,9 +2537,21 @@ Shadama {
                 },
 
                 LeftHandSideExpression_field(n, _a, f) {
+                    var name = n.sourceString;
+                    var table = this.args.table;
+                    if (!table.hasVariable(name)) {
+                        var error = new Error("syntax error");
+                        error.reason = `variable ${name} is not declared`;
+                        error.expected = `variable ${name} is not declared`;
+                        error.pos = n.source.endIdx;
+                        error.src = null;
+                        throw error;
+                    }
+
                     this.args.table.add("propOut", n.sourceString, f.sourceString);
                     return this.args.table;
                 },
+
                 PrimExpression_field(n, _p, f) {
                     var table = this.args.table;
                     if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
@@ -2548,6 +2560,14 @@ Shadama {
                     var name = n.sourceString;
                     if (!table.isBuiltin(name)) {
                         table.add("propIn", n.sourceString, f.sourceString);
+                    }
+                    if (!table.hasVariable(name)) {
+                        var error = new Error("syntax error");
+                        error.reason = `variable ${name} is not declared`;
+                        error.expected = `variable ${name} is not declared`;
+                        error.pos = n.source.endIdx;
+                        error.src = null;
+                        throw error;
                     }
                     return table;
                 },
@@ -3855,6 +3875,16 @@ uniform sampler2D u_that_y;
             return result;
         }
 
+        has(name) {
+            var found = null;
+            this.keysAndValuesDo((key, value) => {
+                if (value[2] == name) {
+                    found = value;
+                }
+            });
+            return found != null;
+        }
+
         size() {
             return this.keys.length;
         }
@@ -4061,6 +4091,15 @@ uniform sampler2D u_that_y;
 
         isBuiltin(n) {
             return this.defaultAttributes.indexOf(n) >= 0 || this.defaultUniforms.indexOf(n) >= 0 ;
+        }
+
+        hasVariable(n) {
+            if (this.param.has(n)) {return true;}
+            if (this.local.has(n)) {return true;}
+            if (["this", "u_resolution", "u_particleLength", "a_index"].indexOf(n) >= 0) {
+                return true;
+            }
+            return false;
         }
 
         insAndParamsAndOuts() {
@@ -4389,7 +4428,6 @@ static loop() {
             FIELD_HEIGHT = 768
             defaultProgName = "degauss.shadama";
             document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
-            debugger;
             document.getElementById("bigTitle").firstChild.onclick = goFullScreen;
         }
         var match;
@@ -4469,7 +4507,7 @@ static loop() {
         state = renderer.state;
         var ext = gl.getExtension("EXT_color_buffer_float");
         shadama = new Shadama();
-	shadama.initEnv(function() {});
+        shadama.initEnv(function() {});
     }
 
     initBreedVAO();
