@@ -23,9 +23,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
     var VTW = VOXEL_TEXTURE_WIDTH;
     var VTH = VOXEL_TEXTURE_HEIGHT;
 
-    // need to change things around here so that you can have different Shadma instances with different sizes
-
     var dimension = optDimension || 3; // 2 | 3;
+
+    // need to change things around here so that you can have different Shadma instances with different sizes
 
     var breedVAO;
     var patchVAO;
@@ -1050,8 +1050,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.readPixels = function() {
-        var width = this.FW;
-        var height = this.FH;
+        var width = FW;
+        var height = FH;
 
         if (!this.readPixelArray) {
             this.readPixelArray = new Uint8Array(width * height * 4);
@@ -1171,6 +1171,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.updateCode = function() {
+	if (!standalone) {return;}
         var code = editor.getValue();
         this.loadShadama(null, code);
         this.maybeRunner();
@@ -1202,6 +1203,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.addListeners = function(aCanvas) {
+	if (!standalone) {return;}
         var that = this;
         var set = function(e, symbol) {
             var rect = aCanvas.getBoundingClientRect();
@@ -1237,6 +1239,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.initServerFiles = function() {
+	if (!standalone) {return;}
         var location = window.location.toString();
         var examples = [
             "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama"
@@ -1268,6 +1271,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.initAudio = function(name, keyName, callback) {
+	if (!standalone) {return;}
         var location = window.location.toString();
         var that = this;
 
@@ -1308,6 +1312,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.initImage = function(name, keyName, callback) {
+	if (!standalone) {return;}
         var that = this;
         var img = document.createElement("img");
         var tmpCanvas = document.createElement("canvas");
@@ -1447,6 +1452,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.makeEntry = function(name) {
+	if (!standalone) {return;}
         var entry = document.createElement("div");
         var aClock = this.makeClock();
         var that = this;
@@ -1472,6 +1478,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.detectEntry = function(name) {
+	if (!standalone) {return;}
         for (var j = 0; j < watcherList.children.length; j++) {
             var oldEntry = watcherList.children[j];
             if (oldEntry.scriptName === name) {return oldEntry;}
@@ -1480,18 +1487,21 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.removeAll = function() {
+	if (!standalone) {return;}
         while (watcherList.firstChild) {
             watcherList.removeChild(watcherList.firstChild);
         }
     }
 
     Shadama.prototype.addAll = function(elems) {
+	if (!standalone) {return;}
         for (var j = 0; j < elems.length; j++) {
             watcherList.appendChild(elems[j]);
         }
     }
 
     Shadama.prototype.updateClocks = function() {
+	if (!standalone) {return;}
         for (var j = 0; j < watcherList.children.length; j++) {
             var child = watcherList.children[j];
             var aClock = child.clock;
@@ -1577,9 +1587,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.populateList = function(newList) {
-        if (!standalone) {
-            return;
-        }
+        if (!standalone) {return;}
         watcherElements = [];
         for (var i = 0; i < newList.length; i++) {
             var name = newList[i];
@@ -1921,7 +1929,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             state.bindTexture(gl.TEXTURE_2D, this.a);
             gl.uniform1i(prog.uniLocations["u_a"], 3);
 
-            gl.viewport(0, 0, FW, FH);
+            if (standalone) {
+		gl.viewport(0, 0, FW, FH);
+	    }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
 
             gl.drawArrays(gl.POINTS, 0, FW * FH);
@@ -2057,14 +2067,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
             if (editorType == "Carota") {
                 var scale = 8; // need to compute it
-                var bounds2D = editor.editor.byOrdinal(match.getRightmostFailurePosition()).bounds();
+                var bounds2D = editor.editor.byOrdinal(error.pos).bounds();
                 var x = (bounds2D.r - (editor.width / 2)) / scale;
                 var y = (editor.height - bounds2D.b - editor.height / 2) / scale;
                 var vec = new THREE.Vector3(x, y, 0);
                 var orig = vec.clone();
                 editor.object3D.parent.localToWorld(vec);
 
-                var msg = 'Expected: ' + match.getExpectedText();
+                var msg = 'Expected: ' + error.msg;
 
                 if (!parseErrorWidget) {
                     parseErrorWidget =
@@ -3744,7 +3754,6 @@ uniform sampler2D u_that_y;
                         error.src = null;
                         throw error;
                     }
-
                     var params = new CodeStream();
                     var objectsString = new CodeStream();
 
@@ -4196,6 +4205,7 @@ highp float random(float seed) {
             error.src = str;
             throw error;
         }
+
         var n = s(match);
         var symTable = n.symTable(null);
         return n.glsl(symTable, null, null);
@@ -4459,6 +4469,7 @@ static loop() {
         state = renderer.state;
         var ext = gl.getExtension("EXT_color_buffer_float");
         shadama = new Shadama();
+	shadama.initEnv(function() {});
     }
 
     initBreedVAO();
