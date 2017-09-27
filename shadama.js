@@ -705,10 +705,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             table.scalarParamTable.keysAndValuesDo((key, entry) => {
                 var name = entry[2];
-                var uni = "u_use_vector_" + name;
-                uniLocations[uni] = gl.getUniformLocation(prog, uni);
-                uni = "u_vector_" + name;
-                uniLocations[uni] = gl.getUniformLocation(prog, uni);
                 uni = "u_scalar_" + name;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
@@ -772,9 +768,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                         gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
                         ind++;
                     } else {
-                        gl.uniform1i(uniLocations["u_vector_" + k], 0);
                         gl.uniform1f(uniLocations["u_scalar_" + k], val);
-                        gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
                     }
                 }
 
@@ -824,10 +818,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             table.scalarParamTable.keysAndValuesDo((key, entry) => {
                 var name = entry[2];
-                var uni = "u_use_vector_" + name;
-                uniLocations[uni] = gl.getUniformLocation(prog, uni);
-                uni = "u_vector_" + name;
-                uniLocations[uni] = gl.getUniformLocation(prog, uni);
+		var uni;
                 uni = "u_scalar_" + name;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
@@ -852,7 +843,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 gl.bindVertexArray(vao);
                 noBlend();
 
-                gl.uniform2f(uniLocations["u_resolution"], VW, VH);
+                gl.uniform3f(uniLocations["u_resolution"], VW, VH, VD);
                 gl.uniform3f(uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
                 gl.uniform1f(uniLocations["v_step"], VS);
                 gl.uniform1f(uniLocations["u_particleLength"], T);
@@ -893,9 +884,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                         gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
                         ind++;
                     } else {
-                        gl.uniform1i(uniLocations["u_vector_" + k], 0);
                         gl.uniform1f(uniLocations["u_scalar_" + k], val);
-                        gl.uniform1i(uniLocations["u_use_vector_" + k], 0);
                     }
                 }
 
@@ -1643,12 +1632,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.clearColor(0.0, 0.0, 0.0, 0.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
         } else {
-            if (dimension == 3) { // ???
-                this.otherColor.copy(renderer.getClearColor());
-                renderer.setClearColor(this.clearColor);
-                renderer.clearColor();
-                renderer.setClearColor(this.otherColor);
-            }
+            this.otherColor.copy(renderer.getClearColor());
+            renderer.setClearColor(this.clearColor);
+            renderer.clearColor();
+            renderer.setClearColor(this.otherColor);
         }
 
         if (!t) {
@@ -1739,6 +1726,29 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
             updateOwnVariable(this, xName, x);
             updateOwnVariable(this, yName, y);
+        }
+
+        fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
+            this.setCount(xDim * yDim);
+            var x = new Float32Array(T * T);
+            var y = new Float32Array(T * T);
+            var z = new Float32Array(T * T);
+
+	    var ind = 0;
+
+            for (var l = 0; l < zDim; l += step) {
+		for (var j = 0; j < yDim; j += step) {
+                    for (var i = 0; i < xDim; i += step) {
+			x[ind] = i;
+			y[ind] = j;
+			z[ind] = l;
+			ind++;
+                    }
+		}
+            }
+            updateOwnVariable(this, xName, x);
+            updateOwnVariable(this, yName, y);
+            updateOwnVariable(this, zName, z);
         }
 
         fill(name, value) {
@@ -2389,6 +2399,14 @@ Shadama {
                 ["param", null, "yName"],
                 ["param", null, "x"],
                 ["param", null, "y"]], true);
+            obj["fillCuboid"] = new SymTable([
+                ["param", null, "xName"],
+                ["param", null, "yName"],
+                ["param", null, "zName"],
+                ["param", null, "x"],
+                ["param", null, "y"],
+                ["param", null, "z"],
+                ["param", null, "step"]], true);
             obj["fillImage"] = new SymTable([
                 ["param", null, "xName"],
                 ["param", null, "yName"],
@@ -2978,7 +2996,7 @@ Shadama {
 
                     table.scalarParamTable.keysAndValuesDo((key, entry) => {
                         var e = entry[2];
-                        var template1 = `float ${e} = u_use_vector_${e} ? texelFetch(u_vector_${e}, ivec2(a_index), 0).r : u_scalar_${e};`;
+                        var template1 = `float ${e} = u_scalar_${e};`;
                         vert.tab();
                         vert.push(template1);
                         vert.cr();
@@ -3007,7 +3025,7 @@ Shadama {
 `#version 300 es
 precision highp float;
 layout (location = 0) in vec2 a_index;
-uniform vec2 u_resolution;
+uniform vec${dimension} u_resolution;
 uniform float u_particleLength;
 `;
 
@@ -3746,7 +3764,7 @@ uniform sampler2D u_that_y;
 
                     var displayBuiltIns = ["clear", "playSound"];
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillRandomDir", "fillRandomDir3", "fillImage", "diffuse"];
+                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "diffuse"];
                     var myTable = table[n.sourceString];
 
                     if (r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) {
@@ -4052,8 +4070,6 @@ uniform sampler2D u_that_y;
         paramUniforms() {
             var result = [];
             this.scalarParamTable.keysAndValuesDo((key, entry) => {
-                result.push("uniform bool u_use_vector_" + entry[2] + ";");
-                result.push("uniform sampler2D u_vector_" + entry[2] + ";");
                 result.push("uniform float u_scalar_" + entry[2] + ";");
             });
             return result;
