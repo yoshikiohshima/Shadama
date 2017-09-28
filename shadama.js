@@ -450,6 +450,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         if (!height) {
             height = T;
         }
+
         var tex = gl.createTexture();
         state.bindTexture(gl.TEXTURE_2D, tex);
 
@@ -457,12 +458,18 @@ function ShadamaFactory(threeRenderer, optDimension) {
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
         gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, false);
 
+	gl.pixelStorei(gl.UNPACK_ROW_LENGTH, width);
+	gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, height);
+	gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+	gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
+	gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, 0);
+
         if (type == gl.UNSIGNED_BYTE) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, data);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, data, 0);
         } else if (type == gl.R32F) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, gl.RED, gl.FLOAT, data);
+            gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, gl.RED, gl.FLOAT, data, 0);
         } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, type, data);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, type, data, 0);
         }
 
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -494,6 +501,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
         if (format == gl.UNSIGNED_BYTE) {
             tex = createTexture(new Uint8Array(width * height * 4), format, width, height);
         }
+
+
 
         var buffer = gl.createFramebuffer();
 
@@ -601,8 +610,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         obj.own[name] = name;
         obj[name] = createTexture(ary, gl.R32F, width, height);
-
-        obj["new"+name] = createTexture(new Float32Array(width * height), gl.R32F, width, height);
         obj["new"+name] = createTexture(ary, gl.R32F, width, height);
     }
 
@@ -1066,6 +1073,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
             debugCanvas1.width = width;
             debugCanvas1.height = height;
+	    if (standalone) {
+		document.body.appendChild(debugCanvas1);
+	    }
         }
 
         var prog = programs[forBreed ? "debugBreed" : "debugPatch"];
@@ -1106,13 +1116,16 @@ function ShadamaFactory(threeRenderer, optDimension) {
         debugArray = new Float32Array(width * height * 4);
         debugArray1 = new Float32Array(width * height);
         debugArray2 = new Uint8ClampedArray(width * height * 4);
-        gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray);
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray, 0);
 
         for (var i = 0; i < width * height; i++) {
             debugArray1[i] = debugArray[i * 4 + 0];
         }
 
-        console.log(debugArray1);
+        console.log(debugArray1.slice(260096, 262144));
+
+        console.log("debugArray", debugArray);
+
 
         for (var i = 0; i < width * height; i++) {
             debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
@@ -1126,6 +1139,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         setTargetBuffer(null, null);
 
         gl.bindVertexArray(null);
+	return debugArray1;
     }
 
     Shadama.prototype.resetSystem = function() {
@@ -1724,8 +1738,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
                     y[ind] = j;
                 }
             }
-            updateOwnVariable(this, xName, x);
             updateOwnVariable(this, yName, y);
+            updateOwnVariable(this, xName, x);
         }
 
         fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
@@ -2144,6 +2158,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
         }
     }
 
+    Shadama.prototype.oneStep = function() {
+        this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
+        var func = this.statics["step"];
+        if (func) {
+            func(this.env);
+        }
+    }
+
     Shadama.prototype.maybeRunner = function() {
         if (!animationRequested) {
             this.runner();
@@ -2214,7 +2236,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         }
     }
 
-    function goFullScreen() {
+    Shadama.prototype.goFullScreen = function() {
         var rx = window.innerWidth / FW;
         var ry = window.innerHeight / FH;
 
@@ -4447,7 +4469,7 @@ static loop() {
             FIELD_HEIGHT = 768
             defaultProgName = "degauss.shadama";
             document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
-            document.getElementById("bigTitle").firstChild.onclick = goFullScreen;
+            document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
         }
         var match;
         match = /fw=([0-9]+)/.exec(window.location.search);
@@ -4546,6 +4568,7 @@ static loop() {
         symTableUnitTests();
         translateTests();
     }
+    shadama.gl = gl;
     return shadama;
 }
 
