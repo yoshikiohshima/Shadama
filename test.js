@@ -42,7 +42,8 @@ function ShadamaFactory() {
             gl_Position = vec4(clipPos, 0, 1.0);
             gl_PointSize = 1.0;
 
-            ivec2 fc = ivec2(b_index) - ivec2(0, 1);
+//            ivec2 fc = ivec2(b_index) - ivec2(0, 1);
+          ivec2 fc = ivec2(b_index);
             v_color = texelFetch(u_value, fc, 0);
         }`,
 
@@ -260,7 +261,7 @@ function ShadamaFactory() {
         for (var j = 0; j < FH; j++) {
             for (var i = 0; i < FW; i++) {
                 var ind = FH * j + i;
-                ary[ind] = FH-1-j;
+                ary[ind] = j;
             }
         }
         obj["test"] = createTexture(ary, gl.R32F, width, height);
@@ -364,7 +365,3 @@ function ShadamaFactory() {
     shadama.gl = gl;
     return shadama;
 }
-
-//export {
-//   ShadamaFactory
-//}
