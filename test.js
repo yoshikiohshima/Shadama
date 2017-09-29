@@ -80,7 +80,7 @@ function ShadamaFactory() {
 
         var attrLocations = new Array(2);
         attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index'); Now a_index has layout location spec
-        attrLocations[1] = 1 // gl.getAttribLocation(prog, 'b_index'); Now a_index has layout location spec
+        attrLocations[1] = 1 // gl.getAttribLocation(prog, 'b_index'); Now b_index has layout location spec
 
         var attrStrides = new Array(2);
         attrStrides[0] = 2;
@@ -151,16 +151,6 @@ function ShadamaFactory() {
     }
 
     function createTexture(data, type, width, height) {
-        if (!type) {
-            type = gl.UNSIGNED_BYTE;
-        }
-        if (!width) {
-            width = T;
-        }
-        if (!height) {
-            height = T;
-        }
-
         var tex = gl.createTexture();
         state.bindTexture(gl.TEXTURE_2D, tex);
 
@@ -174,9 +164,7 @@ function ShadamaFactory() {
 	gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
 	gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, 0);
 
-        if (type == gl.UNSIGNED_BYTE) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, data, 0);
-        } else if (type == gl.R32F) {
+        if (type == gl.R32F) {
             gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, gl.RED, gl.FLOAT, data, 0);
         } else {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, type, data, 0);
@@ -191,37 +179,16 @@ function ShadamaFactory() {
     }
 
     function makeFramebuffer(format, width, height) {
-        if (!format) {
-            format = gl.UNSIGNED_BYTE;
-        }
-        if (!width) {
-            width = T;
-        }
-        if (!height) {
-            height = T;
-        }
-
         var tex;
         if (format == gl.FLOAT) {
             tex = createTexture(new Float32Array(width * height * 4), format, width, height);
         }
-        if (format == gl.R32F) {
-            tex = createTexture(new Float32Array(width * height), format, width, height);
-        }
-        if (format == gl.UNSIGNED_BYTE) {
-            tex = createTexture(new Uint8Array(width * height * 4), format, width, height);
-        }
-
         var buffer = gl.createFramebuffer();
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
         state.bindTexture(gl.TEXTURE_2D, tex);
 
-        if (format == gl.R32F) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null,);
-        } else if (format == gl.UNSIGNED_BYTE) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, null);
-        } else {
+        if (format == gl.FLOAT) {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
         }
         state.bindTexture(gl.TEXTURE_2D, null);
