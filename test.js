@@ -1,7 +1,7 @@
-function ShadamaFactory(threeRenderer) {
-    var TEXTURE_SIZE = 1024;
-    var FIELD_WIDTH = 512;
-    var FIELD_HEIGHT = 512;
+function ShadamaFactory() {
+    var TEXTURE_SIZE = 4;
+    var FIELD_WIDTH = 4;
+    var FIELD_HEIGHT = 4;
 
     var T = TEXTURE_SIZE;
     var FW = FIELD_WIDTH;
@@ -12,7 +12,6 @@ function ShadamaFactory(threeRenderer) {
     var breedVAO;
     var programs = {};  // {name: {prog: shader, vao: VAO, uniLocations: uniformLocs}}
 
-    var renderer;
     var gl;
     var state;
 
@@ -26,26 +25,24 @@ function ShadamaFactory(threeRenderer) {
 
     var shadamaCanvas;
 
-    var standalone;
-
     var shaders = {
         "debug.vert":
         `#version 300 es
         precision highp float;
         
         layout (location = 0) in vec2 a_index;
-        uniform vec2 u_textureSize;
+        layout (location = 1) in vec2 b_index;
         uniform sampler2D u_value;
 
         out vec4 v_color;
 
         void main(void) {
-            vec2 zeroToOne = a_index / u_textureSize;
+            vec2 zeroToOne = a_index;
             vec2 clipPos = zeroToOne * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
             gl_PointSize = 1.0;
 
-            ivec2 fc = ivec2(a_index);
+            ivec2 fc = ivec2(b_index) - ivec2(0, 1);
             v_color = texelFetch(u_value, fc, 0);
         }`,
 
@@ -63,26 +60,32 @@ function ShadamaFactory(threeRenderer) {
 
     function initBreedVAO() {
         var allIndices = new Array(T * T * 2);
+        var bIndices = new Array(T * T * 2);
         for (var j = 0; j < T; j++) {
             for (var i = 0; i < T; i++) {
                 var ind = ((j * T) + i) * 2;
-                allIndices[ind + 0] = i;
-                allIndices[ind + 1] = j;
+                allIndices[ind + 0] = i / T;
+                allIndices[ind + 1] = j / T;
+                bIndices[ind + 0] = i;
+                bIndices[ind + 1] = j;
             }
         }
 
         breedVAO = gl.createVertexArray();
         gl.bindVertexArray(breedVAO);
 
-        var positionBuffer = gl.createBuffer();
+        var aBuffer = gl.createBuffer();
+        var bBuffer = gl.createBuffer();
 
-        var attrLocations = new Array(1);
+        var attrLocations = new Array(2);
         attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index'); Now a_index has layout location spec
+        attrLocations[1] = 1 // gl.getAttribLocation(prog, 'b_index'); Now a_index has layout location spec
 
-        var attrStrides = new Array(1);
+        var attrStrides = new Array(2);
         attrStrides[0] = 2;
+        attrStrides[1] = 2;
 
-        setBufferAttribute([positionBuffer], [allIndices], attrLocations, attrStrides);
+        setBufferAttribute([aBuffer, bBuffer], [allIndices, bIndices], attrLocations, attrStrides);
         gl.bindVertexArray(null);
     }
 
@@ -101,7 +104,7 @@ function ShadamaFactory(threeRenderer) {
     }
 
     function debugBreedProgram() {
-        return makePrimitive("debug", ["u_textureSize", "u_value"], breedVAO);
+        return makePrimitive("debug", ["u_value"], breedVAO);
     }
 
     function createShader(id, source) {
@@ -227,7 +230,7 @@ function ShadamaFactory(threeRenderer) {
     }
 
     function setTargetBuffer(buffer, tex) {
-        renderer.setRenderTarget(buffer);
+        gl.bindFramebuffer( gl.FRAMEBUFFER, buffer );
         if (buffer) {
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
         }
@@ -264,13 +267,9 @@ function ShadamaFactory(threeRenderer) {
     }
 
     function Shadama() {
-
         debugTexture0 = createTexture(new Float32Array(T*T*4), gl.FLOAT, T, T);
-
         framebufferD0 = makeFramebuffer(gl.FLOAT, T, T);
-
 	this.makeTestObject();
-
     }
 
     Shadama.prototype.debugDisplay = function() {
@@ -278,7 +277,6 @@ function ShadamaFactory(threeRenderer) {
         var forBreed = true; //object.constructor == Breed;
         var width = forBreed ? T : FW;
         var height = forBreed ? T : FH;
-
         if (!debugCanvas1) {
             debugCanvas1 = document.getElementById("debugCanvas1");
             if (!debugCanvas1) {
@@ -286,30 +284,24 @@ function ShadamaFactory(threeRenderer) {
             }
             debugCanvas1.width = width;
             debugCanvas1.height = height;
-	    if (standalone) {
-		document.body.appendChild(debugCanvas1);
-	    }
+	    document.body.appendChild(debugCanvas1);
         }
 
-        var prog = programs[forBreed ? "debugBreed" : "debugPatch"];
+        var prog = programs["debugBreed"];
 
         setTargetBuffer(framebufferD0, debugTexture0);
-
 
         state.useProgram(prog.program);
         gl.bindVertexArray(prog.vao);
 
         var tex = object["test"];
 
-        if (standalone) {
-            gl.viewport(0, 0, width, height);
-        }
+        gl.viewport(0, 0, width, height);
 
         state.activeTexture(gl.TEXTURE0);
         state.bindTexture(gl.TEXTURE_2D, tex);
 
         gl.uniform1i(prog.uniLocations["u_value"], 0);
-        gl.uniform2f(prog.uniLocations["u_textureSize"], width, height);
 
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -345,22 +337,9 @@ function ShadamaFactory(threeRenderer) {
 	return debugArray1;
     }
 
-    class StandAloneRenderer {
-        setRenderTarget(framebuffer, optType) {
-            gl.bindFramebuffer( optType || gl.FRAMEBUFFER, framebuffer );
-        }
-    }
-
     var shadama;
 
-    standalone = !threeRenderer;
-    renderer = threeRenderer;
-
-    if (!renderer) {
-        renderer = new StandAloneRenderer();
-    }
-
-    if (standalone) {
+    if (true) {
         shadamaCanvas = document.getElementById("shadamaCanvas");
         if (!shadamaCanvas) {
             shadamaCanvas = document.createElement("canvas");
