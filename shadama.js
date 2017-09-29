@@ -252,6 +252,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         "renderPatch.vert":
         `#version 300 es
+        precision highp float;
         layout (location = 0) in vec2 a_index;
         layout (location = 1) in vec2 b_index;
 
@@ -274,7 +275,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             // the framebuffer will be 512^512, which is square of cube root of 64 * 64 * 64
             // fc varies over this.
 
-            int index = fc.y * iv_resolution.x + fc.x;
+            int index = int(a_index.y) * int(u_resolution.x) + int(a_index.x);
 
             int z = index / (iv_resolution.x * iv_resolution.y);
             int xy = index % (iv_resolution.x * iv_resolution.y);
@@ -465,7 +466,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         //    alert(gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
     }
-    
+
     function createTexture(data, type, width, height) {
         if (!type) {
             type = gl.UNSIGNED_BYTE;
@@ -527,8 +528,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
         if (format == gl.UNSIGNED_BYTE) {
             tex = createTexture(new Uint8Array(width * height * 4), format, width, height);
         }
-
-
 
         var buffer = gl.createFramebuffer();
 
@@ -1148,10 +1147,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             debugArray1[i] = debugArray[i * 4 + 0];
         }
 
-        console.log(debugArray1.slice(260096, 262144));
-
         console.log("debugArray", debugArray);
-
 
         for (var i = 0; i < width * height; i++) {
             debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
@@ -1764,8 +1760,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
                     y[ind] = j;
                 }
             }
-            updateOwnVariable(this, yName, y);
             updateOwnVariable(this, xName, x);
+            updateOwnVariable(this, yName, y);
         }
 
         fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
@@ -2184,14 +2180,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
         } catch(e) {
             this.reportError(e);
-        }
-    }
-
-    Shadama.prototype.oneStep = function() {
-        this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
-        var func = this.statics["step"];
-        if (func) {
-            func(this.env);
         }
     }
 
@@ -3994,8 +3982,8 @@ uniform sampler2D u_that_y;
                 }
             }
 
-            this.defaultUniforms = ["u_resolution", "u_particleLength"];
-            this.defaultAttributes = ["a_index"];
+            this.defaultUniforms = ["u_resolution", "u_fudge"];
+            this.defaultAttributes = ["a_index", "b_index"];
         }
 
         beHelper() {
@@ -4322,49 +4310,124 @@ highp float random(float seed) {
 
     Shadama.prototype.testCode3D = function() {
         return `
+program "Bounce3"
+
 breed Turtle (x, y, z, dx, dy, dz, r, g, b, a)
-patch V(r, g, b, a)
+breed Filler (x, y, z)
+patch Field (nx, ny, nz, r, g, b, a)
 
-def set(voxel) {
-  voxel.r = this.x / 512;
-  voxel.g = this.y / 512;
-  voxel.b = this.z / 512;
-  voxel.a = 0.5;
+def setColor() {
+  this.r = this.x / 512.0;
+  this.g = this.y / 512.0;
+  this.b = this.z / 512.0;
+  this.a = 1.0;
 }
 
-def get(voxel) {
-  this.r = voxel.r;
-  this.g = voxel.g;
-  this.b = voxel.b;
-  this.a = voxel.a;
+def clear(field) {
+  field.r = 0.0;
+  field.g = 0.0;
+  field.b = 0.0;
+  field.a = 0.0;
+  field.nx = 0.0;
+  field.ny = 0.0;
+  field.nz = 0.0;
 }
 
-def get2(voxel) {
-  this.dx = voxel.r;
-  this.dy = voxel.g;
-  this.dz = voxel.b;
+def fillSphere(cx, cy, cz, r, field) {
+  var dx = this.x - cx;
+  var dy = this.y - cy;
+  var dz = this.z - cz;
+  var dr = sqrt(dx * dx + dy * dy + dz * dz);
+  if (dr < r) {
+    field.r = 0.2;
+    field.g = 0.2;
+    field.b = 0.8;
+    field.a = 1.0;
+    field.nx = dx / r;
+    field.ny = dy / r;
+    field.nz = dz / r;
+  }
 }
 
-def move() {
-  this.x = this.x + this.dx;
-  this.y = this.y + this.dy;
-  this.z = this.z + this.dz;
+def bounce(field) {
+  var nx = field.nx;
+  var ny = field.ny;
+  var nz = field.nz;
+  var dx = this.dx;
+  var dy = this.dy - 0.01;
+  var dz = this.dz;
+  var dot = dx * nx + dy * ny + dz * nz;
+  var rx = dx;
+  var ry = dy;
+  var rz = dz;
+  var origV = sqrt(dx * dx + dy * dy + dz * dz);
+
+  if (dot < 0.0) {
+    rx = dx - 2.0 * dot * nx;
+    ry = dy - 2.0 * dot * ny;
+    rz = dz - 2.0 * dot * nz;
+    var norm = sqrt(rx * rx + ry * ry * rz * rz);
+    rx = rx / (norm / origV);
+    ry = ry / (norm / origV);
+    rz = rz / (norm / origV);
+  }
+
+  var newX = this.x + dx;
+  var newY = this.y + dy;
+  var newZ = this.z + dz;
+
+  if (newX < 0.0) {
+    newX = -newX;
+    rx = -rx * 0.9;
+  }
+  if (newX > u_resolution.x) {
+    newX = u_resolution.x - (newX - u_resolution.x);
+    rx = -rx * 0.9;
+  }
+
+  if (newY < 0.0) {
+    newY = mod(newY, u_resolution.y);
+    ry = -0.1;
+  }
+  if (newY > u_resolution.y) {
+    newY = u_resolution.y - (newY - u_resolution.y);
+    ry = -ry;
+  }
+
+  if (newZ < 0.0) {
+    newZ = -newZ;
+    rz = -rz * 0.9;
+  }
+  if (newZ > u_resolution.z) {
+    newZ = u_resolution.z - (newZ - u_resolution.z);
+    rz = -rz;
+  }
+
+
+  this.x = newX;
+  this.y = newY;
+  this.z = newZ;
+  this.dx = rx;
+  this.dy = ry;
+  this.dz = rz;
 }
 
 static setup() {
-  Turtle.setCount(1000);
+  Filler.fillCuboid("x", "y", "z", 512, 512, 512, 8);
+  Turtle.setCount(900000);
   Turtle.fillRandom("x", 0, 512);
-  Turtle.fillRandom("y", 0, 512);
+  Turtle.fillRandom("y", 256, 512);
   Turtle.fillRandom("z", 0, 512);
-  Turtle.set(V);
-  Turtle.get(V);
-  Turtle.get2(V);
-  Turtle.render();
+  Turtle.fillRandomDir3("dx", "dy", "dz");
+  Turtle.setColor();
 }
 
 static loop() {
-  Turtle.move();
-  V.render();
+  Filler.clear(Field);
+  Filler.fillSphere(75, 75, 75, 200, Field);
+  Turtle.bounce(Field);
+  Turtle.render();
+  Field.render();
 }
 `;
     }
@@ -4606,7 +4669,6 @@ static loop() {
         symTableUnitTests();
         translateTests();
     }
-    shadama.gl = gl;
     return shadama;
 }
 
