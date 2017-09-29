@@ -86,10 +86,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
         "drawBreed.vert":
         `#version 300 es
         layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
 
-	uniform ivec2 u_fudge;
         uniform vec2 u_resolution;
-        uniform float u_particleLength;
+	uniform ivec2 u_fudge;
+
         uniform sampler2D u_x;
         uniform sampler2D u_y;
 
@@ -101,7 +102,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-            vec2 zeroToOne = a_index / u_particleLength;
 	    ivec2 fc = ivec2(a_index) + u_fudge;
             float x = texelFetch(u_x, fc, 0).r;
             float y = texelFetch(u_y, fc, 0).r;
@@ -132,9 +132,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
         "drawPatch.vert":
         `#version 300 es
         layout (location = 0) in vec2 a_index;
-        uniform vec2 u_resolution;
+        layout (location = 1) in vec2 b_index;
 
+        uniform vec2 u_resolution;
 	uniform ivec2 u_fudge;
+
         uniform sampler2D u_r;
         uniform sampler2D u_g;
         uniform sampler2D u_b;
@@ -143,8 +145,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-            vec2 zeroToOne = a_index / u_resolution;
-            vec2 clipPos = zeroToOne * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            vec2 clipPos = b_index * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
             gl_PointSize = 1.0;
 
@@ -171,15 +172,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
         "debug.vert":
         `#version 300 es
         layout (location = 0) in vec2 a_index;
-        uniform vec2 u_textureSize;
+        layout (location = 1) in vec2 b_index;
+
         uniform sampler2D u_value;
         uniform ivec2 u_fudge;
 
         out vec4 v_color;
 
         void main(void) {
-            vec2 zeroToOne = a_index / u_textureSize;
-            vec2 clipPos = zeroToOne * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            vec2 clipPos = b_index * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
             gl_PointSize = 1.0;
 
@@ -201,6 +202,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         "renderBreed.vert":
         `#version 300 es
         layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
 
         uniform mat4 mvpMatrix;
         uniform vec3 u_resolution;
@@ -251,9 +253,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
         "renderPatch.vert":
         `#version 300 es
         layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
+
         uniform mat4 mvpMatrix;
-        uniform ivec3 u_resolution;
-        uniform ivec3 v_resolution;
+        uniform vec3 u_resolution;
+        uniform vec3 v_resolution;
         uniform int v_step;
 	uniform ivec2 u_fudge;
 
@@ -266,24 +270,25 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         void main(void) {
             ivec2 fc = ivec2(a_index) + u_fudge;
+	    ivec3 iv_resolution = ivec3(v_resolution);
             // the framebuffer will be 512^512, which is square of cube root of 64 * 64 * 64
             // fc varies over this.
 
-            int index = fc.y * u_resolution.x + fc.x;
+            int index = fc.y * iv_resolution.x + fc.x;
 
-            int z = index / (v_resolution.x * v_resolution.y);
-            int xy = index % (v_resolution.x * v_resolution.y);
+            int z = index / (iv_resolution.x * iv_resolution.y);
+            int xy = index % (iv_resolution.x * iv_resolution.y);
 
-            int x = xy % v_resolution.x;
-            int y = xy / v_resolution.x;
+            int x = xy % iv_resolution.x;
+            int y = xy / iv_resolution.x;
 
             x = x * v_step;
             y = y * v_step;
             z = z * v_step;
 
             vec3 dPos = vec3(x, y, z);
-            vec3 normPos = dPos / float(u_resolution);
-            vec3 clipPos = (normPos * 2.0 - 1.0) * float(u_resolution.x / 2);
+            vec3 normPos = dPos / u_resolution;
+            vec3 clipPos = (normPos * 2.0 - 1.0) * (u_resolution.x / 2.0);
 
             gl_Position = mvpMatrix * vec4(clipPos, 1.0);
             gl_PointSize = 8.0;
@@ -312,26 +317,32 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
     function initBreedVAO() {
         var allIndices = new Array(T * T * 2);
+        var divIndices = new Array(T * T * 2);
         for (var j = 0; j < T; j++) {
             for (var i = 0; i < T; i++) {
                 var ind = ((j * T) + i) * 2;
                 allIndices[ind + 0] = i;
                 allIndices[ind + 1] = j;
+                divIndices[ind + 0] = i / T;
+                divIndices[ind + 1] = j / T;
             }
         }
 
         breedVAO = gl.createVertexArray();
         gl.bindVertexArray(breedVAO);
 
-        var positionBuffer = gl.createBuffer();
+        var aBuffer = gl.createBuffer();
+        var bBuffer = gl.createBuffer();
 
-        var attrLocations = new Array(1);
-        attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index'); Now a_index has layout location spec
+        var attrLocations = new Array(2);
+        attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index'); a_index has layout location spec
+        attrLocations[1] = 1 // gl.getAttribLocation(prog, 'b_index'); b_index has layout location spec
 
-        var attrStrides = new Array(1);
+        var attrStrides = new Array(2);
         attrStrides[0] = 2;
+        attrStrides[1] = 2;
 
-        setBufferAttribute([positionBuffer], [allIndices], attrLocations, attrStrides);
+        setBufferAttribute([aBuffer, bBuffer], [allIndices, divIndices], attrLocations, attrStrides);
         gl.bindVertexArray(null);
     }
 
@@ -346,25 +357,32 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var h = VTH;
         }
         var allIndices = new Array(w * h * 2);
+        var divIndices = new Array(w * h * 2);
         for (var j = 0; j < h; j++) {
             for (var i = 0; i < w; i++) {
                 var ind = ((j * w) + i) * 2;
                 allIndices[ind + 0] = i;
                 allIndices[ind + 1] = j;
+                divIndices[ind + 0] = i / w;
+                divIndices[ind + 1] = j / h;
             }
         }
 
         patchVAO = gl.createVertexArray();
         gl.bindVertexArray(patchVAO);
 
-        var positionBuffer = gl.createBuffer();
-        var attrLocations = new Array(1);
-        attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index'); Now a_index has layout location spec
+        var aBuffer = gl.createBuffer();
+        var bBuffer = gl.createBuffer();
 
-        var attrStrides = new Array(1);
+        var attrLocations = new Array(2);
+        attrLocations[0] = 0 // gl.getAttribLocation(prog, 'a_index'); a_index has layout location spec
+        attrLocations[1] = 1 // gl.getAttribLocation(prog, 'b_index'); b_index has layout location spec
+
+        var attrStrides = new Array(2);
         attrStrides[0] = 2;
+        attrStrides[1] = 2;
 
-        setBufferAttribute([positionBuffer], [allIndices], attrLocations, attrStrides);
+        setBufferAttribute([aBuffer, bBuffer], [allIndices, divIndices], attrLocations, attrStrides);
         gl.bindVertexArray(null);
     }
 
@@ -383,7 +401,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     function drawBreedProgram() {
-        return makePrimitive("drawBreed", ["u_resolution", "u_particleLength", "u_fudge", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+        return makePrimitive("drawBreed", ["u_resolution", "u_fudge", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
     }
 
     function drawPatchProgram() {
@@ -391,11 +409,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     function debugBreedProgram() {
-        return makePrimitive("debug", ["u_textureSize", "u_value", "u_fudge"], breedVAO);
+        return makePrimitive("debug", ["u_value", "u_fudge"], breedVAO);
     }
 
     function debugPatchProgram() {
-        return makePrimitive("debug", ["u_textureSize", "u_value", "u_fudge"], patchVAO);
+        return makePrimitive("debug", ["u_value", "u_fudge"], patchVAO);
     }
 
     function renderBreedProgram() {
@@ -1106,7 +1124,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.viewport(0, 0, width, height);
         }
         gl.uniform1i(prog.uniLocations["u_value"], 0);
-        gl.uniform2f(prog.uniLocations["u_textureSize"], width, height);
         gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
 
         if (!standalone) {
@@ -1852,7 +1869,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 gl.viewport(0, 0, FW, FH);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform1f(prog.uniLocations["u_particleLength"], T);
             gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
@@ -2022,8 +2038,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.uniform1i(prog.uniLocations["u_a"], 3);
 
             gl.uniformMatrix4fv(uniLocations["mvpMatrix"], false, mvpMatrix.elements);
-            gl.uniform3i(prog.uniLocations["u_resolution"], FW, FH, FW); // TODO
-            gl.uniform3i(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS); // TODO
+            gl.uniform3f(prog.uniLocations["u_resolution"], FW, FH, FW); // TODO
+            gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS); // TODO
             gl.uniform1i(prog.uniLocations["v_step"], VS);
             gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
 
@@ -2996,7 +3012,7 @@ Shadama {
 `;
 
                     var breedPrologue = `
-  vec2 oneToOne = (a_index / u_particleLength) * 2.0 - 1.0;
+  vec2 oneToOne = b_index * 2.0 - 1.0;
 `;
 
                     var voxelPrologue = `
@@ -3060,8 +3076,8 @@ Shadama {
 `#version 300 es
 precision highp float;
 layout (location = 0) in vec2 a_index;
+layout (location = 1) in vec2 b_index;
 uniform vec${dimension} u_resolution;
-uniform float u_particleLength;
 `;
 
                     if (dimension == 3) {
@@ -4487,8 +4503,6 @@ static loop() {
             FIELD_WIDTH = 1024;
             FIELD_HEIGHT = 768
             defaultProgName = "degauss.shadama";
-            document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
-            document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
         }
         var match;
         match = /fw=([0-9]+)/.exec(window.location.search);
@@ -4528,6 +4542,11 @@ static loop() {
         shadama.addListeners(shadamaCanvas);
         shadama.initServerFiles();
         shadama.initFileList();
+
+	if (degaussdemo) {
+            document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
+            document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
+	}
 
         if (!editor) {
             function words(str) { let o = {}; str.split(" ").forEach((s) => o[s] = true); return o; }
