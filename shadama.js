@@ -171,6 +171,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         "debug.vert":
         `#version 300 es
+        precision highp float;
         layout (location = 0) in vec2 a_index;
         layout (location = 1) in vec2 b_index;
 
@@ -1162,6 +1163,92 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         gl.bindVertexArray(null);
 	return debugArray1;
+    }
+
+    Shadama.prototype.detectFudge = function() {
+        var prog = programs["debugBreed"];
+
+        setTargetBuffer(framebufferD0, debugTexture0);
+
+        state.useProgram(prog.program);
+        gl.bindVertexArray(prog.vao);
+
+        var ary = new Float32Array(T * T);
+        for (var j = 0; j < 4; j++) {
+            for (var i = 0; i < 4; i++) {
+                var ind = T * j + i;
+                ary[ind+0] = i + (j * 100);
+            }
+        }
+
+        var tex = createTexture(ary, gl.R32F, T, T);
+
+        state.activeTexture(gl.TEXTURE0);
+        state.bindTexture(gl.TEXTURE_2D, tex);
+
+        if (standalone) {
+            gl.viewport(0, 0, T, T);
+        }
+        gl.uniform1i(prog.uniLocations["u_value"], 0);
+        gl.uniform2iv(prog.uniLocations["u_fudge"], [0, 0]);
+
+        if (!standalone) {
+            renderer.setClearColor(new THREE.Color(0x000000));
+            renderer.clearColor();
+        } else {
+            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+
+        noBlend();
+
+        gl.drawArrays(gl.POINTS, 0, T * T);
+        gl.flush();
+
+        var read = new Float32Array(T * T * 4);
+        var result = new Array(4 * 4);
+        gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, read, 0);
+
+        for (var j = 0; j < 4; j++) {
+            for (var i = 0; i < 4; i++) {
+		var ind = (j * T + i) * 4;
+            result[j * 4 + i] = read[ind];
+	    }
+        }
+
+        console.log("result", result);
+	var sresult = result.toString();
+
+        setTargetBuffer(null, null);
+        gl.bindVertexArray(null);
+
+	var candidates = [
+	    [[0, 1, 2, 3,
+	      100, 101, 102, 103,
+	      200, 201, 202, 203,
+	      300, 301, 302, 303].toString(),
+	     [0, 0]],
+	    [[100, 101, 102, 103,
+	      200, 201, 202, 203,
+	      300, 301, 302, 303,
+	      0, 0, 0, 0].toString(),
+	     [0, -1]],
+	    [[101, 102, 103, 0,
+	      201, 202, 203, 0,
+	      301, 302, 303, 0,
+	      0, 0, 0, 0].toString(),
+	     [-1, -1]]];
+	
+	for (var i = 0; i < candidates.length; i++) {
+	    var c = candidates[i];
+	    if (c[0] == sresult) {
+		return c[1];
+	    }
+	}
+
+	gl.deleteTexture(tex);
+
+	return [0, 0];
     }
 
     Shadama.prototype.resetSystem = function() {
@@ -4554,11 +4641,11 @@ static loop() {
     runTests = /test.?=/.test(window.location.search);
     showAllEnv = !(/allEnv=/.test(window.location.search));
     degaussdemo = /degaussdemo/.test(window.location.search);
-    var maybeFudge = /fudge=([0-9-]+),([0-9-]+)/.exec(window.location.search);
+    var userFudge = /fudge=([0-9-]+),([0-9-]+)/.exec(window.location.search);
 
-    if (maybeFudge) {
-	fudge = "+ ivec2(" + maybeFudge[1] + ", " + maybeFudge[2] + ")";
-	fudgeValue = [maybeFudge[1], maybeFudge[2]];
+    if (userFudge) {
+	fudge = "+ ivec2(" + userFudge[1] + ", " + userFudge[2] + ")";
+	fudgeValue = [userFudge[1], userFudge[2]];
     }
 
     if (standalone) {
@@ -4654,7 +4741,6 @@ static loop() {
 
     initBreedVAO();
     initPatchVAO();
-    initCompiler();
 
     programs["drawBreed"] = drawBreedProgram();
     programs["drawPatch"] = drawPatchProgram();
@@ -4662,6 +4748,14 @@ static loop() {
     programs["debugBreed"] = debugBreedProgram();
     programs["renderBreed"] = renderBreedProgram();
     programs["renderPatch"] = renderPatchProgram();
+
+    if (!userFudge) {
+	var f = shadama.detectFudge();
+	fudge = "+ ivec2(" + f[0] + ", " + f[1] + ")";
+	fudgeValue = f;
+    }
+
+    initCompiler();
 
     if (runTests) {
         setTestParams(shadama.tester());
