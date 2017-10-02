@@ -1359,6 +1359,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
             img.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
         }
 
+	img.hidden = true;
+
         img.onload = function() {
             tmpCanvas.width = img.width;
             tmpCanvas.height = img.height;
