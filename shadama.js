@@ -79,8 +79,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
     var runTests;
     var showAllEnv;
     var degaussdemo;
-    var fudge = ""; //+ivec2(0, 0)";
-    var fudgeValue = [0, 0];
 
     var shaders = {
         "drawBreed.vert":
@@ -89,7 +87,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         layout (location = 1) in vec2 b_index;
 
         uniform vec2 u_resolution;
-	uniform ivec2 u_fudge;
+	uniform vec2 u_half;
 
         uniform sampler2D u_x;
         uniform sampler2D u_y;
@@ -102,12 +100,12 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-	    ivec2 fc = ivec2(a_index) + u_fudge;
+	    ivec2 fc = ivec2(a_index);
             float x = texelFetch(u_x, fc, 0).r;
             float y = texelFetch(u_y, fc, 0).r;
             vec2 dPos = vec2(x, y);   // (0-resolution, 0-resolution)
             vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
-            vec2 clipPos = normPos * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            vec2 clipPos = (normPos + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
 
             float r = texelFetch(u_r, fc, 0).r;
@@ -135,7 +133,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         layout (location = 1) in vec2 b_index;
 
         uniform vec2 u_resolution;
-	uniform ivec2 u_fudge;
+	uniform vec2 u_half;
 
         uniform sampler2D u_r;
         uniform sampler2D u_g;
@@ -145,11 +143,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-            vec2 clipPos = b_index * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            vec2 clipPos = (b_index + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
             gl_PointSize = 1.0;
 
-            ivec2 fc = ivec2(a_index) + u_fudge;
+            ivec2 fc = ivec2(a_index);
 
             float r = texelFetch(u_r, fc, 0).r;
             float g = texelFetch(u_g, fc, 0).r;
@@ -176,16 +174,16 @@ function ShadamaFactory(threeRenderer, optDimension) {
         layout (location = 1) in vec2 b_index;
 
         uniform sampler2D u_value;
-        uniform ivec2 u_fudge;
+        uniform vec2 u_half;
 
         out vec4 v_color;
 
         void main(void) {
-            vec2 clipPos = b_index * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            vec2 clipPos = (b_index + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
             gl_PointSize = 1.0;
 
-            ivec2 fc = ivec2(a_index) + u_fudge;
+            ivec2 fc = ivec2(a_index);
             v_color = texelFetch(u_value, fc, 0);
         }`,
 
@@ -207,7 +205,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         uniform mat4 mvpMatrix;
         uniform vec3 u_resolution;
-	uniform ivec2 u_fudge;
+	uniform vec3 u_half;
 
         uniform sampler2D u_x;
         uniform sampler2D u_y;
@@ -221,13 +219,13 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-	    ivec2 fc = ivec2(a_index) + u_fudge;
+	    ivec2 fc = ivec2(a_index);
             float x = texelFetch(u_x, fc, 0).r;
             float y = texelFetch(u_y, fc, 0).r;
             float z = texelFetch(u_z, fc, 0).r;
             vec3 dPos = vec3(x, y, z);
             vec3 normPos = dPos / u_resolution;
-            vec3 clipPos = (normPos * 2.0 - 1.0) * (u_resolution.x / 2.0);
+            vec3 clipPos = ((normPos + u_half) * 2.0 - 1.0) * (u_resolution.x / 2.0);
 
             gl_Position = mvpMatrix * vec4(clipPos, 1.0);
 
@@ -236,7 +234,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             float b = texelFetch(u_b, fc, 0).r;
             float a = texelFetch(u_a, fc, 0).r;
             v_color = vec4(r, g, b, a);
-            gl_PointSize = 1.0;
+            gl_PointSize = 1.0 * ( 512.0 / -gl_Position.z );
         }`,
 
         "renderBreed.frag":
@@ -261,7 +259,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         uniform vec3 u_resolution;
         uniform vec3 v_resolution;
         uniform int v_step;
-	uniform ivec2 u_fudge;
+	uniform vec3 u_half;
 
         uniform sampler2D u_r;
         uniform sampler2D u_g;
@@ -271,7 +269,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-            ivec2 fc = ivec2(a_index) + u_fudge;
+            ivec2 fc = ivec2(a_index);
 	    ivec3 iv_resolution = ivec3(v_resolution);
             // the framebuffer will be 512^512, which is square of cube root of 64 * 64 * 64
             // fc varies over this.
@@ -290,10 +288,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             vec3 dPos = vec3(x, y, z);
             vec3 normPos = dPos / u_resolution;
-            vec3 clipPos = (normPos * 2.0 - 1.0) * (u_resolution.x / 2.0);
+            vec3 clipPos = ((normPos + u_half) * 2.0 - 1.0) * (u_resolution.x / 2.0);
 
             gl_Position = mvpMatrix * vec4(clipPos, 1.0);
-            gl_PointSize = 8.0;
+            gl_PointSize = 16.0 * ( 512.0 / -gl_Position.z );
 
             float r = texelFetch(u_r, fc, 0).r;
             float g = texelFetch(u_g, fc, 0).r;
@@ -403,27 +401,27 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     function drawBreedProgram() {
-        return makePrimitive("drawBreed", ["u_resolution", "u_fudge", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+        return makePrimitive("drawBreed", ["u_resolution", "u_half", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
     }
 
     function drawPatchProgram() {
-        return makePrimitive("drawPatch", ["u_resolution", "u_fudge", "u_a", "u_r", "u_g", "u_b"], patchVAO);
+        return makePrimitive("drawPatch", ["u_resolution", "u_half", "u_a", "u_r", "u_g", "u_b"], patchVAO);
     }
 
     function debugBreedProgram() {
-        return makePrimitive("debug", ["u_value", "u_fudge"], breedVAO);
+        return makePrimitive("debug", ["u_value", "u_half"], breedVAO);
     }
 
     function debugPatchProgram() {
-        return makePrimitive("debug", ["u_value", "u_fudge"], patchVAO);
+        return makePrimitive("debug", ["u_value", "u_half"], patchVAO);
     }
 
     function renderBreedProgram() {
-        return makePrimitive("renderBreed", ["mvpMatrix", "u_resolution", "u_fudge", "u_x", "u_y", "u_z", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+        return makePrimitive("renderBreed", ["mvpMatrix", "u_resolution", "u_half", "u_x", "u_y", "u_z", "u_r", "u_g", "u_b", "u_a"], breedVAO);
     }
 
     function renderPatchProgram() {
-        return makePrimitive("renderPatch", ["mvpMatrix", "u_resolution", "u_fudge", "v_resolution", "v_step", "u_r", "u_g", "u_b", "u_a"], patchVAO);
+        return makePrimitive("renderPatch", ["mvpMatrix", "u_resolution", "u_half", "v_resolution", "v_step", "u_r", "u_g", "u_b", "u_a"], patchVAO);
     }
 
     function createShader(id, source) {
@@ -768,7 +766,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 }
 
                 gl.uniform2f(uniLocations["u_resolution"], FW, FH);
-                gl.uniform1f(uniLocations["u_particleLength"], T);
+                gl.uniform2f(uniLocations["u_half"], 0.5/viewportW, 0.5/viewportH);
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
@@ -879,7 +877,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 gl.uniform3f(uniLocations["u_resolution"], VW, VH, VD);
                 gl.uniform3f(uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
                 gl.uniform1f(uniLocations["v_step"], VS);
-                gl.uniform1f(uniLocations["u_particleLength"], T);
+                gl.uniform2f(uniLocations["v_half"], 0.5/viewportW, 0.5/viewportH);
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
@@ -1124,7 +1122,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.viewport(0, 0, width, height);
         }
         gl.uniform1i(prog.uniLocations["u_value"], 0);
-        gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
+        gl.uniform2f(prog.uniLocations["u_half"], 0.5/width, 0.5/height);
 
         if (!standalone) {
             renderer.setClearColor(new THREE.Color(0x000000));
@@ -1163,92 +1161,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         gl.bindVertexArray(null);
 	return debugArray1;
-    }
-
-    Shadama.prototype.detectFudge = function() {
-        var prog = programs["debugBreed"];
-
-        setTargetBuffer(framebufferD0, debugTexture0);
-
-        state.useProgram(prog.program);
-        gl.bindVertexArray(prog.vao);
-
-        var ary = new Float32Array(T * T);
-        for (var j = 0; j < 4; j++) {
-            for (var i = 0; i < 4; i++) {
-                var ind = T * j + i;
-                ary[ind+0] = i + (j * 100);
-            }
-        }
-
-        var tex = createTexture(ary, gl.R32F, T, T);
-
-        state.activeTexture(gl.TEXTURE0);
-        state.bindTexture(gl.TEXTURE_2D, tex);
-
-        if (standalone) {
-            gl.viewport(0, 0, T, T);
-        }
-        gl.uniform1i(prog.uniLocations["u_value"], 0);
-        gl.uniform2iv(prog.uniLocations["u_fudge"], [0, 0]);
-
-        if (!standalone) {
-            renderer.setClearColor(new THREE.Color(0x000000));
-            renderer.clearColor();
-        } else {
-            gl.clearColor(0.0, 0.0, 0.0, 0.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-        }
-
-        noBlend();
-
-        gl.drawArrays(gl.POINTS, 0, T * T);
-        gl.flush();
-
-        var read = new Float32Array(T * T * 4);
-        var result = new Array(4 * 4);
-        gl.readPixels(0, 0, T, T, gl.RGBA, gl.FLOAT, read, 0);
-
-        for (var j = 0; j < 4; j++) {
-            for (var i = 0; i < 4; i++) {
-		var ind = (j * T + i) * 4;
-            result[j * 4 + i] = read[ind];
-	    }
-        }
-
-        console.log("result", result);
-	var sresult = result.toString();
-
-        setTargetBuffer(null, null);
-        gl.bindVertexArray(null);
-
-	var candidates = [
-	    [[0, 1, 2, 3,
-	      100, 101, 102, 103,
-	      200, 201, 202, 203,
-	      300, 301, 302, 303].toString(),
-	     [0, 0]],
-	    [[100, 101, 102, 103,
-	      200, 201, 202, 203,
-	      300, 301, 302, 303,
-	      0, 0, 0, 0].toString(),
-	     [0, -1]],
-	    [[101, 102, 103, 0,
-	      201, 202, 203, 0,
-	      301, 302, 303, 0,
-	      0, 0, 0, 0].toString(),
-	     [-1, -1]]];
-	
-	for (var i = 0; i < candidates.length; i++) {
-	    var c = candidates[i];
-	    if (c[0] == sresult) {
-		return c[1];
-	    }
-	}
-
-	gl.deleteTexture(tex);
-
-	return [0, 0];
     }
 
     Shadama.prototype.resetSystem = function() {
@@ -1952,7 +1864,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 gl.viewport(0, 0, FW, FH);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5/T, 0.5/T);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
             gl.flush();
@@ -2008,8 +1920,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.uniform1i(prog.uniLocations["u_a"], 6);
 
             gl.uniformMatrix4fv(uniLocations["mvpMatrix"], false, mvpMatrix.elements);
-            gl.uniform3f(prog.uniLocations["u_resolution"], FW, FH, FW); // TODO
-            gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
+            gl.uniform3f(prog.uniLocations["u_resolution"], VW, VH, VD);
+            gl.uniform3f(prog.uniLocations["u_half"], 0.5/VW, 0.5/VH, 0.5/VD);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
             gl.flush();
@@ -2069,7 +1981,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 gl.viewport(0, 0, FW, FH);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5/FW, 0.5/FH);
 
             gl.drawArrays(gl.POINTS, 0, FW * FH);
             gl.flush();
@@ -2121,10 +2033,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.uniform1i(prog.uniLocations["u_a"], 3);
 
             gl.uniformMatrix4fv(uniLocations["mvpMatrix"], false, mvpMatrix.elements);
-            gl.uniform3f(prog.uniLocations["u_resolution"], FW, FH, FW); // TODO
-            gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS); // TODO
+            gl.uniform3f(prog.uniLocations["u_resolution"], VW, VH, VD);
+            gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
             gl.uniform1i(prog.uniLocations["v_step"], VS);
-            gl.uniform2iv(prog.uniLocations["u_fudge"], fudgeValue);
+            gl.uniform3f(prog.uniLocations["u_half"], 0.5/VW, 0.5/VH, 0.5/VD);
 
             gl.drawArrays(gl.POINTS, 0, VTW * VTH);
             gl.flush();
@@ -3065,15 +2977,15 @@ Shadama {
                     var frag = this.args.frag;
 
                     var patchInput = `
-  float _x = texelFetch(u_that_x, ivec2(a_index)${fudge}, 0).r;
-  float _y = texelFetch(u_that_y, ivec2(a_index)${fudge}, 0).r;
+  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
   vec2 _pos = vec2(_x, _y);
 `;
 
                     var voxelInput = `
-  float _x = texelFetch(u_that_x, ivec2(a_index)${fudge}, 0).r;
-  float _y = texelFetch(u_that_y, ivec2(a_index)${fudge}, 0).r;
-  float _z = texelFetch(u_that_z, ivec2(a_index)${fudge}, 0).r;
+  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
+  float _z = texelFetch(u_that_z, ivec2(a_index), 0).r;
   _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
   _y = floor(_y / v_step); // 8
   _z = floor(_z / v_step); // 8
@@ -3083,15 +2995,15 @@ Shadama {
 `;
 
                     var patchPrologue = `
-  vec2 oneToOne = (_pos / u_resolution) * 2.0 - 1.0;
+  vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
 `;
 
                     var breedPrologue = `
-  vec2 oneToOne = b_index * 2.0 - 1.0;
+  vec2 oneToOne = (b_index + u_half) * 2.0 - 1.0;
 `;
 
                     var voxelPrologue = `
-  vec2 oneToOne = (_pos / u_resolution.xy) * 2.0 - 1.0;
+  vec2 oneToOne = ((_pos / u_resolution.xy) + u_half) * 2.0 - 1.0;
 `;
 
                     var epilogue = `
@@ -3153,6 +3065,7 @@ precision highp float;
 layout (location = 0) in vec2 a_index;
 layout (location = 1) in vec2 b_index;
 uniform vec${dimension} u_resolution;
+uniform vec2 u_half;
 `;
 
                     if (dimension == 3) {
@@ -3512,11 +3425,11 @@ uniform sampler2D u_that_y;
                         if (n.sourceString === "this") {
                             vert.push("texelFetch(" +
                                       table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                      `, ivec2(a_index)${fudge}, 0).r`);
+                                      `, ivec2(a_index), 0).r`);
                         } else {
                             vert.push("texelFetch(" +
                                       table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                      `, ivec2(_pos)${fudge}, 0).r`);
+                                      `, ivec2(_pos), 0).r`);
                         }
                     }
                 },
@@ -4069,7 +3982,7 @@ uniform sampler2D u_that_y;
                 }
             }
 
-            this.defaultUniforms = ["u_resolution", "u_fudge"];
+            this.defaultUniforms = ["u_resolution", "u_half"];
             this.defaultAttributes = ["a_index", "b_index"];
         }
 
@@ -4214,7 +4127,7 @@ uniform sampler2D u_that_y;
         uniformDefaults() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
                 var u_entry = ["propIn", entry[1], entry[2]];
-                var ind = entry[1] === "this" ? `ivec2(a_index)${fudge}` : `ivec2(_pos)${fudge}`;
+                var ind = entry[1] === "this" ? `ivec2(a_index)` : `ivec2(_pos)`;
                 return `${this.varying(entry)} = texelFetch(${this.uniform(u_entry)}, ${ind}, 0).r;`;
             })
         }
@@ -4241,7 +4154,7 @@ uniform sampler2D u_that_y;
         hasVariable(n) {
             if (this.param.has(n)) {return true;}
             if (this.local.has(n)) {return true;}
-            if (["this", "u_resolution", "u_particleLength", "a_index"].indexOf(n) >= 0) {
+            if (["this", "u_resolution", "u_half", "a_index", "b_index"].indexOf(n) >= 0) {
                 return true;
             }
             return false;
@@ -4454,9 +4367,9 @@ def bounce(field) {
     ry = dy - 2.0 * dot * ny;
     rz = dz - 2.0 * dot * nz;
     var norm = sqrt(rx * rx + ry * ry * rz * rz);
-    rx = rx / (norm / origV);
-    ry = ry / (norm / origV);
-    rz = rz / (norm / origV);
+    rx = rx / (norm / origV) / 2;
+    ry = ry / (norm / origV) / 2;
+    rz = rz / (norm / origV) / 2;
   }
 
   var newX = this.x + dx;
@@ -4474,7 +4387,11 @@ def bounce(field) {
 
   if (newY < 0.0) {
     newY = mod(newY, u_resolution.y);
+    newX = 10;
+    newZ = 10;
     ry = -0.1;
+    rx = 0.05 + random(rz + a_index.x) * 0.1;
+    rz = 0.08 + random(rx + a_index.x) * 0.1;
   }
   if (newY > u_resolution.y) {
     newY = u_resolution.y - (newY - u_resolution.y);
@@ -4641,12 +4558,6 @@ static loop() {
     runTests = /test.?=/.test(window.location.search);
     showAllEnv = !(/allEnv=/.test(window.location.search));
     degaussdemo = /degaussdemo/.test(window.location.search);
-    var userFudge = /fudge=([0-9-]+),([0-9-]+)/.exec(window.location.search);
-
-    if (userFudge) {
-	fudge = "+ ivec2(" + userFudge[1] + ", " + userFudge[2] + ")";
-	fudgeValue = [userFudge[1], userFudge[2]];
-    }
 
     if (standalone) {
         if (degaussdemo) {
@@ -4748,12 +4659,6 @@ static loop() {
     programs["debugBreed"] = debugBreedProgram();
     programs["renderBreed"] = renderBreedProgram();
     programs["renderPatch"] = renderPatchProgram();
-
-    if (!userFudge) {
-	var f = shadama.detectFudge();
-	fudge = "+ ivec2(" + f[0] + ", " + f[1] + ")";
-	fudgeValue = f;
-    }
 
     initCompiler();
 
