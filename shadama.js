@@ -87,7 +87,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         layout (location = 1) in vec2 b_index;
 
         uniform vec2 u_resolution;
-	uniform vec2 u_half;
+        uniform vec2 u_half;
 
         uniform sampler2D u_x;
         uniform sampler2D u_y;
@@ -100,7 +100,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-	    ivec2 fc = ivec2(a_index);
+            ivec2 fc = ivec2(a_index);
             float x = texelFetch(u_x, fc, 0).r;
             float y = texelFetch(u_y, fc, 0).r;
             vec2 dPos = vec2(x, y);   // (0-resolution, 0-resolution)
@@ -133,7 +133,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         layout (location = 1) in vec2 b_index;
 
         uniform vec2 u_resolution;
-	uniform vec2 u_half;
+        uniform vec2 u_half;
 
         uniform sampler2D u_r;
         uniform sampler2D u_g;
@@ -205,7 +205,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         uniform mat4 mvpMatrix;
         uniform vec3 u_resolution;
-	uniform vec3 u_half;
+        uniform vec3 u_half;
 
         uniform sampler2D u_x;
         uniform sampler2D u_y;
@@ -219,7 +219,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         out vec4 v_color;
 
         void main(void) {
-	    ivec2 fc = ivec2(a_index);
+            ivec2 fc = ivec2(a_index);
             float x = texelFetch(u_x, fc, 0).r;
             float y = texelFetch(u_y, fc, 0).r;
             float z = texelFetch(u_z, fc, 0).r;
@@ -259,7 +259,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         uniform vec3 u_resolution;
         uniform vec3 v_resolution;
         uniform int v_step;
-	uniform vec3 u_half;
+        uniform vec3 u_half;
 
         uniform sampler2D u_r;
         uniform sampler2D u_g;
@@ -270,7 +270,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         void main(void) {
             ivec2 fc = ivec2(a_index);
-	    ivec3 iv_resolution = ivec3(v_resolution);
+            ivec3 iv_resolution = ivec3(v_resolution);
             // the framebuffer will be 512^512, which is square of cube root of 64 * 64 * 64
             // fc varies over this.
 
@@ -484,11 +484,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
         gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, false);
 
-	gl.pixelStorei(gl.UNPACK_ROW_LENGTH, width);
-	gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, height);
-	gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
-	gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
-	gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, 0);
+        gl.pixelStorei(gl.UNPACK_ROW_LENGTH, width);
+        gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, height);
+        gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+        gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
+        gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, 0);
 
         if (type == gl.UNSIGNED_BYTE) {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, data, 0);
@@ -849,7 +849,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             table.scalarParamTable.keysAndValuesDo((key, entry) => {
                 var name = entry[2];
-		var uni;
+                var uni;
                 uni = "u_scalar_" + name;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
@@ -1097,9 +1097,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
             debugCanvas1.width = width;
             debugCanvas1.height = height;
-	    if (standalone) {
-		document.body.appendChild(debugCanvas1);
-	    }
+            if (standalone) {
+                document.body.appendChild(debugCanvas1);
+            }
         }
 
         var prog = programs[forBreed ? "debugBreed" : "debugPatch"];
@@ -1160,7 +1160,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         setTargetBuffer(null, null);
 
         gl.bindVertexArray(null);
-	return debugArray1;
+        return debugArray1;
     }
 
     Shadama.prototype.resetSystem = function() {
@@ -1359,7 +1359,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             img.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
         }
 
-	img.hidden = true;
+        img.hidden = true;
 
         img.onload = function() {
             tmpCanvas.width = img.width;
@@ -1771,17 +1771,17 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var y = new Float32Array(T * T);
             var z = new Float32Array(T * T);
 
-	    var ind = 0;
+            var ind = 0;
 
             for (var l = 0; l < zDim; l += step) {
-		for (var j = 0; j < yDim; j += step) {
+                for (var j = 0; j < yDim; j += step) {
                     for (var i = 0; i < xDim; i += step) {
-			x[ind] = i;
-			y[ind] = j;
-			z[ind] = l;
-			ind++;
+                        x[ind] = i;
+                        y[ind] = j;
+                        z[ind] = l;
+                        ind++;
                     }
-		}
+                }
             }
             updateOwnVariable(this, xName, x);
             updateOwnVariable(this, yName, y);
@@ -4590,10 +4590,10 @@ static loop() {
         shadama.initServerFiles();
         shadama.initFileList();
 
-	if (degaussdemo) {
+        if (degaussdemo) {
             document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
             document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
-	}
+        }
 
         if (!editor) {
             function words(str) { let o = {}; str.split(" ").forEach((s) => o[s] = true); return o; }
