@@ -2311,12 +2311,7 @@ Shadama {
     = ident "." ident -- field
     | ident
 
-  Expression = EqualityExpression
-
-  EqualityExpression
-    = EqualityExpression "==" LogicalExpression  -- equal
-    | EqualityExpression "!=" LogicalExpression  -- notEqual
-    | LogicalExpression
+  Expression = LogicalExpression
 
   LogicalExpression
     = LogicalExpression "&&" RelationalExpression       -- and
@@ -2324,10 +2319,12 @@ Shadama {
     | RelationalExpression
 
   RelationalExpression
-    = RelationalExpression "<" AddExpression           -- lt
-    | RelationalExpression ">" AddExpression           -- gt
-    | RelationalExpression "<=" AddExpression          -- le
+    = RelationalExpression "<=" AddExpression          -- le
     | RelationalExpression ">=" AddExpression          -- ge
+    | RelationalExpression "<" AddExpression           -- lt
+    | RelationalExpression ">" AddExpression           -- gt
+    | RelationalExpression "==" AddExpression          -- equal
+    | RelationalExpression "!=" AddExpression          -- notEqual
     | AddExpression
 
   AddExpression
@@ -2815,38 +2812,6 @@ Shadama {
                     e.glsl_helper(this.args.table, this.args.vert);
                 },
 
-                EqualityExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                EqualityExpression_equal(l, _, r) {
-                    transBinOp(l, r, " == ", this.args);
-                },
-
-                EqualityExpression_notEqual(l, _, r) {
-                    transBinOp(l, r, " != ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    transBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    transBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    transBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    transBinOp(l, r, " >= ", this.args);
-                },
-
                 LogicalExpression(e) {
                     e.glsl_helper(this.args.table, this.args.vert);
                 },
@@ -2859,6 +2824,33 @@ Shadama {
                     transBinOp(l, r, " || ", this.args);
                 },
 
+                RelationalExpression(e) {
+                    e.glsl_helper(this.args.table, this.args.vert);
+                },
+
+                RelationalExpression_le(l, _, r) {
+                    transBinOp(l, r, " <= ", this.args);
+                },
+
+                RelationalExpression_ge(l, _, r) {
+                    transBinOp(l, r, " >= ", this.args);
+                },
+
+                RelationalExpression_lt(l, _, r) {
+                    transBinOp(l, r, " < ", this.args);
+                },
+
+                RelationalExpression_gt(l, _, r) {
+                    transBinOp(l, r, " > ", this.args);
+                },
+
+                RelationalExpression_equal(l, _, r) {
+                    transBinOp(l, r, " == ", this.args);
+                },
+
+                RelationalExpression_notEqual(l, _, r) {
+                    transBinOp(l, r, " != ", this.args);
+                },
 
                 AddExpression(e) {
                     e.glsl_helper(this.args.table, this.args.vert);
@@ -3300,38 +3292,6 @@ uniform sampler2D u_that_y;
                     e.glsl(this.args.table, this.args.vert, this.args.frag);
                 },
 
-                EqualityExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                EqualityExpression_equal(l, _, r) {
-                    transBinOp(l, r, " == ", this.args);
-                },
-
-                EqualityExpression_notEqual(l, _, r) {
-                    transBinOp(l, r, " != ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    transBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    transBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    transBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    transBinOp(l, r, " >= ", this.args);
-                },
-
                 LogicalExpression(e) {
                     e.glsl(this.args.table, this.args.vert, this.args.frag);
                 },
@@ -3342,6 +3302,34 @@ uniform sampler2D u_that_y;
 
                 LogicalExpression_or(l, _, r) {
                     transBinOp(l, r, " || ", this.args);
+                },
+
+                RelationalExpression(e) {
+                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                },
+
+                RelationalExpression_le(l, _, r) {
+                    transBinOp(l, r, " <= ", this.args);
+                },
+
+                RelationalExpression_ge(l, _, r) {
+                    transBinOp(l, r, " >= ", this.args);
+                },
+
+                RelationalExpression_lt(l, _, r) {
+                    transBinOp(l, r, " < ", this.args);
+                },
+
+                RelationalExpression_gt(l, _, r) {
+                    transBinOp(l, r, " > ", this.args);
+                },
+
+                RelationalExpression_equal(l, _, r) {
+                    transBinOp(l, r, " == ", this.args);
+                },
+
+                RelationalExpression_notEqual(l, _, r) {
+                    transBinOp(l, r, " != ", this.args);
                 },
 
                 AddExpression(e) {
@@ -3649,38 +3637,6 @@ uniform sampler2D u_that_y;
                     e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
                 },
 
-                EqualityExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                EqualityExpression_equal(l, _, r) {
-                    staticTransBinOp(l, r, " == ", this.args);
-                },
-
-                EqualityExpression_notEqual(l, _, r) {
-                    staticTransBinOp(l, r, " != ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    staticTransBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    staticTransBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    staticTransBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    staticTransBinOp(l, r, " >= ", this.args);
-                },
-
                 LogicalExpression(e) {
                     e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
                 },
@@ -3691,6 +3647,34 @@ uniform sampler2D u_that_y;
 
                 LogicalExpression_or(l, _, r) {
                     staticTransBinOp(l, r, " || ", this.args);
+                },
+
+                RelationalExpression(e) {
+                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                },
+
+                RelationalExpression_le(l, _, r) {
+                    staticTransBinOp(l, r, " <= ", this.args);
+                },
+
+                RelationalExpression_ge(l, _, r) {
+                    staticTransBinOp(l, r, " >= ", this.args);
+                },
+
+                RelationalExpression_lt(l, _, r) {
+                    staticTransBinOp(l, r, " < ", this.args);
+                },
+
+                RelationalExpression_gt(l, _, r) {
+                    staticTransBinOp(l, r, " > ", this.args);
+                },
+
+                RelationalExpression_equal(l, _, r) {
+                    staticTransBinOp(l, r, " == ", this.args);
+                },
+
+                RelationalExpression_notEqual(l, _, r) {
+                    staticTransBinOp(l, r, " != ", this.args);
                 },
 
                 AddExpression(e) {

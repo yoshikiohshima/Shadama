@@ -43,7 +43,7 @@ def comp(field) {
       field.c = 0;
     }
   } else {
-    if ((c == 3) || (c == 2)) {
+    if (c == 3 || c == 2) {
        field.c = 1;
     } else {
        field.c = 0;
