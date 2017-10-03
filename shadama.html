@@ -138,7 +138,7 @@ def remember1() {
 }
 
 def storeBlur(blur) {
-  blur.level = this.r;
+  blur.level = this.b;
 }
 
 def restore() {
@@ -151,16 +151,13 @@ def restore() {
 }
 
 def colorize2(blur) {
-  var p = 1.0 - blur.level;
-   this.r = this.origR * p + this.origG * (1.0 - p);
-   this.g = this.origG * p;
-   this.b = this.origB * p + this.origG * (1.0 - p);
-   this.a = this.origA;
-}
-
-def colorize3() {
-  this.x = this.origX;
-  this.y = this.origY;
+   var p = 1.0 - blur.level;
+   if (p < 0.9) {
+     this.r = this.origR * p + this.origG * (1.0 - p);
+     this.g = this.origG * p;
+     this.b = this.origB * (1.0 - p); // p + this.origG * (1.0 - p);
+     this.a = this.origA;
+   }
 }
 
 def degauss(step, begin) {
@@ -180,12 +177,13 @@ def degauss(step, begin) {
 def degaussColor(step, begin) {
   this.r = this.r - (this.r - this.origR) * 0.01;
   this.g = this.g - (this.g - this.origG) * 0.01;
+  this.b = this.b - (this.b - this.origB) * 0.01;
 }
   
 static setup() {
-  Pict.fillImage("x", "y", "r", "g", "b", "a", windows);
+  Pict.fillImage("x", "y", "r", "g", "b", "a", presentation);
   Pict.remember1();
-  Filler.fillImage("x", "y", "r", "g", "b", "a", blurBig);
+  Filler.fillImage("x", "y", "r", "g", "b", "a", blurBlue);
   Filler.storeBlur(Blur);
   Button.fillImage("x", "y", "r", "g", "b", "a", button);
   Button.move(760, 160);

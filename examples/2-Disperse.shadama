@@ -13,6 +13,7 @@ def move() {
   var dy = this.dy;
   this.x = this.x + dx;
   this.y = this.y + dy;
+  // uncomment this to simulate constant acceleration
 //  this.dy = dy - 0.01;
 }
 
@@ -26,6 +27,7 @@ static setup() {
 }
 
 static step() {
+  // Click on the clock by the label "step" on the right to tick this static function
   Display.clear();
   Turtle.move();
   Turtle.draw();

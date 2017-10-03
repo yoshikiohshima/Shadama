@@ -80,6 +80,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
     var showAllEnv;
     var degaussdemo;
 
+    var pendingLoads = [[], null]; // = [[], callback];
+
     var shaders = {
         "drawBreed.vert":
         `#version 300 es
@@ -1294,6 +1296,20 @@ function ShadamaFactory(threeRenderer, optDimension) {
         });
     }
 
+
+    function checkPending(obj) {
+	var ind = pendingLoads[0].indexOf(obj);
+	if (ind >= 0) {
+	    pendingLoads[0].splice(ind, 1);
+	}
+	if (pendingLoads[0].length === 0) {
+	    if (pendingLoads[1]) {
+		pendingLoads[1]();
+		pendingLoads[1] = null;
+	    }
+        }
+    }
+
     Shadama.prototype.initAudio = function(name, keyName, callback) {
         if (!standalone) {return;}
         var location = window.location.toString();
@@ -1313,17 +1329,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 audioContext.decodeAudioData(request.response,
                                              function(buffer) {
                                                  that.env[keyName] = buffer;
-                                                 if (callback) {
-                                                     callback();
-                                                 }
+						 checkPending(request);
                                              },
                                              function(error) {
                                                  console.log(error);
-                                                 if (callback) {
-                                                     callback();
-                                                 }
+						 checkPending(request);
                                              });
             }
+	    pendingLoads[0].push(request);
             request.send();
         }
 
@@ -1352,9 +1365,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 console.log("no internet");
                 document.body.removeChild(img);
                 that.env[keyName] = that.emptyImageData(256, 256);
-                if (callback) {
-                    callback();
-                }
+		checkPending(img);
             }
             img.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
         }
@@ -1367,10 +1378,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             tmpCanvas.getContext('2d').drawImage(img, 0, 0);
             that.env[keyName] = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
             document.body.removeChild(img);
-            if (callback) {
-                callback();
-            }
+	    checkPending(img);
         }
+	pendingLoads[0].push(img);
         document.body.appendChild(img);
     }
 
@@ -1383,13 +1393,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
         this.env["Display"] = new Display(this);
 
         if (standalone) {
+	    pendingLoads[1] = callback;
             this.initAudio("degauss.mp3", "degauss");
             this.initImage("mask.png", "mask");
-            this.initImage("blur.png", "blur");
+            this.initImage("blur-blue.png", "blurBlue");
             this.initImage("blur-big.png", "blurBig");
             this.initImage("windows.png", "windows");
+            this.initImage("presentation.png", "presentation");
             this.initImage("button.png", "button");
-            this.initImage("ahiru.png", "image", callback);
+            this.initImage("ahiru.png", "image");
         } else {
             callback();
         }
@@ -1544,13 +1556,13 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var name = option.label;
             var source = localStorage.getItem(name);
             if (source) {
+                this.env["Display"].clear();
                 console.log("loading: " + name);
                 this.resetSystem();
                 this.loadShadama(null, source);
                 if (editor) {
                     editor.doc.setValue(source);
                 }
-                this.env["Display"].clear();
                 this.maybeRunner();
             }
         }
@@ -2104,7 +2116,12 @@ function ShadamaFactory(threeRenderer, optDimension) {
                                 }
                                 var docPos = editor.doc.posFromIndex(pos);
                                 var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
-                                console.log(pos, msg);
+
+				if (pos && msg) {
+                                    console.log(pos, msg);
+				} else {
+                                    console.log(error);
+				}
                                 parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                             }
                         },

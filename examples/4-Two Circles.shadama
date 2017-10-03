@@ -22,6 +22,9 @@ def fillCircle(cx, cy, r, field) {
 }
 
 static setup() {
+  // The turtles of the Filler breed go all integral points
+  //  between (0, 0) and (width, height).
+  // This is a common way to have a breed whose job is to manipulate the patch
   Filler.fillSpace("x", "y", width, height);
   Filler.clear(Field);
   Filler.fillCircle(75, 75, 20, Field);
