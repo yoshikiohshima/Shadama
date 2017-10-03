@@ -24,6 +24,7 @@ static setup() {
   Turtle.fillRandom("y", 0, 512);
   Turtle.fillRandomDir("dx", "dy");
   Turtle.setColor();
+  Turtle.draw();
 }
 
 static step() {
