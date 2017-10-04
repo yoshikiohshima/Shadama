@@ -315,6 +315,93 @@ function ShadamaFactory(threeRenderer, optDimension) {
         void main(void) {
             fragColor = v_color;
         }`,
+
+        "diffusePatch.vert":
+        `#version 300 es
+        layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
+
+        uniform vec2 u_half;
+        uniform sampler2D u_value;
+
+        out float v_value;
+
+        const float weight[9] = float[9](
+            0.077847, 0.123317, 0.077847,
+            0.123317, 0.195346, 0.123317,
+            0.077847, 0.123317, 0.077847
+        );
+
+        void main(void) {
+            vec2 clipPos = (b_index + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            gl_Position = vec4(clipPos, 0, 1.0);
+            gl_PointSize = 1.0;
+
+            ivec2 fc = ivec2(a_index);
+            float v = 0.0;
+            v += texelFetch(u_value, fc + ivec2(-1, -1), 0).r * weight[0];
+            v += texelFetch(u_value, fc + ivec2(-1,  0), 0).r * weight[1];
+            v += texelFetch(u_value, fc + ivec2(-1,  1), 0).r * weight[2];
+            v += texelFetch(u_value, fc + ivec2( 0, -1), 0).r * weight[3];
+            v += texelFetch(u_value, fc + ivec2( 0,  0), 0).r * weight[4];
+            v += texelFetch(u_value, fc + ivec2( 0,  1), 0).r * weight[5];
+            v += texelFetch(u_value, fc + ivec2( 1, -1), 0).r * weight[6];
+            v += texelFetch(u_value, fc + ivec2( 1,  0), 0).r * weight[7];
+            v += texelFetch(u_value, fc + ivec2( 1,  1), 0).r * weight[8];
+            v = v <= (1.0/256.0) ? 0.0 : v;
+            v_value = v;
+        }`,
+
+        "diffusePatch.frag":
+        `#version 300 es
+        precision highp float;
+        in float v_value;
+        layout (location = 0) out float fragColor;
+
+        void main(void) {
+            fragColor = v_value;
+        }`,
+
+        "increasePatch.vert":
+        `#version 300 es
+        precision highp float;
+
+        layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
+
+        uniform vec2 u_resolution;
+        uniform vec2 u_half;
+
+        uniform sampler2D u_that_x;
+        uniform sampler2D u_that_y;
+
+        uniform bool u_use_vector;
+        uniform sampler2D u_texture;
+        uniform float u_value;
+
+        out float v_value;
+
+        void main() {
+
+            float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+            float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
+            vec2 _pos = vec2(_x, _y);
+            vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
+
+            gl_Position = vec4(oneToOne, 0.0, 1.0);
+            gl_PointSize = 1.0;
+
+            v_value = u_use_vector ? texelFetch(u_texture, ivec2(a_index), 0).r : u_value;
+        }`,
+
+        "increasePatch.frag":
+        `#version 300 es
+        precision highp float;
+        in float v_value;
+        layout (location = 0) out float fragColor;
+        void main() {
+            fragColor = v_value;
+        }`,
     }
 
     function initBreedVAO() {
@@ -424,6 +511,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
     function renderPatchProgram() {
         return makePrimitive("renderPatch", ["mvpMatrix", "u_resolution", "u_half", "v_resolution", "v_step", "u_r", "u_g", "u_b", "u_a"], patchVAO);
+    }
+
+    function diffusePatchProgram() {
+        return makePrimitive("diffusePatch", ["u_value", "u_half",], patchVAO);
+    }
+
+    function increasePatchProgram() {
+        return makePrimitive("increasePatch", ["u_resolution", "u_half", "u_that_x", "u_that_y", "u_use_vector", "u_texture", "u_value"], patchVAO);
     }
 
     function createShader(id, source) {
@@ -603,6 +698,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         } else {
             state.setBlending(THREE.NormalBlending);
+        }
+    }
+
+    function oneBlend() {
+        if (standalone) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE);
+        } else {
+            state.setBlending(THREE.CustomBlending, THREE.AddEquation, THREE.OneFactor, THREE.OneFactor);
         }
     }
 
@@ -1298,15 +1402,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
 
     function checkPending(obj) {
-	var ind = pendingLoads[0].indexOf(obj);
-	if (ind >= 0) {
-	    pendingLoads[0].splice(ind, 1);
-	}
-	if (pendingLoads[0].length === 0) {
-	    if (pendingLoads[1]) {
-		pendingLoads[1]();
-		pendingLoads[1] = null;
-	    }
+        var ind = pendingLoads[0].indexOf(obj);
+        if (ind >= 0) {
+            pendingLoads[0].splice(ind, 1);
+        }
+        if (pendingLoads[0].length === 0) {
+            if (pendingLoads[1]) {
+                pendingLoads[1]();
+                pendingLoads[1] = null;
+            }
         }
     }
 
@@ -1329,14 +1433,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 audioContext.decodeAudioData(request.response,
                                              function(buffer) {
                                                  that.env[keyName] = buffer;
-						 checkPending(request);
+                                                 checkPending(request);
                                              },
                                              function(error) {
                                                  console.log(error);
-						 checkPending(request);
+                                                 checkPending(request);
                                              });
             }
-	    pendingLoads[0].push(request);
+            pendingLoads[0].push(request);
             request.send();
         }
 
@@ -1365,7 +1469,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 console.log("no internet");
                 document.body.removeChild(img);
                 that.env[keyName] = that.emptyImageData(256, 256);
-		checkPending(img);
+                checkPending(img);
             }
             img.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
         }
@@ -1378,9 +1482,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             tmpCanvas.getContext('2d').drawImage(img, 0, 0);
             that.env[keyName] = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
             document.body.removeChild(img);
-	    checkPending(img);
+            checkPending(img);
         }
-	pendingLoads[0].push(img);
+        pendingLoads[0].push(img);
         document.body.appendChild(img);
     }
 
@@ -1393,7 +1497,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
         this.env["Display"] = new Display(this);
 
         if (standalone) {
-	    pendingLoads[1] = callback;
+            pendingLoads[1] = callback;
             this.initAudio("degauss.mp3", "degauss");
             this.initImage("mask.png", "mask");
             this.initImage("blur-blue.png", "blurBlue");
@@ -1952,10 +2056,58 @@ function ShadamaFactory(threeRenderer, optDimension) {
             this.count = n;
             //
         }
+
+        increasePatch(patch, name, valueOrSrcName) {
+            var prog = programs["increasePatch"];
+
+            var dst = patch[name];
+
+            setTargetBuffer(framebufferR, dst);
+
+            var uniLocations = prog.uniLocations;
+
+            state.useProgram(prog.program);
+            gl.bindVertexArray(prog.vao);
+
+            oneBlend();
+
+            state.activeTexture(gl.TEXTURE0);
+            state.bindTexture(gl.TEXTURE_2D, this.x);
+            gl.uniform1i(uniLocations["u_that_x"], 0);
+
+            state.activeTexture(gl.TEXTURE1);
+            state.bindTexture(gl.TEXTURE_2D, this.y);
+            gl.uniform1i(uniLocations["u_that_y"], 1);
+
+            gl.uniform2f(uniLocations["u_resolution"], FW, FH);
+            gl.uniform2f(uniLocations["u_half"], 0.5/FW, 0.5/FH);
+
+            if (typeof valueOrSrcName === "string") {
+                state.activeTexture(gl.TEXTURE2);
+                state.bindTexture(gl.TEXTURE_2D, this[valueOrSrcName]);
+                gl.uniform1i(prog.uniLocations["u_texture"], 2);
+                gl.uniform1i(prog.uniLocations["u_use_vector"], 1);
+            } else {
+                gl.uniform1i(prog.uniLocations["u_texture"], 0);
+                gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
+                gl.uniform1f(prog.uniLocations["u_value"], valueOrSrcName);
+            }
+
+            if (standalone) {
+                gl.viewport(0, 0, FW, FH);
+            }
+
+            gl.drawArrays(gl.POINTS, 0, this.count);
+            gl.flush();
+
+            normalBlend();
+
+            setTargetBuffer(null, null);
+            gl.bindVertexArray(null);
+        }
     }
 
     class Patch {
-
         constructor() {
             this.own = {};
         }
@@ -2064,6 +2216,43 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.bindVertexArray(null);
         }
 
+        diffuse(name) {
+            var prog = programs["diffusePatch"];
+            var src = this[name];
+            var dst = this["new"+name];
+
+            setTargetBuffer(framebufferR, dst);
+
+            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+                console.log("incomplete framebuffer");
+            }
+
+            var uniLocations = prog.uniLocations;
+
+            state.useProgram(prog.program);
+            gl.bindVertexArray(prog.vao);
+
+            noBlend();
+
+            state.activeTexture(gl.TEXTURE0);
+            state.bindTexture(gl.TEXTURE_2D, src);
+            gl.uniform1i(prog.uniLocations["u_value"], 0);
+
+            if (standalone) {
+                gl.viewport(0, 0, FW, FH);
+            }
+
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5/FW, 0.5/FH);
+
+            gl.drawArrays(gl.POINTS, 0, FW * FH);
+            gl.flush();
+
+            setTargetBuffer(null, null);
+            gl.bindVertexArray(null);
+
+            this[name] = dst;
+            this["new"+name] = src;
+        }
     }
 
     Shadama.prototype.cleanUpEditorState = function() {
@@ -2117,11 +2306,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
                                 var docPos = editor.doc.posFromIndex(pos);
                                 var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
 
-				if (pos && msg) {
+                                if (pos && msg) {
                                     console.log(pos, msg);
-				} else {
+                                } else {
                                     console.log(error);
-				}
+                                }
                                 parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                             }
                         },
@@ -2471,6 +2660,10 @@ Shadama {
                 ["param", null, "imageData"]], true);
             obj["diffuse"] = new SymTable([
                 ["param", null, "name"]], true);
+            obj["increasePatch"] = new SymTable([
+                ["param", null, "name"],
+                ["param", null, "patch"],
+                ["param", null, "valueOrSrcName"]], true);
             obj["random"] = new SymTable([
                 ["param", null, "seed"]], true);
             obj["playSound"] = new SymTable([
@@ -3806,7 +3999,7 @@ uniform sampler2D u_that_y;
 
                     var displayBuiltIns = ["clear", "playSound"];
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "diffuse"];
+                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "diffuse", "increasePatch"];
                     var myTable = table[n.sourceString];
 
                     if (r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) {
@@ -4662,6 +4855,8 @@ static loop() {
     programs["debugBreed"] = debugBreedProgram();
     programs["renderBreed"] = renderBreedProgram();
     programs["renderPatch"] = renderPatchProgram();
+    programs["diffusePatch"] = diffusePatchProgram();
+    programs["increasePatch"] = increasePatchProgram();
 
     initCompiler();
 

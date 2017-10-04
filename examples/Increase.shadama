@@ -1,0 +1,49 @@
+program "Bump"
+
+breed Turtle(x, y, dx, dy, r, g, b, a)
+breed Filler(x, y)
+patch Field (c)
+
+def reset(field) {
+  field.c = 0;
+}
+
+def setColor() {
+  this.r = 1;
+  this.a = 1;
+  this.g = 0;
+  this.b = 0;
+}
+
+def move() {
+  this.x = this.x + this.dx;
+  this.y = this.y + this.dy;
+}
+
+def bounce(field) {
+  var dx = this.dx;
+  var dy = this.dy;
+  if (field.c > 0) {
+    dx = -dx;
+    dy = -dy;
+  }
+  this.dx = dx;
+  this.dy = dy;
+}
+
+static setup() {
+  Filler.fillSpace("x", "y", width, height);
+  Turtle.setCount(10000);
+  Turtle.fillRandom("x", 200, 300);
+  Turtle.fillRandom("y", 200, 300);
+  Turtle.setColor();
+  Turtle.fillRandomDir("dx", "dy");
+}
+
+static loop() {
+  Filler.reset(Field);
+  Turtle.move();
+  Turtle.increasePatch(Field, "c", 1);
+  Turtle.bounce(Field);
+  Turtle.draw();
+}
