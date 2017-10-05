@@ -812,7 +812,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         toBeCreated.forEach((k) => updateOwnVariable(obj, k));
         toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
-	return true;
+        return true;
     }
 
     function programFromTable(table, vert, frag, name) {
@@ -1075,7 +1075,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     Shadama.prototype.loadShadama = function(id, source) {
         var newSetupCode;
         var oldProgramName = this.programName;
-	var schemaChange = false;
+        var schemaChange = false;
         this.statics = {};
         this.staticsList = [];
         this.scripts = {};
@@ -1126,11 +1126,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
         }
 
         if (this.setupCode !== newSetupCode) {
-	    schemaChange = true;
+            schemaChange = true;
             this.setupCode = newSetupCode;
-	}
+        }
 
-	if (schemaChange) {
+        if (schemaChange) {
             var success = this.callSetup();
             if (!success) {return };
         }
@@ -2609,24 +2609,24 @@ Shadama {
     var primitives;
 
     function initPrimitiveTable() {
-	var data = {
-	    "clear": new SymTable([], true),
+        var data = {
+            "clear": new SymTable([], true),
             "setCount": new SymTable([
-		["param", null, "num"]], true),
-	    "draw": new SymTable([], true),
-	    "render": new SymTable([], true),
-	    "fillRandom": new SymTable([
+                ["param", null, "num"]], true),
+            "draw": new SymTable([], true),
+            "render": new SymTable([], true),
+            "fillRandom": new SymTable([
                 ["param", null, "name"],
                 ["param", null, "min"],
                 ["param", null, "max"]], true),
-	    "fillRandomDir": new SymTable([
+            "fillRandomDir": new SymTable([
                 ["param", null, "xDir"],
                 ["param", null, "yDir"]] ,true),
-	    "fillRandomDir3":  new SymTable([
+            "fillRandomDir3":  new SymTable([
                 ["param", null, "xDir"],
                 ["param", null, "yDir"],
                 ["param", null, "zDir"]], true),
-	    "fillSpace": new SymTable([
+            "fillSpace": new SymTable([
                 ["param", null, "xName"],
                 ["param", null, "yName"],
                 ["param", null, "x"],
@@ -2639,7 +2639,7 @@ Shadama {
                 ["param", null, "y"],
                 ["param", null, "z"],
                 ["param", null, "step"]], true),
-	    "fillImage": new SymTable([
+            "fillImage": new SymTable([
                 ["param", null, "xName"],
                 ["param", null, "yName"],
                 ["param", null, "rName"],
@@ -2647,37 +2647,37 @@ Shadama {
                 ["param", null, "bName"],
                 ["param", null, "aName"],
                 ["param", null, "imageData"]], true),
-	    "diffuse": new SymTable([
+            "diffuse": new SymTable([
                 ["param", null, "name"]], true),
-	    "increasePatch": new SymTable([
+            "increasePatch": new SymTable([
                 ["param", null, "name"],
                 ["param", null, "patch"],
                 ["param", null, "valueOrSrcName"]], true),
             "random": new SymTable([
                 ["param", null, "seed"]], true),
-	    "playSound": new SymTable([
+            "playSound": new SymTable([
                 ["param", null, "name"]], true)
         };
 
-	primitives = {};
-	for (var k in data) {
-	    primitives[k] = data[k];
-	}
+        primitives = {};
+        for (var k in data) {
+            primitives[k] = data[k];
+        }
     }
 
     function initCompiler() {
         g = ohm.grammar(shadamaGrammar);
         s = g.createSemantics();
-	initPrimitiveTable();
+        initPrimitiveTable();
         initSemantics();
     }
 
     function initSemantics() {
         function addDefaults(obj) {
-	    for (var k in primitives) {
-		obj[k] = primitives[k];
-	    }
-	}
+            for (var k in primitives) {
+                obj[k] = primitives[k];
+            }
+        }
 
         function processHelper(symDict) {
             var queue;   // = [name]
@@ -2895,9 +2895,9 @@ Shadama {
                 Formals_list(h, _c, r) {
                     return [h.sourceString].concat(r.children.map((c) => c.sourceString));
                 },
-		empty() {
-		    return [];
-		}
+                empty() {
+                    return [];
+                }
             });
 
         s.addOperation(
@@ -4016,14 +4016,14 @@ uniform sampler2D u_that_y;
 
                     var actuals = as.static_method_inner(table, null, method, false);
                     if ((r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) || builtIns.indexOf(method) >= 0) {
-			if (actuals.length !== primitives[method].param.size()) {
+                        if (actuals.length !== primitives[method].param.size()) {
                             var error = new Error("semantic error");
                             error.reason = `argument count does not match for primitive ${method}`;
                             error.expected = `argument count does not match for primitive ${method}`;
                             error.pos = as.source.endIdx;
                             error.src = null;
                             throw error;
-			}
+                        }
                         var str = actuals.join(", ");
                         js.push(`env["${r.sourceString}"].${method}(${str})`);
                         return;
