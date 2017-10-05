@@ -23,6 +23,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
     var VTW = VOXEL_TEXTURE_WIDTH;
     var VTH = VOXEL_TEXTURE_HEIGHT;
 
+    var N = "_new_";
+
     var dimension = optDimension || 3; // 2 | 3;
 
     // need to change things around here so that you can have different Shadma instances with different sizes
@@ -45,18 +47,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
     var debugArray1;
     var debugArray2;
 
-    var debugTexture0;
-    var debugTexture1;
-    var framebufferD0;  // for debugging u8rgba texture
-    var framebufferD1;  // for debugging u8rgba texture
+    var debugTextureBreed;
+    var debugTexturePatch;
+    var framebufferDBreed;  // for debugging u8rgba texture
+    var framebufferDPatch;  // for debugging u8rgba texture
 
-    var framebufferT;
-    var framebufferF;
-    var framebufferR;
-    var framebufferD;  // for three js u8rgba texture
-
-    var readFramebufferT;
-    var readFramebufferR;
+    var framebufferBreed;
+    var framebufferPatch;
+    var framebufferDiffuse;
+    var framebufferU8RGBA;  // for three js u8rgba texture
 
     var editor = null;
     var editorType = null;
@@ -734,13 +733,13 @@ function ShadamaFactory(threeRenderer, optDimension) {
         if (obj[name]) {
             gl.deleteTexture(obj[name]);
         }
-        if (obj["new"+name]) {
-            gl.deleteTexture(obj["new"+name]);
+        if (obj[N + name]) {
+            gl.deleteTexture(obj[N + name]);
         }
 
         obj.own[name] = name;
         obj[name] = createTexture(ary, gl.R32F, width, height);
-        obj["new"+name] = createTexture(ary, gl.R32F, width, height);
+        obj[N + name] = createTexture(ary, gl.R32F, width, height);
     }
 
     function removeOwnVariable(obj, name) {
@@ -749,9 +748,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.deleteTexture(obj[name]);
             delete obj[name];
         }
-        if (obj["new"+name]) {
-            gl.deleteTexture(obj["new"+name]);
-            delete obj["new"+name];
+        if (obj[N + name]) {
+            gl.deleteTexture(obj[N  + name]);
+            delete obj[N + name];
         }
     }
 
@@ -781,7 +780,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 updateOwnVariable(obj, fields[i]);
             }
             env[name] = obj;
-            return obj;
+            return true;
         }
 
         var oldOwn = obj.own;
@@ -795,7 +794,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             newOwn[k] = k;
         }
         if (stringify(newOwn) === stringify(oldOwn)) {
-            return; obj;
+            return false;
         }
 
         // other case: get things into toBeDeleted and toBeCreated, and toBeMoved
@@ -813,6 +812,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
         toBeCreated.forEach((k) => updateOwnVariable(obj, k));
         toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
+	return true;
     }
 
     function programFromTable(table, vert, frag, name) {
@@ -855,11 +855,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
             }
                 var object = objects["this"];
 
-                var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
+                var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
                 if (forBreed) {
-                    setTargetBuffers(framebufferT, targets);
+                    setTargetBuffers(framebufferBreed, targets);
                 } else {
-                    setTargetBuffers(framebufferR, targets);
+                    setTargetBuffers(framebufferPatch, targets);
                 }
 
                 state.useProgram(prog);
@@ -909,10 +909,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
                     }
                 }
 
-                //            if (forBreed) {
-                //                gl.clearColor(0.0, 0.0, 0.0, 0.0);
-                //                gl.clear(gl.COLOR_BUFFER_BIT);
-                //            }
                 gl.drawArrays(gl.POINTS, 0, object.count);
                 gl.flush();
                 setTargetBuffers(null, null);
@@ -921,8 +917,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
                     var o = objects[pair[0]];
                     var name = pair[1];
                     var tmp = o[name];
-                    o[name] = o["new"+name];
-                    o["new"+name] = tmp;
+                    o[name] = o[N + name];
+                    o[N + name] = tmp;
                 }
                 gl.bindVertexArray(null);
             }
@@ -969,11 +965,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 }
                 var object = objects["this"];
 
-                var targets = outs.map(function(pair) {return objects[pair[0]]["new" + pair[1]]});
+                var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
                 if (forBreed) {
-                    setTargetBuffers(framebufferT, targets);
+                    setTargetBuffers(framebufferBreed, targets);
                 } else {
-                    setTargetBuffers(framebufferR, targets);
+                    setTargetBuffers(framebufferPatch, targets);
                 }
 
                 state.useProgram(prog);
@@ -1025,10 +1021,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
                     }
                 }
 
-                //            if (forBreed) {
-                //                gl.clearColor(0.0, 0.0, 0.0, 0.0);
-                //                gl.clear(gl.COLOR_BUFFER_BIT);
-                //            }
                 gl.drawArrays(gl.POINTS, 0, object.count);
                 gl.flush();
                 setTargetBuffers(null, null);
@@ -1037,8 +1029,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
                     var o = objects[pair[0]];
                     var name = pair[1];
                     var tmp = o[name];
-                    o[name] = o["new"+name];
-                    o["new"+name] = tmp;
+                    o[name] = o[N + name];
+                    o[N + name] = tmp;
                 }
                 gl.bindVertexArray(null);
             }
@@ -1060,18 +1052,16 @@ function ShadamaFactory(threeRenderer, optDimension) {
         this.readPixelArray = null;
         this.readPixelCallback = null;
 
-        debugTexture0 = createTexture(new Float32Array(T*T*4), gl.FLOAT, T, T);
-        debugTexture1 = createTexture(new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+        debugTextureBreed = createTexture(new Float32Array(T*T*4), gl.FLOAT, T, T);
+        debugTexturePatch = createTexture(new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
-        framebufferT = makeFramebuffer(gl.R32F, T, T);
-        framebufferR = makeFramebuffer(gl.R32F, FW, FH);
-        framebufferF = makeFramebuffer(gl.FLOAT, FW, FH);
-        framebufferD = makeFramebuffer(gl.UNSIGNED_BYTE, FW, FH);
-        framebufferD0 = makeFramebuffer(gl.FLOAT, T, T);
-        framebufferD1 = makeFramebuffer(gl.FLOAT, FW, FH);
+        framebufferBreed = makeFramebuffer(gl.R32F, T, T);
+        framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
+        framebufferU8RGBA = makeFramebuffer(gl.UNSIGNED_BYTE, FW, FH);
+        framebufferDBreed = makeFramebuffer(gl.FLOAT, T, T);
+        framebufferDPatch = makeFramebuffer(gl.FLOAT, FW, FH);
 
-        readFramebufferT = makeFramebuffer(gl.R32F, T, T);
-        readFramebufferR = makeFramebuffer(gl.R32F, FW, FH);
+        framebufferDiffuse = makeFramebuffer(gl.R32F, FW, FH);
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -1085,6 +1075,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     Shadama.prototype.loadShadama = function(id, source) {
         var newSetupCode;
         var oldProgramName = this.programName;
+	var schemaChange = false;
         this.statics = {};
         this.staticsList = [];
         this.scripts = {};
@@ -1122,9 +1113,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
             } else {
                 var js = entry[3];
                 if (js[0] === "updateBreed") {
-                    update(Breed, js[1], js[2], this.env);
+                    schemaChange = update(Breed, js[1], js[2], this.env) || schemaChange;
                 } else if (js[0] === "updatePatch") {
-                    update(Patch, js[1], js[2], this.env);
+                    schemaChange = update(Patch, js[1], js[2], this.env) || schemaChange;
                 } else if (js[0] === "updateScript") {
                     var table = entry[0];
                     var func = dimension == 2 ? programFromTable : programFromTable3;
@@ -1135,8 +1126,12 @@ function ShadamaFactory(threeRenderer, optDimension) {
         }
 
         if (this.setupCode !== newSetupCode) {
-            var success = this.callSetup();
+	    schemaChange = true;
             this.setupCode = newSetupCode;
+	}
+
+	if (schemaChange) {
+            var success = this.callSetup();
             if (!success) {return };
         }
         this.populateList(this.staticsList);
@@ -1211,9 +1206,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
         var prog = programs[forBreed ? "debugBreed" : "debugPatch"];
 
         if (forBreed) {
-            setTargetBuffer(framebufferD0, debugTexture0);
+            setTargetBuffer(framebufferDBreed, debugTextureBreed);
         } else {
-            setTargetBuffer(framebufferD1, debugTexture1);
+            setTargetBuffer(framebufferDPatch, debugTexturePatch);
         }
 
         state.useProgram(prog.program);
@@ -1251,8 +1246,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
         for (var i = 0; i < width * height; i++) {
             debugArray1[i] = debugArray[i * 4 + 0];
         }
-
-        console.log("debugArray", debugArray);
 
         for (var i = 0; i < width * height; i++) {
             debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
@@ -1775,14 +1768,14 @@ function ShadamaFactory(threeRenderer, optDimension) {
     Display.prototype.clear = function() {
         var t = webglTexture();
         if (t) {
-            setTargetBuffer(framebufferD, t);
+            setTargetBuffer(framebufferU8RGBA, t);
         } else {
             setTargetBuffer(null, null);
         }
 
         if (standalone) {
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
         } else {
             this.otherColor.copy(renderer.getClearColor());
@@ -1944,7 +1937,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var t = webglTexture();
 
             if (t) {
-                setTargetBuffer(framebufferD, t);
+                setTargetBuffer(framebufferU8RGBA, t);
             } else {
                 setTargetBuffer(null, null);
             }
@@ -2062,7 +2055,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             var dst = patch[name];
 
-            setTargetBuffer(framebufferR, dst);
+            setTargetBuffer(framebufferDiffuse, dst);
 
             var uniLocations = prog.uniLocations;
 
@@ -2117,7 +2110,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var t = webglTexture();
 
             if (t) {
-                setTargetBuffer(framebufferD, t);
+                setTargetBuffer(framebufferU8RGBA, t);
             } else {
                 setTargetBuffer(null, null);
             }
@@ -2170,7 +2163,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var t = webglTexture();
 
             if (t) {
-                setTargetBuffer(framebufferD, t);
+                setTargetBuffer(framebufferU8RGBA, t);
             } else {
                 setTargetBuffer(null, null);
             }
@@ -2219,9 +2212,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
         diffuse(name) {
             var prog = programs["diffusePatch"];
             var src = this[name];
-            var dst = this["new"+name];
+            var dst = this[N + name];
 
-            setTargetBuffer(framebufferR, dst);
+            setTargetBuffer(framebufferDiffuse, dst);
 
             if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
                 console.log("incomplete framebuffer");
@@ -2251,7 +2244,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.bindVertexArray(null);
 
             this[name] = dst;
-            this["new"+name] = src;
+            this[N + name] = src;
         }
     }
 
@@ -2886,6 +2879,9 @@ Shadama {
                 Formals_list(h, _c, r) {
                     return [h.sourceString].concat(r.children.map((c) => c.sourceString));
                 },
+		empty() {
+		    return [];
+		}
             });
 
         s.addOperation(

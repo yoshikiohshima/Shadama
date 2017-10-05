@@ -1,0 +1,71 @@
+program "Diffuse"
+
+breed Turtle (x, y, dx, dy)
+patch Field (g, r, b, a)
+breed Filler (x, y)
+
+def reset(field) {
+  field.r = 0.0;
+  field.g = 0.0;
+  field.b = 0.0;
+  field.a = 0.0;
+}
+  
+def drop(field) {
+  field.r = 1.0;
+  field.g = 0.0;
+  field.b = 0.0;
+  field.a = 1.0;
+}
+
+def move() {
+  var dx = this.dx;
+  var dy = this.dy;
+
+  var newX = this.x + dx;
+  var newY = this.y + dy;
+
+  if (newX < 0.0) {
+    newX = -newX;
+    dx = -dx;
+  }
+  if (newX > u_resolution.x) {
+    newX = u_resolution.x - (newX - u_resolution.x);
+    dx = -dx;
+  }
+  if (newY < 0.0) {
+    newY = mod(newY, u_resolution.y);
+    dy = -dy;
+  }
+  if (newY > u_resolution.y) {
+    newY = u_resolution.y - (newY - u_resolution.y);
+    dy = -dy;
+  }
+
+  this.x = newX;
+  this.y = newY;
+  this.dx = dx;
+  this.dy = dy;
+}
+
+static setup() {
+  Turtle.setCount(100);
+  Turtle.fillRandom("x", 0, width);
+  Turtle.fillRandom("y", 0, height);
+  Turtle.fillRandomDir("dx", "dy");
+
+  Filler.fillSpace("x", "y", width, height);
+  Filler.reset(Field);
+  Filler.reset(Field);
+  Display.clear();
+}
+
+static loop() {
+  Turtle.move();
+  Turtle.drop(Field);
+  Field.diffuse("r");
+  Field.diffuse("a");
+  Field.diffuse("r");
+  Field.diffuse("a");
+  Field.draw();
+}

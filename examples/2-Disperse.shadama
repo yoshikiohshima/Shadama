@@ -19,9 +19,12 @@ def move() {
 
 static setup() {
   Turtle.setCount(300000);
-//  Turtle.fillSpace("x", "y", 512, 512);
   Turtle.fillRandom("x", 0, 512);
   Turtle.fillRandom("y", 0, 512);
+
+  If you want to start them nicely aligned, use the following line instead of above three.
+//  Turtle.fillSpace("x", "y", 512, 512);
+
   Turtle.fillRandomDir("dx", "dy");
   Turtle.setColor();
   Turtle.draw();
