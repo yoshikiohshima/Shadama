@@ -1393,7 +1393,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
         });
     }
 
-
     function checkPending(obj) {
         var ind = pendingLoads[0].indexOf(obj);
         if (ind >= 0) {
@@ -2041,15 +2040,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
             gl.bindVertexArray(null);
         }
 
-        setCount(n) {
-            var oldCount = this.count;
-            if (n < 0 || !n) {
-                n = 0;
-            }
-            this.count = n;
-            //
-        }
-
         increasePatch(patch, name, valueOrSrcName) {
             var prog = programs["increasePatch"];
 
@@ -2097,6 +2087,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             setTargetBuffer(null, null);
             gl.bindVertexArray(null);
+        }
+
+        setCount(n) {
+            var oldCount = this.count;
+            if (n < 0 || !n) {
+                n = 0;
+            }
+            this.count = n;
+            //
         }
     }
 
@@ -2298,7 +2297,6 @@ function ShadamaFactory(threeRenderer, optDimension) {
                                 }
                                 var docPos = editor.doc.posFromIndex(pos);
                                 var widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
-
                                 if (pos && msg) {
                                     console.log(pos, msg);
                                 } else {
@@ -2924,10 +2922,10 @@ Shadama {
                     var table = this.args.table;
                     var vert = this.args.vert;
 
-                    vert.push(h.sourceString);
+                    vert.push("float " + h.sourceString);
                     for (var i = 0; i < r.children.length; i++) {
                         var c = r.children[i];
-                        vert.push(", ");
+                        vert.push(", float ");
                         vert.push(c.sourceString);
                     }
                 },
