@@ -1,0 +1,33 @@
+program "Goals"
+breed Slide (x, y, r, g, b, a)
+breed Right (x, y, r, g, b, a)
+
+def move(x, y) {
+  this.x = this.x + x;
+  this.y = this.y + y;
+}
+
+static setup() {
+  Slide.fillImage("x", "y", "r", "g", "b", "a", goals);
+  Slide.draw();
+
+  Right.fillImage("x", "y", "r", "g", "b", "a", right);
+  Right.move(960, 0);
+
+  var showRight = 0;
+}
+
+static loop() {
+  Display.clear();
+  Slide.draw();
+  if (mousemove.x > 960 && mousemove.y < 50) {
+     Right.draw();
+     showRight = 1;
+  }
+
+  if (showRight && mousedown.x > 960 && mousedown.y < 50) {
+    Display.loadProgram("18-FutureWork.shadama");
+    mousedown.x = 0;
+    mousedown.y = 0;
+  }
+}
