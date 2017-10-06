@@ -22,7 +22,7 @@ static setup() {
   Turtle.fillRandom("x", 0, 512);
   Turtle.fillRandom("y", 0, 512);
 
-  If you want to start them nicely aligned, use the following line instead of above three.
+//  If you want to start them nicely aligned, use the following line instead of above three.
 //  Turtle.fillSpace("x", "y", 512, 512);
 
   Turtle.fillRandomDir("dx", "dy");

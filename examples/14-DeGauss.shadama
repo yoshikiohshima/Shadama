@@ -2,6 +2,7 @@ program "DeGauss"
 breed Pict (x, y, r, g, b, a, origX, origY, origR, origG, origB, origA)
 breed Filler (x, y, r, g, b, a)
 breed Button (x, y, r, g, b, a)
+breed Right (x, y, r, g, b, a)
 patch Blur (level)
   
 def move(x, y) {
@@ -69,14 +70,14 @@ static setup() {
   Button.fillImage("x", "y", "r", "g", "b", "a", button);
   Button.move(760, 160);
 
+  Right.fillImage("x", "y", "r", "g", "b", "a", right);
+  Right.move(960, 0);
+
   Pict.colorize2(Blur);
   Pict.draw();
   var begin = -1;
   var showButton = 0;
-}
-
-static rrestore() {
-  Pict.restore();
+  var showRight = 0;
 }
 
 static loop() {
@@ -92,6 +93,9 @@ static loop() {
       }
     }
   }
+  if (mousemove.x > 960 && mousemove.y < 50) {
+    showRight = 1;
+  }
   if (begin != -1) {
     Pict.degauss(time, begin);
     Pict.degaussColor(time, begin);
@@ -99,5 +103,11 @@ static loop() {
   Pict.draw();
   if (showButton == 1) {
      Button.draw();
+  }
+  if (showRight == 1) {
+     Right.draw();
+  }
+  if (mousedown.x > 960 && mousedown.y < 50) {
+    Display.loadProgram("1-Fill.shadama");
   }
 }

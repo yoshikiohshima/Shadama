@@ -1363,33 +1363,17 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
     Shadama.prototype.initServerFiles = function() {
         if (!standalone) {return;}
-        var location = window.location.toString();
         var examples = [
             "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama"
         ];
-
-        if (!location.startsWith("http")) {return;}
-
-        var slash = location.lastIndexOf("/");
-        var dir = location.slice(0, slash) + "/" + "examples";
-        var that = this;
         examples.forEach((n) => {
-            var file = dir + "/" + encodeURIComponent(n);
-            console.log(file);
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-                    // Typical action to be performed when the document is ready:
-                    var serverCode = xhttp.responseText;
-                    var localCode = localStorage.getItem(n);
-                    if (!localCode) {
-                        localStorage.setItem(n, serverCode);
-                    }
-                    that.initFileList();
+	    this.env["Display"].loadProgram(n, (serverCode) => {
+                var localCode = localStorage.getItem(n);
+                if (!localCode) {
+                    localStorage.setItem(n, serverCode);
                 }
-            };
-            xhttp.open("GET", file, true);
-            xhttp.send();
+                this.initFileList();
+            })
         });
     }
 
@@ -1440,7 +1424,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             var slash = location.lastIndexOf("/");
             loadSound(location.slice(0, slash) + "/" + name);
         } else {
-            loadSound("http://tinlizzie.org/~ohshima/ahiru/" + name);
+            loadSound("http://tinlizzie.org/~ohshima/shadama2/" + name);
         }
     }
 
@@ -1463,7 +1447,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 that.env[keyName] = that.emptyImageData(256, 256);
                 checkPending(img);
             }
-            img.src = "http://tinlizzie.org/~ohshima/ahiru/" + name;
+            img.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
         }
 
         img.hidden = true;
@@ -1480,13 +1464,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
         document.body.appendChild(img);
     }
 
+    Shadama.prototype.initDisplay = function() {
+        this.env["Display"] = new Display(this);
+    }
+
     Shadama.prototype.initEnv = function(callback) {
         this.env.mousedown = {x: 0, y: 0};
         this.env.mousemove = {x: 0, y: 0};
         this.env.width = FW;
         this.env.height = FH;
-
-        this.env["Display"] = new Display(this);
 
         if (standalone) {
             pendingLoads[1] = callback;
@@ -1498,6 +1484,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             this.initImage("presentation.png", "presentation");
             this.initImage("button.png", "button");
             this.initImage("ahiru.png", "image");
+            this.initImage("rightbutton.png", "right");
         } else {
             callback();
         }
@@ -1796,6 +1783,33 @@ function ShadamaFactory(threeRenderer, optDimension) {
         source.connect(audioContext.destination);       // connect the source to the context's destination (the speakers)
         source.start(0);                           // play the source now
     }
+
+    Display.prototype.loadProgram = function(name, func) {
+        var location = window.location.toString();
+        if (!location.startsWith("http")) {return;}
+        var slash = location.lastIndexOf("/");
+        var dir = location.slice(0, slash) + "/" + "examples";
+        var that = this;
+
+        var file = dir + "/" + encodeURIComponent(name);
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                var serverCode = xhttp.responseText;
+		if (func) {
+		    func(serverCode);
+		} else {
+		    that.shadama.loadShadama(null, serverCode);
+		    if (editor) {
+			editor.doc.setValue(serverCode);
+		    }
+		    that.shadama.maybeRunner();
+		}
+            }
+        };
+        xhttp.open("GET", file, true);
+        xhttp.send();
+    };
 
     Shadama.prototype.emptyImageData = function(width, height) {
         var ary = new Uint8ClampedArray(width * height * 4);
@@ -2452,16 +2466,34 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     Shadama.prototype.goFullScreen = function() {
-        var rx = window.innerWidth / FW;
-        var ry = window.innerHeight / FH;
 
-        fullScreenScale = Math.min(rx, ry);
+        var req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen ||
+	    shadamaCanvas.mozRequestFullScreen || shadamaCanvas.msRequestFullscreen;
 
-        var req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen;
         if (req) {
             req.call(shadamaCanvas);
-            shadamaCanvas.style.width = FW * fullScreenScale + 'px';
-            shadamaCanvas.style.height = FH * fullScreenScale + 'px';
+
+            function fsChanged() {
+                if (document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement) {
+		    var rx = window.innerWidth / FW;
+		    var ry = window.innerHeight / FH;
+		    fullScreenScale = Math.min(rx, ry);
+                    shadamaCanvas.style.width = FW * fullScreenScale + 'px';
+                    shadamaCanvas.style.height = FH * fullScreenScale + 'px';
+                } else {
+		    fullScreenScale = 1.0;
+                    shadamaCanvas.style.width = FW + 'px';
+                    shadamaCanvas.style.height = FH + 'px';
+                }
+            };
+
+            document.addEventListener("fullscreenchange", fsChanged);
+            document.addEventListener("webkitfullscreenchange", fsChanged);
+            document.addEventListener("mozfullscreenchange", fsChanged);
+            document.addEventListener("MSFullscreenChange", fsChanged);
         }
     }
 
@@ -2654,6 +2686,8 @@ Shadama {
             "random": new SymTable([
                 ["param", null, "seed"]], true),
             "playSound": new SymTable([
+                ["param", null, "name"]], true),
+            "loadProgram": new SymTable([
                 ["param", null, "name"]], true)
         };
 
@@ -4007,7 +4041,7 @@ uniform sampler2D u_that_y;
                     var js = this.args.js;
                     var method = n.sourceString;
 
-                    var displayBuiltIns = ["clear", "playSound"];
+                    var displayBuiltIns = ["clear", "playSound", "loadProgram"];
 
                     var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "diffuse", "increasePatch"];
                     var myTable = table[n.sourceString];
@@ -4751,7 +4785,7 @@ static loop() {
     }
 
     var shadama;
-    var defaultProgName = "forward.shadama";
+    var defaultProgName = "5-Bounce.shadama";
 
     standalone = !threeRenderer;
     renderer = threeRenderer;
@@ -4769,7 +4803,7 @@ static loop() {
         if (degaussdemo) {
             FIELD_WIDTH = 1024;
             FIELD_HEIGHT = 768
-            defaultProgName = "degauss.shadama";
+            defaultProgName = "14-DeGauss.shadama";
         }
         var match;
         match = /fw=([0-9]+)/.exec(window.location.search);
@@ -4806,6 +4840,7 @@ static loop() {
         state = gl;
 
         shadama = new Shadama();
+	shadama.initDisplay();
         shadama.addListeners(shadamaCanvas);
         shadama.initServerFiles();
         shadama.initFileList();
@@ -4834,11 +4869,14 @@ static loop() {
         }
 
         shadama.initEnv(function() {
-            var source = shadama.loadShadama(defaultProgName);
-            if (editor) {
-                editor.doc.setValue(source);
-            }
-            shadama.maybeRunner();
+	    var func = function (source) {
+		shadama.loadShadama(null, source);
+		if (editor) {
+                    editor.doc.setValue(source);
+		}
+		shadama.maybeRunner();
+	    };
+            shadama.env["Display"].loadProgram(defaultProgName, func);
         });
     } else {
         if (!renderer.context ||
@@ -4853,6 +4891,7 @@ static loop() {
         state = renderer.state;
         var ext = gl.getExtension("EXT_color_buffer_float");
         shadama = new Shadama();
+	shadama.initDisplay();
         shadama.initEnv(function() {});
     }
 
