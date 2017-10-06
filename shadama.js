@@ -1974,7 +1974,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 gl.viewport(0, 0, FW, FH);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform2f(prog.uniLocations["u_half"], 0.5/T, 0.5/T);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5/FW, 0.5/FH);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
             gl.flush();
