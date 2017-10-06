@@ -1367,7 +1367,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama"
         ];
         examples.forEach((n) => {
-	    this.env["Display"].loadProgram(n, (serverCode) => {
+            this.env["Display"].loadProgram(n, (serverCode) => {
                 var localCode = localStorage.getItem(n);
                 if (!localCode) {
                     localStorage.setItem(n, serverCode);
@@ -1798,15 +1798,15 @@ function ShadamaFactory(threeRenderer, optDimension) {
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 var serverCode = xhttp.responseText;
-		if (func) {
-		    func(serverCode);
-		} else {
-		    that.shadama.loadShadama(null, serverCode);
-		    if (editor) {
-			editor.doc.setValue(serverCode);
-		    }
-		    that.shadama.maybeRunner();
-		}
+                if (func) {
+                    func(serverCode);
+                } else {
+                    that.shadama.loadShadama(null, serverCode);
+                    if (editor) {
+                        editor.doc.setValue(serverCode);
+                    }
+                    that.shadama.maybeRunner();
+                }
             }
         };
         xhttp.open("GET", file, true);
@@ -2470,7 +2470,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     Shadama.prototype.goFullScreen = function() {
 
         var req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen ||
-	    shadamaCanvas.mozRequestFullScreen || shadamaCanvas.msRequestFullscreen;
+            shadamaCanvas.mozRequestFullScreen || shadamaCanvas.msRequestFullscreen;
 
         if (req) {
             req.call(shadamaCanvas);
@@ -2480,13 +2480,13 @@ function ShadamaFactory(threeRenderer, optDimension) {
                         document.webkitFullscreenElement ||
                         document.mozFullScreenElement ||
                         document.msFullscreenElement) {
-		    var rx = window.innerWidth / FW;
-		    var ry = window.innerHeight / FH;
-		    fullScreenScale = Math.min(rx, ry);
+                    var rx = window.innerWidth / FW;
+                    var ry = window.innerHeight / FH;
+                    fullScreenScale = Math.min(rx, ry);
                     shadamaCanvas.style.width = FW * fullScreenScale + 'px';
                     shadamaCanvas.style.height = FH * fullScreenScale + 'px';
                 } else {
-		    fullScreenScale = 1.0;
+                    fullScreenScale = 1.0;
                     shadamaCanvas.style.width = FW + 'px';
                     shadamaCanvas.style.height = FH + 'px';
                 }
@@ -4550,242 +4550,6 @@ highp float random(float seed) {
         return n.glsl(symTable, null, null);
     }
 
-    Shadama.prototype.testCode3D = function() {
-        return `
-program "Bounce3"
-
-breed Turtle (x, y, z, dx, dy, dz, r, g, b, a)
-breed Filler (x, y, z)
-patch Field (nx, ny, nz, r, g, b, a)
-
-def setColor() {
-  this.r = this.x / 512.0;
-  this.g = this.y / 512.0;
-  this.b = this.z / 512.0;
-  this.a = 1.0;
-}
-
-def clear(field) {
-  field.r = 0.0;
-  field.g = 0.0;
-  field.b = 0.0;
-  field.a = 0.0;
-  field.nx = 0.0;
-  field.ny = 0.0;
-  field.nz = 0.0;
-}
-
-def fillSphere(cx, cy, cz, r, field) {
-  var dx = this.x - cx;
-  var dy = this.y - cy;
-  var dz = this.z - cz;
-  var dr = sqrt(dx * dx + dy * dy + dz * dz);
-  if (dr < r) {
-    field.r = 0.2;
-    field.g = 0.2;
-    field.b = 0.8;
-    field.a = 1.0;
-    field.nx = dx / r;
-    field.ny = dy / r;
-    field.nz = dz / r;
-  }
-}
-
-def bounce(field) {
-  var nx = field.nx;
-  var ny = field.ny;
-  var nz = field.nz;
-  var dx = this.dx;
-  var dy = this.dy - 0.01;
-  var dz = this.dz;
-  var dot = dx * nx + dy * ny + dz * nz;
-  var rx = dx;
-  var ry = dy;
-  var rz = dz;
-  var origV = sqrt(dx * dx + dy * dy + dz * dz);
-
-  if (dot < 0.0) {
-    rx = dx - 2.0 * dot * nx;
-    ry = dy - 2.0 * dot * ny;
-    rz = dz - 2.0 * dot * nz;
-    var norm = sqrt(rx * rx + ry * ry * rz * rz);
-    rx = rx / (norm / origV) / 2;
-    ry = ry / (norm / origV) / 2;
-    rz = rz / (norm / origV) / 2;
-  }
-
-  var newX = this.x + dx;
-  var newY = this.y + dy;
-  var newZ = this.z + dz;
-
-  if (newX < 0.0) {
-    newX = -newX;
-    rx = -rx * 0.9;
-  }
-  if (newX > u_resolution.x) {
-    newX = u_resolution.x - (newX - u_resolution.x);
-    rx = -rx * 0.9;
-  }
-
-  if (newY < 0.0) {
-    newY = mod(newY, u_resolution.y);
-    newX = 10;
-    newZ = 10;
-    ry = -0.1;
-    rx = 0.05 + random(rz + a_index.x) * 0.1;
-    rz = 0.08 + random(rx + a_index.x) * 0.1;
-  }
-  if (newY > u_resolution.y) {
-    newY = u_resolution.y - (newY - u_resolution.y);
-    ry = -ry;
-  }
-
-  if (newZ < 0.0) {
-    newZ = -newZ;
-    rz = -rz * 0.9;
-  }
-  if (newZ > u_resolution.z) {
-    newZ = u_resolution.z - (newZ - u_resolution.z);
-    rz = -rz;
-  }
-
-
-  this.x = newX;
-  this.y = newY;
-  this.z = newZ;
-  this.dx = rx;
-  this.dy = ry;
-  this.dz = rz;
-}
-
-static setup() {
-  Filler.fillCuboid("x", "y", "z", 512, 512, 512, 8);
-  Turtle.setCount(900000);
-  Turtle.fillRandom("x", 0, 512);
-  Turtle.fillRandom("y", 256, 512);
-  Turtle.fillRandom("z", 0, 512);
-  Turtle.fillRandomDir3("dx", "dy", "dz");
-  Turtle.setColor();
-}
-
-static loop() {
-  Filler.clear(Field);
-  Filler.fillSphere(75, 75, 75, 200, Field);
-  Turtle.bounce(Field);
-  Turtle.render();
-  Field.render();
-}
-`;
-    }
-
-    Shadama.prototype.testCode2D = function() {
-        return `
-program "Bounce"
-
-breed Turtle (x, y, dx, dy, r, g, b, a)
-breed Filler (x, y)
-patch Field (nx, ny, r, g, b, a)
-
-def setColor() {
-  this.r = this.x / 512.0;
-  this.g = this.y / 512.0;
-  this.b = 0.0;
-  this.a = 1.0;
-}
-
-def clear(field) {
-  field.r = 0.0;
-  field.g = 0.0;
-  field.b = 0.0;
-  field.a = 0.0;
-  field.nx = 0.0;
-  field.ny = 0.0;
-}
-
-def fillCircle(cx, cy, r, field) {
-  var dx = this.x - cx;
-  var dy = this.y - cy;
-  var dr = sqrt(dx * dx + dy * dy);
-  if (dr < r) {
-    field.r = 0.2;
-    field.g = 0.2;
-    field.b = 0.8;
-    field.a = 1.0;
-    field.nx = dx / r;
-    field.ny = dy / r;
-  }
-}
-
-def zeroDir() {
-  this.dx = 0.0;
-  this.dy = 0.0;
-}
-
-def bounce(field) {
-  var nx = field.nx;
-  var ny = field.ny;
-  var dx = this.dx;
-  var dy = this.dy - 0.01;
-  var dot = dx * nx + dy * ny;
-  var rx = dx;
-  var ry = dy;
-  var origV = sqrt(dx * dx + dy * dy);
-
-  if (dot < 0.0) {
-    rx = dx - 2.0 * dot * nx;
-    ry = dy - 2.0 * dot * ny;
-    var norm = sqrt(rx * rx + ry * ry);
-    rx = rx / (norm / origV);
-    ry = ry / (norm / origV);
-  }
-
-  var newX = this.x + dx;
-  var newY = this.y + dy;
-
-  if (newX < 0.0) {
-    newX = -newX;
-    rx = -rx * 0.9;
-  }
-  if (newX > u_resolution.x) {
-    newX = u_resolution.x - (newX - u_resolution.x);
-    rx = -rx * 0.9;
-  }
-  if (newY < 0.0) {
-    newY = mod(newY, u_resolution.y);
-    ry = -0.1;
-  }
-  if (newY > u_resolution.y) {
-    newY = u_resolution.y - (newY - u_resolution.y);
-    ry = -ry;
-  }
-
-  this.x = newX;
-  this.y = newY;
-  this.dx = rx;
-  this.dy = ry;
-}
-
-static setup() {
-  Filler.fillSpace("x", "y", 512, 512);
-  Turtle.setCount(300000);
-  Turtle.fillRandom("x", 0, 512);
-  Turtle.fillRandom("y", 256, 512);
-  Turtle.fillRandomDir("dx", "dy");
-  Turtle.setColor();
-}
-
-static loop() {
-  Filler.clear(Field);
-  Filler.fillCircle(75, 75, 20, Field);
-  Filler.fillCircle(300, 95, 25, Field);
-  Turtle.bounce(Field);
-  Display.clear();
-  Field.draw();
-  Turtle.draw();
-}
-`;
-    }
-
     var shadama;
     var defaultProgName = "5-Bounce.shadama";
 
@@ -4842,7 +4606,7 @@ static loop() {
         state = gl;
 
         shadama = new Shadama();
-	shadama.initDisplay();
+        shadama.initDisplay();
         shadama.addListeners(shadamaCanvas);
         shadama.initServerFiles();
         shadama.initFileList();
@@ -4871,13 +4635,13 @@ static loop() {
         }
 
         shadama.initEnv(function() {
-	    var func = function (source) {
-		shadama.loadShadama(null, source);
-		if (editor) {
+            var func = function (source) {
+                shadama.loadShadama(null, source);
+                if (editor) {
                     editor.doc.setValue(source);
-		}
-		shadama.maybeRunner();
-	    };
+                }
+                shadama.maybeRunner();
+            };
             shadama.env["Display"].loadProgram(defaultProgName, func);
         });
     } else {
@@ -4893,7 +4657,7 @@ static loop() {
         state = renderer.state;
         var ext = gl.getExtension("EXT_color_buffer_float");
         shadama = new Shadama();
-	shadama.initDisplay();
+        shadama.initDisplay();
         shadama.initEnv(function() {});
     }
 
