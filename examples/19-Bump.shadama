@@ -1,0 +1,68 @@
+program "Bump"
+
+breed Water(x, y, dx, dy, r, g, b, a)
+breed Dye(x, y, dx, dy, r, g, b, a)
+breed Filler(x, y)
+patch Field (c)
+
+def reset(field) {
+  field.c = 0;
+}
+
+def setWaterColor() {
+  this.r = 0;
+  this.a = 1;
+  this.g = 1;
+  this.b = 1;
+}
+
+def setDyeColor() {
+  this.r = 1;
+  this.a = 1;
+  this.g = 0;
+  this.b = 0;
+}
+
+def move() {
+  this.x = this.x + this.dx;
+  this.y = this.y + this.dy;
+}
+
+def bounce(field) {
+  var dx = this.dx;
+  var dy = this.dy;
+  if (field.c > 1) {
+    var vec = random(a_index.x + dy) * 6.283185307179586;
+    dx = cos(vec);
+    dy = sin(vec);
+  }
+  this.dx = dx;
+  this.dy = dy;
+}
+
+static setup() {
+  Filler.fillSpace("x", "y", width, height);
+  Water.setCount(100000);
+  Water.fillRandom("x", 0, width);
+  Water.fillRandom("y", 0, height);
+  Water.setWaterColor();
+  Water.fillRandomDir("dx", "dy");
+  
+  Dye.setCount(1000);
+  Dye.fillRandom("x", 255, 257);
+  Dye.fillRandom("y", 255, 257);
+  Dye.setDyeColor();
+  Dye.fillRandomDir("dx", "dy");
+}
+
+static loop() {
+  Filler.reset(Field);
+  Water.move();
+  Dye.move();
+  Water.increasePatch(Field, "c", 1);
+  Dye.increasePatch(Field, "c", 1);
+  Water.bounce(Field);
+  Dye.bounce(Field);
+  Water.draw();
+  Dye.draw();
+}

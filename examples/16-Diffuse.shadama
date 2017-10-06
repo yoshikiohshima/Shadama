@@ -56,15 +56,12 @@ static setup() {
 
   Filler.fillSpace("x", "y", width, height);
   Filler.reset(Field);
-  Filler.reset(Field);
   Display.clear();
 }
 
 static loop() {
   Turtle.move();
   Turtle.drop(Field);
-  Field.diffuse("r");
-  Field.diffuse("a");
   Field.diffuse("r");
   Field.diffuse("a");
   Field.draw();

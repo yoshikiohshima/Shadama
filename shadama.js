@@ -57,6 +57,11 @@ function ShadamaFactory(threeRenderer, optDimension) {
     var framebufferDiffuse;
     var framebufferU8RGBA;  // for three js u8rgba texture
 
+    var readFramebufferBreed;
+    var readFramebufferPatch;
+    var writeFramebufferBreed;
+    var writeFramebufferPatch;
+
     var editor = null;
     var editorType = null;
     var parseErrorWidget = null;
@@ -691,6 +696,16 @@ function ShadamaFactory(threeRenderer, optDimension) {
         }
     }
 
+    function realNoBlend() {
+        if (standalone) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ZERO);
+        } else {
+            state.setCullFace(THREE.CullFaceNone);
+            state.setBlending(THREE.NoBlending);
+        }
+    }
+
     function normalBlend() {
         if (standalone) {
             gl.enable(gl.BLEND);
@@ -710,7 +725,31 @@ function ShadamaFactory(threeRenderer, optDimension) {
     }
 
     function textureCopy(obj, src, dst) {
-        return;
+    	var w;
+    	var h;
+    	var readbuffer;
+    	var writebuffer;
+
+    	if (obj.constructor === Breed) {
+            w = T;
+            h = T;
+    	    readbuffer = readFramebufferBreed;
+            writebuffer = writeFramebufferBreed;
+    	} else if (obj.constructor === Patch) {
+    	    w = FW;
+    	    h = FH;
+    	    readbuffer = readFramebufferPatch;
+    	    writebuffer = writeFramebufferPatch;
+    	}
+
+    	renderer.setRenderTarget(readbuffer, gl.READ_FRAMEBUFFER);
+    	gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, src, 0);
+
+    	renderer.setRenderTarget(writebuffer, gl.DRAW_FRAMEBUFFER);
+    	gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, dst, 0);
+
+    	gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    	setTargetBuffer(null, null);
     }
 
     function updateOwnVariable(obj, name, optData) {
@@ -851,7 +890,8 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-            if (debugName === "set") {
+            if (debugName === "drop") {
+		debugger;
             }
                 var object = objects["this"];
 
@@ -859,6 +899,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
+		    outs.forEach((pair) => {
+			textureCopy(objects[pair[0]],
+				    objects[pair[0]][pair[1]],
+				    objects[pair[0]][N + pair[1]])});
                     setTargetBuffers(framebufferPatch, targets);
                 }
 
@@ -969,6 +1013,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
+		    outs.forEach((pair) => {
+			textureCopy(objects[pair[0]],
+				    objects[pair[0]][pair[1]],
+				    objects[pair[0]][N + pair[1]])});
                     setTargetBuffers(framebufferPatch, targets);
                 }
 
@@ -1062,6 +1110,12 @@ function ShadamaFactory(threeRenderer, optDimension) {
         framebufferDPatch = makeFramebuffer(gl.FLOAT, FW, FH);
 
         framebufferDiffuse = makeFramebuffer(gl.R32F, FW, FH);
+
+	readFramebufferBreed = makeFramebuffer(gl.R32F, T, T);
+	readFramebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
+
+	writeFramebufferBreed = makeFramebuffer(gl.R32F, T, T);
+	writeFramebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -1364,7 +1418,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
     Shadama.prototype.initServerFiles = function() {
         if (!standalone) {return;}
         var examples = [
-            "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama"
+            "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama", "16-Diffuse.shadama", "19-Bump.shadama"
         ];
         examples.forEach((n) => {
             this.env["Display"].loadProgram(n, (serverCode) => {
@@ -2059,8 +2113,9 @@ function ShadamaFactory(threeRenderer, optDimension) {
         increasePatch(patch, name, valueOrSrcName) {
             var prog = programs["increasePatch"];
 
-            var dst = patch[name];
-
+	    var src = patch[name];
+            var dst = patch[N + name];
+	    textureCopy(patch, src, dst);
             setTargetBuffer(framebufferDiffuse, dst);
 
             var uniLocations = prog.uniLocations;
@@ -2103,6 +2158,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             setTargetBuffer(null, null);
             gl.bindVertexArray(null);
+
+            patch[name] = dst;
+            patch[N + name] = src;
+
         }
 
         setCount(n) {
