@@ -2156,7 +2156,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
 
             patch[name] = dst;
             patch[N + name] = src;
-        }
+       }
 
         setCount(n) {
             var oldCount = this.count;
