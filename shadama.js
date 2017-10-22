@@ -1526,10 +1526,10 @@ function ShadamaFactory(threeRenderer, optDimension) {
         if (standalone) {
             pendingLoads[1] = callback;
             this.initAudio("degauss.mp3", "degauss");
-            this.initImage("mask.png", "mask");
+//            this.initImage("mask.png", "mask");
             this.initImage("blur-blue.png", "blurBlue");
-            this.initImage("blur-big.png", "blurBig");
-            this.initImage("windows.png", "windows");
+//            this.initImage("blur-big.png", "blurBig");
+//            this.initImage("windows.png", "windows");
             this.initImage("presentation.png", "presentation");
             this.initImage("button.png", "button");
             this.initImage("ahiru.png", "image");
