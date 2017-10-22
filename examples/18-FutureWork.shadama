@@ -1,5 +1,5 @@
 program "Future Work"
-breed Slide (x, y, r, g, b, a)
+breed Slide (x, y, dx, dy, r, g, b, a)
 breed Right (x, y, r, g, b, a)
 
 def move(x, y) {
@@ -7,22 +7,39 @@ def move(x, y) {
   this.y = this.y + y;
 }
 
+def disperse() {
+  this.x = this.x + this.dx;
+  this.y = this.y + this.dy;
+}
+
 static setup() {
   Slide.fillImage("x", "y", "r", "g", "b", "a", futurework);
+  Slide.fillRandomDir("dx", "dy");
   Slide.draw();
 
   Right.fillImage("x", "y", "r", "g", "b", "a", right);
   Right.move(960, 0);
 
   var showRight = 0;
+  var doDisperse = 0;
+  mousedown.x = 256;
+  mousedown.y = 256;
 }
 
 static loop() {
   Display.clear();
   Slide.draw();
+  if (mousedown.x < 100 && mousedown.y < 100) {
+    doDisperse = 1;
+  }
+
   if (mousemove.x > 960 && mousemove.y < 50) {
      Right.draw();
      showRight = 1;
+  }
+
+  if (doDisperse == 1) {
+    Slide.disperse();
   }
 
   if (showRight && mousedown.x > 960 && mousedown.y < 50) {
