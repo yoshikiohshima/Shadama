@@ -1536,6 +1536,7 @@ function ShadamaFactory(threeRenderer, optDimension) {
             this.initImage("rightbutton.png", "right");
             this.initImage("goals.png", "goals");
             this.initImage("futurework.png", "futurework");
+            this.initImage("maccready.png", "maccready");
         } else {
             callback();
         }

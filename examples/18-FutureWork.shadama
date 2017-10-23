@@ -43,7 +43,7 @@ static loop() {
   }
 
   if (showRight && mousedown.x > 960 && mousedown.y < 50) {
-    Display.loadProgram("14-DeGauss.shadama");
+    Display.loadProgram("19-MacCready.shadama");
     mousedown.x = 0;
     mousedown.y = 0;
   }
