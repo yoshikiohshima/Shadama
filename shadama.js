@@ -210,7 +210,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         layout (location = 0) in vec2 a_index;
         layout (location = 1) in vec2 b_index;
 
-        uniform mat4 mvpMatrix;
+        uniform mat4 mvMatrix;
+        uniform mat4 pMatrix;
         uniform vec3 u_resolution;
         uniform vec3 u_half;
 
@@ -223,6 +224,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         uniform sampler2D u_b;
         uniform sampler2D u_a;
 
+	uniform sampler2D u_d;
+	uniform float u_dotSize;
+	uniform bool u_use_vector;
+
         out vec4 v_color;
 
         void main(void) {
@@ -234,14 +239,16 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             vec3 normPos = dPos / u_resolution;
             vec3 clipPos = ((normPos + u_half) * 2.0 - 1.0) * (u_resolution.x / 2.0);
 
-            gl_Position = mvpMatrix * vec4(clipPos, 1.0);
+	    vec4 mvPos = mvMatrix * vec4(clipPos, 1.0);
+
+            gl_Position = pMatrix * mvPos;
 
             float r = texelFetch(u_r, fc, 0).r;
             float g = texelFetch(u_g, fc, 0).r;
             float b = texelFetch(u_b, fc, 0).r;
             float a = texelFetch(u_a, fc, 0).r;
             v_color = vec4(r, g, b, a);
-            gl_PointSize = 2.0;
+            gl_PointSize = ((u_use_vector ? texelFetch(u_d, fc, 0).r : u_dotSize) / -mvPos.z);
         }`,
 
         "renderBreed.frag":
@@ -262,7 +269,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         layout (location = 0) in vec2 a_index;
         layout (location = 1) in vec2 b_index;
 
-        uniform mat4 mvpMatrix;
+        uniform mat4 mvMatrix;
+        uniform mat4 pMatrix;
         uniform vec3 u_resolution;
         uniform vec3 v_resolution;
         uniform int v_step;
@@ -297,8 +305,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             vec3 normPos = dPos / u_resolution;
             vec3 clipPos = ((normPos + u_half) * 2.0 - 1.0) * (u_resolution.x / 2.0);
 
-            gl_Position = mvpMatrix * vec4(clipPos, 1.0);
-            gl_PointSize = 16.0 * ( 512.0 / -gl_Position.z );
+	    vec4 mvPos = mvMatrix * vec4(clipPos, 1.0);
+            gl_Position = pMatrix * mvPos;
+            gl_PointSize = 24.0 * ( 24.0 / -mvPos.z );
 
             float r = texelFetch(u_r, fc, 0).r;
             float g = texelFetch(u_g, fc, 0).r;
@@ -400,6 +409,56 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         }`,
 
         "increasePatch.frag":
+        `#version 300 es
+        precision highp float;
+        in float v_value;
+        layout (location = 0) out float fragColor;
+        void main() {
+            fragColor = v_value;
+        }`,
+
+        "increaseVoxel.vert":
+        `#version 300 es
+        precision highp float;
+
+        layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
+
+        uniform vec2 u_resolution;
+        uniform vec3 v_resolution;
+        uniform float v_step;
+        uniform vec2 u_half;
+
+        uniform sampler2D u_that_x;
+        uniform sampler2D u_that_y;
+        uniform sampler2D u_that_z;
+
+        uniform bool u_use_vector;
+        uniform sampler2D u_texture;
+        uniform float u_value;
+
+        out float v_value;
+
+        void main() {
+            ivec2 fc = ivec2(a_index);
+            float _x = texelFetch(u_that_x, fc, 0).r;
+            float _y = texelFetch(u_that_y, fc, 0).r;
+            float _z = texelFetch(u_that_z, fc, 0).r;
+
+	    _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
+	    _y = floor(_y / v_step); // 8
+	    _z = floor(_z / v_step); // 8
+
+	    int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
+	    vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
+            vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
+
+            gl_Position = vec4(oneToOne, 0.0, 1.0);
+            gl_PointSize = 1.0;
+
+	    v_value = u_use_vector ? texelFetch(u_texture, ivec2(a_index), 0).r : u_value;
+	}`,
+        "increaseVoxel.frag":
         `#version 300 es
         precision highp float;
         in float v_value;
@@ -511,11 +570,11 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     }
 
     function renderBreedProgram() {
-        return makePrimitive("renderBreed", ["mvpMatrix", "u_resolution", "u_half", "u_x", "u_y", "u_z", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+        return makePrimitive("renderBreed", ["mvMatrix", "pMatrix", "u_resolution", "u_half", "u_x", "u_y", "u_z", "u_r", "u_g", "u_b", "u_a", "u_d", "u_dotSize", "u_use_vector"], breedVAO);
     }
 
     function renderPatchProgram() {
-        return makePrimitive("renderPatch", ["mvpMatrix", "u_resolution", "u_half", "v_resolution", "v_step", "u_r", "u_g", "u_b", "u_a"], patchVAO);
+        return makePrimitive("renderPatch", ["mvMatrix", "pMatrix", "u_resolution", "u_half", "v_resolution", "v_step", "u_r", "u_g", "u_b", "u_a"], patchVAO);
     }
 
     function diffusePatchProgram() {
@@ -524,6 +583,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 
     function increasePatchProgram() {
         return makePrimitive("increasePatch", ["u_resolution", "u_half", "u_that_x", "u_that_y", "u_use_vector", "u_texture", "u_value"], patchVAO);
+    }
+
+    function increaseVoxelProgram() {
+        return makePrimitive("increaseVoxel", ["u_resolution", "u_half", "v_resolution", "v_step", "u_that_x", "u_that_y", "u_that_z", "u_use_vector", "u_texture", "u_value"], breedVAO);
     }
 
     function createShader(id, source) {
@@ -1201,15 +1264,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     Shadama.prototype.makeOnAfterRender = function() {
         return function(renderer, scene, camera, geometry, material, group) {
             var mesh = this;
-            var projectionMatrix = camera.projectionMatrix;
-            var modelViewMatrix = mesh.modelViewMatrix;
-            var mvpMatrix = projectionMatrix.clone();
-            mvpMatrix.multiply(modelViewMatrix);
+            var pMatrix = camera.projectionMatrix;
+            var mvMatrix = mesh.modelViewMatrix;
+           // mvpMatrix.multiply(modelViewMatrix);
 
             for (var i = 0; i < renderRequests.length; i++) {
                 var item = renderRequests[i];
                 if (item.constructor == Breed || item.constructor == Patch) {
-                    item.realRender(mvpMatrix);
+                    item.realRender(mvMatrix, pMatrix);
                 }
             }
             renderRequests.length = 0;
@@ -1514,14 +1576,22 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         var xobj = new XMLHttpRequest();
         var that = this;
 
-        var location = window.location.toString();
-        if (location.startsWith("http")) {
-            var slash = location.lastIndexOf("/");
-            var dir = location.slice(0, slash) + "/" + name;
+        // three ways to specify name:
+        // 1. fully qualified path, starting with "http"
+        // 2. [if window.location starts with "http"] path fragment appended to working directory
+        // 3. [otherwise - assuming standalone] path fragment appended to shadama2 directory on tinlizzie
+        var dir;
+        if (name.startsWith("http")) {  // fully qualified
+            dir = name;
         } else {
-            var dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+            var location = window.location.toString();
+            if (location.startsWith("http")) {
+                var slash = location.lastIndexOf("/");
+                dir = location.slice(0, slash) + "/" + name;
+            } else {
+                dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+            }
         }
-
         xobj.open("GET", dir, true);
         xobj.responseType = "blob";
 
@@ -1566,6 +1636,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             this.initImage("futurework.png", "futurework");
             this.initImage("maccready.png", "maccready");
         } else {
+            this.loadCSV("airports.dat", "Airports");
             callback();
         }
     }
@@ -2108,7 +2179,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             renderRequests.push(this);
         }
 
-        realRender(mvpMatrix) {
+        realRender(mvMatrix, pMatrix) {
             var prog = programs["renderBreed"];
             var breed = this;
             var uniLocations = prog.uniLocations;
@@ -2131,22 +2202,43 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             gl.uniform1i(prog.uniLocations["u_z"], 2);
 
             state.activeTexture(gl.TEXTURE3);
-            state.bindTexture(gl.TEXTURE_2D, this.r);
+            state.bindTexture(gl.TEXTURE_2D, breed.r);
             gl.uniform1i(prog.uniLocations["u_r"], 3);
 
             state.activeTexture(gl.TEXTURE4);
-            state.bindTexture(gl.TEXTURE_2D, this.g);
+            state.bindTexture(gl.TEXTURE_2D, breed.g);
             gl.uniform1i(prog.uniLocations["u_g"], 4);
 
             state.activeTexture(gl.TEXTURE5);
-            state.bindTexture(gl.TEXTURE_2D, this.b);
+            state.bindTexture(gl.TEXTURE_2D, breed.b);
             gl.uniform1i(prog.uniLocations["u_b"], 5);
 
             state.activeTexture(gl.TEXTURE6);
-            state.bindTexture(gl.TEXTURE_2D, this.a);
+            state.bindTexture(gl.TEXTURE_2D, breed.a);
             gl.uniform1i(prog.uniLocations["u_a"], 6);
 
-            gl.uniformMatrix4fv(uniLocations["mvpMatrix"], false, mvpMatrix.elements);
+	    var maybeD = breed["d"];
+	    if (maybeD !== undefined) {
+		if (typeof maybeD == "number") {
+		    gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
+		    gl.uniform1f(prog.uniLocations["u_dotSize"], maybeD);
+		    gl.uniform1i(prog.uniLocations["u_d"], 0);
+		} else {
+		    state.activeTexture(gl.TEXTURE7);
+		    state.bindTexture(gl.TEXTURE_2D, maybeD);
+		    gl.uniform1i(prog.uniLocations["u_d"], 7);
+
+		    gl.uniform1i(prog.uniLocations["u_use_vector"], 1);
+		    gl.uniform1f(prog.uniLocations["u_dotSize"], 0);
+		}
+	    } else {
+		gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
+		gl.uniform1f(prog.uniLocations["u_dotSize"], 16);
+		gl.uniform1i(prog.uniLocations["u_d"], 0);
+	    }
+
+            gl.uniformMatrix4fv(uniLocations["mvMatrix"], false, mvMatrix.elements);
+            gl.uniformMatrix4fv(uniLocations["pMatrix"], false, pMatrix.elements);
             gl.uniform3f(prog.uniLocations["u_resolution"], VW, VH, VD);
             gl.uniform3f(prog.uniLocations["u_half"], 0.5/VW, 0.5/VH, 0.5/VD);
 
@@ -2187,6 +2279,65 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                 state.activeTexture(gl.TEXTURE2);
                 state.bindTexture(gl.TEXTURE_2D, this[valueOrSrcName]);
                 gl.uniform1i(prog.uniLocations["u_texture"], 2);
+                gl.uniform1i(prog.uniLocations["u_use_vector"], 1);
+            } else {
+                gl.uniform1i(prog.uniLocations["u_texture"], 0);
+                gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
+                gl.uniform1f(prog.uniLocations["u_value"], valueOrSrcName);
+            }
+
+            if (standalone) {
+                gl.viewport(0, 0, FW, FH);
+            }
+
+            gl.drawArrays(gl.POINTS, 0, this.count);
+            gl.flush();
+
+            normalBlend();
+
+            setTargetBuffer(null, null);
+            gl.bindVertexArray(null);
+
+            patch[name] = dst;
+            patch[N + name] = src;
+        }
+
+        increaseVoxel(patch, name, valueOrSrcName) {
+            var prog = programs["increaseVoxel"];
+
+            var src = patch[name];
+            var dst = patch[N + name];
+            textureCopy(patch, src, dst);
+            setTargetBuffer(framebufferDiffuse, dst);
+
+            var uniLocations = prog.uniLocations;
+
+            state.useProgram(prog.program);
+            gl.bindVertexArray(prog.vao);
+
+            oneBlend();
+
+            state.activeTexture(gl.TEXTURE0);
+            state.bindTexture(gl.TEXTURE_2D, this.x);
+            gl.uniform1i(uniLocations["u_that_x"], 0);
+
+            state.activeTexture(gl.TEXTURE1);
+            state.bindTexture(gl.TEXTURE_2D, this.y);
+            gl.uniform1i(uniLocations["u_that_y"], 1);
+
+            state.activeTexture(gl.TEXTURE2);
+            state.bindTexture(gl.TEXTURE_2D, this.z);
+            gl.uniform1i(uniLocations["u_that_z"], 2);
+
+            gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
+            gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
+            gl.uniform1f(prog.uniLocations["v_step"], VS);
+            gl.uniform2f(uniLocations["u_half"], 0.5/FW, 0.5/FH);
+
+            if (typeof valueOrSrcName === "string") {
+                state.activeTexture(gl.TEXTURE3);
+                state.bindTexture(gl.TEXTURE_2D, this[valueOrSrcName]);
+                gl.uniform1i(prog.uniLocations["u_texture"], 3);
                 gl.uniform1i(prog.uniLocations["u_use_vector"], 1);
             } else {
                 gl.uniform1i(prog.uniLocations["u_texture"], 0);
@@ -2278,7 +2429,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             renderRequests.push(this);
         }
 
-        realRender(mvpMatrix) {
+        realRender(mvMatrix, pMatrix) {
             var prog = programs["renderPatch"];
             var t = webglTexture();
 
@@ -2311,7 +2462,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             state.bindTexture(gl.TEXTURE_2D, this.a);
             gl.uniform1i(prog.uniLocations["u_a"], 3);
 
-            gl.uniformMatrix4fv(uniLocations["mvpMatrix"], false, mvpMatrix.elements);
+            gl.uniformMatrix4fv(uniLocations["mvMatrix"], false, mvMatrix.elements);
+            gl.uniformMatrix4fv(uniLocations["pMatrix"], false, pMatrix.elements);
             gl.uniform3f(prog.uniLocations["u_resolution"], VW, VH, VD);
             gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
             gl.uniform1i(prog.uniLocations["v_step"], VS);
@@ -2795,6 +2947,10 @@ Shadama {
             "diffuse": new SymTable([
                 ["param", null, "name"]], true),
             "increasePatch": new SymTable([
+                ["param", null, "name"],
+                ["param", null, "patch"],
+                ["param", null, "valueOrSrcName"]], true),
+            "increaseVoxel": new SymTable([
                 ["param", null, "name"],
                 ["param", null, "patch"],
                 ["param", null, "valueOrSrcName"]], true),
@@ -4160,7 +4316,7 @@ uniform sampler2D u_that_y;
 
                     var displayBuiltIns = ["clear", "playSound", "loadProgram"];
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "diffuse", "increasePatch"];
+                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "diffuse", "increasePatch", "increaseVoxel"];
                     var myTable = table[n.sourceString];
 
                     var actuals = as.static_method_inner(table, null, method, false);
@@ -4793,6 +4949,7 @@ highp float random(float seed) {
     programs["renderPatch"] = renderPatchProgram();
     programs["diffusePatch"] = diffusePatchProgram();
     programs["increasePatch"] = increasePatchProgram();
+    programs["increaseVoxel"] = increaseVoxelProgram();
 
     initCompiler();
 
