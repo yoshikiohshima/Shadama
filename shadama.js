@@ -582,7 +582,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     }
 
     function increasePatchProgram() {
-        return makePrimitive("increasePatch", ["u_resolution", "u_half", "u_that_x", "u_that_y", "u_use_vector", "u_texture", "u_value"], patchVAO);
+        return makePrimitive("increasePatch", ["u_resolution", "u_half", "u_that_x", "u_that_y", "u_use_vector", "u_texture", "u_value"], breedVAO);
     }
 
     function increaseVoxelProgram() {
