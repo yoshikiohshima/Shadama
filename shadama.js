@@ -1217,6 +1217,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                 var js = entry[1];
                 this.statics[k] = this.evalShadama(js);
                 this.staticsList.push(k);
+		this.env[k] = new ShadamaFunction(k, this);
                 if (k === "setup") {
                     newSetupCode = src;
                 }
@@ -1237,7 +1238,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 		    this.triggers[k] = new ShadamaTrigger(js[1], js[2]);
 		} else if (js[0] === "data") {
 		    this.env[js[1]] = new ShadamaEvent();
-		    debugger;
 		    if (js[3] == "image") {
 			this.env[js[1]] = this.loadImage(js[2]);
 		    }
@@ -1268,7 +1268,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 	    }
         }
         this.populateList(this.staticsList);
-//        this.runLoop();
+        this.runLoop();
         return source;
     }
 
@@ -1878,10 +1878,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         }
         this.removeAll();
         this.addAll(watcherElements);
-
-        if (this.statics["loop"]) {
-            this.startScript("loop");
-        }
     }
 
     Shadama.prototype.addEnv = function(key, asset) {
@@ -1890,7 +1886,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 
     Shadama.prototype.runLoop = function() {
         if (this.statics["loop"]) {
-            this.steppers["loop"] = "loop";
+            this.startScript("loop");
         }
     }
 
@@ -1970,7 +1966,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                     if (editor) {
                         editor.doc.setValue(serverCode);
                     }
-                    //that.shadama.maybeRunner();
+                    that.shadama.maybeRunner();
                 }
             }
         };
@@ -2995,8 +2991,9 @@ Shadama {
                 ["param", null, "name"]], true),
             "loadData": new SymTable([
                 ["param", null, "data"]], true),
-            "loadCSV": new SymTable([
-                ["param", null, "data"]], true),
+            "start": new SymTable([], true),
+            "step": new SymTable([], true),
+            "stop": new SymTable([], true),
         };
 
         primitives = {};
@@ -4431,7 +4428,7 @@ uniform sampler2D u_that_y;
 
                     var displayBuiltIns = ["clear", "playSound", "loadProgram"];
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "loadCSV", "diffuse", "increasePatch", "increaseVoxel"];
+                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
                     var myTable = table[n.sourceString];
 
                     var actuals = as.static_method_inner(table, null, method, false);
@@ -4541,6 +4538,25 @@ uniform sampler2D u_that_y;
 	}
     }
 
+    class ShadamaFunction {
+	constructor(name, shadama) {
+	    this.name = name;
+	    this.shadama = shadama;
+	}
+
+	start() {
+	    this.shadama.startScript(this.name);
+	}
+
+	stop() {
+	    this.shadama.stopScript(this.name);
+	}
+
+	step() {
+	    this.shadama.once(this.name);
+	}
+    }
+
     class ShadamaEvent {
 	constructor() {
 	    this.value = undefined;
@@ -4566,7 +4582,6 @@ uniform sampler2D u_that_y;
 	maybeFire(shadama) {
 	    var env = shadama.env;
 	    if (shouldFire(this.trigger, env)) {
-		debugger;
 		resetTrigger(this.trigger, env);
 		var type = this.triggerAction[0];
 		var name = this.triggerAction[1];
