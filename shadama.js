@@ -1242,6 +1242,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                         this.env[js[1]] = this.loadImage(js[2]);
                     } else if (js[3] == "audio") {
                         this.env[js[1]] = this.loadAudio(js[2]);
+                    } else if (js[3] == "csv") {
+                        this.env[js[1]] = this.loadCSV(js[2]);
                     }
 
                     if (newData.length == 0) {
@@ -1642,14 +1644,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         this.env.width = FW;
         this.env.height = FH;
 
-//            this.initImage("blur-blue.png", "blurBlue");
-//            this.initImage("presentation.png", "presentation");
-//            this.initImage("button.png", "button");
-//            this.initImage("ahiru.png", "image");
-//            this.initImage("rightbutton.png", "right");
-//            this.initImage("goals.png", "goals");
-//            this.initImage("futurework.png", "futurework");
-//            this.initImage("maccready.png", "maccready");
         callback();
     }
 
@@ -1679,12 +1673,18 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 
     Shadama.prototype.stopScript = function(name) {
         delete this.steppers[name];
-        this.stopClock(this.detectEntry(name).clock);
+        var entry = this.detectEntry(name);
+        if (entry) {
+            this.stopClock(entry.clock);
+        }
     }
 
     Shadama.prototype.startScript = function(name) {
         this.steppers[name] = name;
-        this.startClock(this.detectEntry(name).clock);
+        var entry = this.detectEntry(name);
+        if (entry) {
+            this.startClock(entry.clock);
+        }
     }
 
     Shadama.prototype.toggleScript = function(name) {
