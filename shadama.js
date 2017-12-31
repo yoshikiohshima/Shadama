@@ -1190,6 +1190,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         this.staticsList = [];
         this.scripts = {};
 	this.triggers = {};
+	var newData = [];
         if (!source) {
             var scriptElement = document.getElementById(id);
             if(!scriptElement){return "";}
@@ -1236,6 +1237,17 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 		    this.env[js[1]] = new ShadamaEvent();
 		} else if (js[0] === "trigger") {
 		    this.triggers[k] = new ShadamaTrigger(js[1], js[2]);
+		} else if (js[0] === "data") {
+		    this.env[js[1]] = new ShadamaEvent();
+		    debugger;
+		    if (js[3] == "image") {
+			this.env[js[1]] = this.loadImage(js[2]);
+		    }
+		    if (newData.length == 0) {
+			newData = js[1];
+		    } else {
+			newData = ["and", js[1], newData];
+		    }
 		}
             }
         }
@@ -1249,11 +1261,16 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 	// but for now we keep the old way
 
         if (schemaChange) {
-            var success = this.callSetup();
-            if (!success) {return };
+	    if (newData.length === 0) {
+		var success = this.callSetup();
+		if (!success) {return };
+	    } else {
+		var trigger = new ShadamaTrigger(newData, ["step", "setup"]);
+		this.triggers["_trigger" + trigger.toString()] = trigger;
+	    }
         }
         this.populateList(this.staticsList);
-        this.runLoop();
+//        this.runLoop();
         return source;
     }
 
@@ -1579,6 +1596,43 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         }
         pendingLoads[0].push(img);
         document.body.appendChild(img);
+    }
+
+    Shadama.prototype.loadImage = function(name) {
+	var event = new ShadamaEvent();
+        var that = this;
+
+        var img = document.createElement("img");
+        var tmpCanvas = document.createElement("canvas");
+        var location = window.location.toString();
+
+        if (location.startsWith("http")) {
+            var slash = location.lastIndexOf("/");
+            var dir = location.slice(0, slash) + "/" + name;
+            img.src = dir;
+        } else {
+            img.crossOrigin = "Anonymous";
+            img.onerror = function() {
+                console.log("no internet");
+                document.body.removeChild(img);
+                that.env[keyName] = that.emptyImageData(256, 256);
+                checkPending(img);
+            }
+            img.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+        }
+
+        img.hidden = true;
+
+        img.onload = function() {
+            tmpCanvas.width = img.width;
+            tmpCanvas.height = img.height;
+            tmpCanvas.getContext('2d').drawImage(img, 0, 0);
+            var newImage = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+            document.body.removeChild(img);
+	    event.setValue(newImage);
+        }
+        document.body.appendChild(img);
+	return event;
     }
 
     Shadama.prototype.loadCSV = function(name, keyName) {
@@ -2838,13 +2892,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     var shadamaGrammar = String.raw`
 Shadama {
   TopLevel
-    = ProgramDecl? (Breed | Patch | Event | Script | Helper | Static | On)*
+    = ProgramDecl? (Breed | Patch | Event | On | Data | Script | Helper | Static)*
 
   ProgramDecl = program string
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Event = event ident
   On = on TriggerExpression arrow (start|stop)? ident
+  Data = data ident "(" string "," string ")"
   Script = def ident "(" Formals ")" Block
   Helper = helper ident "(" Formals ")" Block
   Static = static ident "(" Formals ")" Block
@@ -2972,6 +3027,7 @@ Shadama {
   arrow = "=>" ~identifierPart
   start = "start" ~identifierPart
   stop = "stop" ~identifierPart
+  data = "data" ~identifierPart
 
   empty =
   space
@@ -3116,7 +3172,7 @@ Shadama {
                         if (ctor == "Script" || ctor == "Static" || ctor == "Helper") {
                             addAsSet(result, d);
                         }
-			if (ctor == "On" || ctor == "Event") {
+			if (ctor == "On" || ctor == "Event" || ctor == "Data") {
                             addAsSet(result, d);
 			}
                     }
@@ -3160,6 +3216,14 @@ Shadama {
 		    table.beTrigger(trigger, [k, n.sourceString]);
 		    return {["_trigger" + trigger.toString()]: table};
                 },
+
+		Data(_d, n, _o, s1, _a, s2, _c) {
+		    var table = new SymTable();
+		    var realS1 = s1.children[1].sourceString;
+		    var realS2 = s2.children[1].sourceString;
+		    table.beData(n.sourceString, realS1, realS2);
+		    return {[n.sourceString]: table};
+		},
 
                 Script(_d, n, _o, ns, _c, b) {
                     var table = new SymTable();
@@ -3836,6 +3900,16 @@ uniform sampler2D u_that_y;
 		    var entry = table[key];
 		    var js = ["trigger", entry.trigger, entry.triggerAction];
 		    return {[key]: [table[key], "", "", js]};
+		},
+
+		Data(_d, i, _o, s1, _a, s2, _c) {
+                    var table = this.args.table;
+		    var key = i.sourceString;
+		    var entry = table[key];
+		    var realS1 = s1.children[1].sourceString;
+		    var realS2 = s2.children[1].sourceString;
+		    var js = ["data", i.sourceString, realS1, realS2];
+		    return {[key]: [entry, "", "", js]};
 		},
 
                 Script(_d, n, _o, ns, _c, b) {
@@ -4747,6 +4821,12 @@ uniform sampler2D u_that_y;
 	    this.trigger = trigger;
 	    this.triggerAction = action;
         }
+
+	beData(name, s1, s2) {
+	    this.type = "data";
+	    this.eventName = name;
+	    this.eventSource = [s1, s2]; // not really used;
+	}
 
         process() {
             // maybe a hack: look for outs that are not ins and add them to ins.  Those are use
