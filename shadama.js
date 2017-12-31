@@ -85,8 +85,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     var showAllEnv;
     var degaussdemo;
 
-    var pendingLoads = [[], null]; // = [[], callback];
-
     var shaders = {
         "drawBreed.vert":
         `#version 300 es
@@ -1511,23 +1509,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         });
     }
 
-    function checkPending(obj) {
-        var ind = pendingLoads[0].indexOf(obj);
-        if (ind >= 0) {
-            pendingLoads[0].splice(ind, 1);
-        }
-        if (pendingLoads[0].length === 0) {
-            if (pendingLoads[1]) {
-                pendingLoads[1]();
-                pendingLoads[1] = null;
-            }
-        }
-    }
-
-    Shadama.prototype.initAudio = function(name, keyName) {
-        if (!standalone) {return;}
-        var location = window.location.toString();
+    Shadama.prototype.loadAudio = function(name) {
+	var event = new ShadamaEvent();
         var that = this;
+        var location = window.location.toString();
 
         if (!audioContext) {
             audioContext = new AudioContext();
@@ -1542,15 +1527,13 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             request.onload = function() {
                 audioContext.decodeAudioData(request.response,
                                              function(buffer) {
-                                                 that.env[keyName] = buffer;
-                                                 checkPending(request);
+						 event.setValue(buffer);
                                              },
                                              function(error) {
                                                  console.log(error);
-                                                 checkPending(request);
+						 event.setValue("");
                                              });
             }
-            pendingLoads[0].push(request);
             request.send();
         }
 
@@ -1560,42 +1543,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         } else {
             loadSound("http://tinlizzie.org/~ohshima/shadama2/" + name);
         }
-    }
-
-    Shadama.prototype.initImage = function(name, keyName) {
-        if (!standalone) {return;}
-        var that = this;
-        var img = document.createElement("img");
-        var tmpCanvas = document.createElement("canvas");
-        var location = window.location.toString();
-
-        if (location.startsWith("http")) {
-            var slash = location.lastIndexOf("/");
-            var dir = location.slice(0, slash) + "/" + name;
-            img.src = dir;
-        } else {
-            img.crossOrigin = "Anonymous";
-            img.onerror = function() {
-                console.log("no internet");
-                document.body.removeChild(img);
-                that.env[keyName] = that.emptyImageData(256, 256);
-                checkPending(img);
-            }
-            img.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
-        }
-
-        img.hidden = true;
-
-        img.onload = function() {
-            tmpCanvas.width = img.width;
-            tmpCanvas.height = img.height;
-            tmpCanvas.getContext('2d').drawImage(img, 0, 0);
-            that.env[keyName] = tmpCanvas.getContext('2d').getImageData(0, 0, img.width, img.height);
-            document.body.removeChild(img);
-            checkPending(img);
-        }
-        pendingLoads[0].push(img);
-        document.body.appendChild(img);
     }
 
     Shadama.prototype.loadImage = function(name) {
@@ -1614,9 +1561,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             img.crossOrigin = "Anonymous";
             img.onerror = function() {
                 console.log("no internet");
+                var newImage = that.emptyImageData(256, 256);
                 document.body.removeChild(img);
-                that.env[keyName] = that.emptyImageData(256, 256);
-                checkPending(img);
+                event.setValue(newImage);
             }
             img.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
         }
@@ -1635,46 +1582,49 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 	return event;
     }
 
-    Shadama.prototype.loadCSV = function(name, keyName) {
-        var xobj = new XMLHttpRequest();
-        var that = this;
+    Shadama.prototype.loadCSV = function(name) {
+	var that = this;
+	return (function() {
+	    var xobj = new XMLHttpRequest();
+	    var event = new ShadamaEvent();
 
-        // three ways to specify name:
-        // 1. fully qualified path, starting with "http"
-        // 2. [if window.location starts with "http"] path fragment appended to working directory
-        // 3. [otherwise - assuming standalone] path fragment appended to shadama2 directory on tinlizzie
-        var dir;
-        if (name.startsWith("http")) {  // fully qualified
-            dir = name;
-        } else {
-            var location = window.location.toString();
-            if (location.startsWith("http")) {
-                var slash = location.lastIndexOf("/");
-                dir = location.slice(0, slash) + "/" + name;
-            } else {
-                dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
-            }
-        }
-        xobj.open("GET", dir, true);
-        xobj.responseType = "blob";
-
-        xobj.onload = function(oEvent) {
-            var blob = xobj.response;
-            var file = new File([blob], dir);
-            Papa.parse(file, {complete: resultCSV, error: errorCSV});
-        };
-
-        function errorCSV(error, file) {
-            console.log("ERROR:", error, file);
-            checkPending(xobj);
-        }
-
-        function resultCSV(result) {
-            that.env[keyName] = result.data;
-            checkPending(xobj);
-        }
-        pendingLoads[0].push(xobj);
-        xobj.send();
+	    // three ways to specify name:
+	    // 1. fully qualified path, starting with "http"
+	    // 2. [if window.location starts with "http"] path fragment appended to working directory
+	    // 3. [otherwise - assuming standalone] path fragment appended to shadama2 directory on tinlizzie
+	    var dir;
+	    if (name.startsWith("http")) {  // fully qualified
+		dir = name;
+	    } else {
+		var location = window.location.toString();
+		if (location.startsWith("http")) {
+		    var slash = location.lastIndexOf("/");
+		    dir = location.slice(0, slash) + "/" + name;
+		} else {
+		    dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+		}
+	    }
+	    xobj.open("GET", dir, true);
+	    xobj.responseType = "blob";
+	    
+	    xobj.onload = function(oEvent) {
+		var blob = xobj.response;
+		var file = new File([blob], dir);
+		Papa.parse(file, {complete: resultCSV, error: errorCSV});
+	    };
+	    
+	    function errorCSV(error, file) {
+		console.log("ERROR:", error, file);
+		event.setValue("");
+	    }
+	    
+	    function resultCSV(result) {
+		var data = result.data;
+		event.setValue(data);
+	    }
+	    xobj.send();
+	    return event;
+	})();
     }
 
     Shadama.prototype.initDisplay = function() {
@@ -1687,21 +1637,15 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         this.env.width = FW;
         this.env.height = FH;
 
-        pendingLoads[1] = callback;
-        if (standalone) {
-            this.initAudio("degauss.mp3", "degauss");
-            this.initImage("blur-blue.png", "blurBlue");
-            this.initImage("presentation.png", "presentation");
-            this.initImage("button.png", "button");
-            this.initImage("ahiru.png", "image");
-            this.initImage("rightbutton.png", "right");
-            this.initImage("goals.png", "goals");
-            this.initImage("futurework.png", "futurework");
-            this.initImage("maccready.png", "maccready");
-        } else {
-            this.loadCSV("airports.dat", "Airports");
-            callback();
-        }
+//            this.initImage("blur-blue.png", "blurBlue");
+//            this.initImage("presentation.png", "presentation");
+//            this.initImage("button.png", "button");
+//            this.initImage("ahiru.png", "image");
+//            this.initImage("rightbutton.png", "right");
+//            this.initImage("goals.png", "goals");
+//            this.initImage("futurework.png", "futurework");
+//            this.initImage("maccready.png", "maccready");
+        callback();
     }
 
     Shadama.prototype.makeClock = function() {
@@ -1998,6 +1942,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     Display.prototype.playSound = function(name) {
         var buffer = this.shadama.env[name];
         if (!buffer) {return}
+	if (buffer.constructor === ShadamaEvent) {
+	    buffer = buffer.value;
+	}
         var source = audioContext.createBufferSource(); // creates a sound source
         source.buffer = buffer;                    // tell the source which sound to play
         source.connect(audioContext.destination);       // connect the source to the context's destination (the speakers)
@@ -2023,7 +1970,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                     if (editor) {
                         editor.doc.setValue(serverCode);
                     }
-                    that.shadama.maybeRunner();
+                    //that.shadama.maybeRunner();
                 }
             }
         };
@@ -2140,6 +2087,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         }
 
         fillImage(xName, yName, rName, gName, bName, aName, imagedata) {
+	    if (imagedata.constructor === ShadamaEvent) {
+		imagedata = imagedata.value;
+	    }
             var xDim = imagedata.width;
             var yDim = imagedata.height;
             this.fillSpace(xName, yName, xDim, yDim);
@@ -2167,6 +2117,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 
         loadData(data) {
             // assumes that the first line is the schema of the table
+	    if (data.constructor === ShadamaEvent) {
+		data = data.value;
+	    }
             var schema = data[0];
 
             for (var k in this.own) {
@@ -2181,65 +2134,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                 this.setCount(data.length - 1);
             }
         }
-
-        loadCSV(name) {
-	    var that = this;
-	    return (function() {
-		var xobj = new XMLHttpRequest();
-		var event = new ShadamaEvent();
-
-		// three ways to specify name:
-		// 1. fully qualified path, starting with "http"
-		// 2. [if window.location starts with "http"] path fragment appended to working directory
-		// 3. [otherwise - assuming standalone] path fragment appended to shadama2 directory on tinlizzie
-		var dir;
-		if (name.startsWith("http")) {  // fully qualified
-		    dir = name;
-		} else {
-		    var location = window.location.toString();
-		    if (location.startsWith("http")) {
-			var slash = location.lastIndexOf("/");
-			dir = location.slice(0, slash) + "/" + name;
-		    } else {
-			dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
-		    }
-		}
-		xobj.open("GET", dir, true);
-		xobj.responseType = "blob";
-		
-		xobj.onload = function(oEvent) {
-		    var blob = xobj.response;
-		    var file = new File([blob], dir);
-		    Papa.parse(file, {complete: resultCSV, error: errorCSV});
-		};
-		
-		function errorCSV(error, file) {
-		    console.log("ERROR:", error, file);
-		    event.setValue("");
-		}
-		
-		function resultCSV(result) {
-		    var data = result.data;
-		    // assumes that the first line is the schema of the table
-		    var schema = data[0];
-		    
-		    for (var k in that.own) {
-			var ind = schema.indexOf(k);
-			if (ind >= 0) {
-			    var ary = new Float32Array(T * T);
-			    for (var i = 1; i < data.length; i++) {
-				ary[i - 1] = data[i][ind];
-			    }
-			    updateOwnVariable(that, k, ary);
-			}
-			that.setCount(data.length - 1);
-		    }
-		    event.setValue(that);
-		}
-		xobj.send();
-		return event;
-	    })();
-	}
 
         draw() {
             var prog = programs["drawBreed"];
