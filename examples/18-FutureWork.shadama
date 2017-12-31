@@ -2,6 +2,9 @@ program "Future Work"
 breed Slide (x, y, dx, dy, r, g, b, a)
 breed Right (x, y, r, g, b, a)
 
+data FutureWork("futurework.png", "image")
+data RightButton("rightbutton.png", "image")
+
 def move(x, y) {
   this.x = this.x + x;
   this.y = this.y + y;
@@ -13,17 +16,18 @@ def disperse() {
 }
 
 static setup() {
-  Slide.fillImage("x", "y", "r", "g", "b", "a", futurework);
+  Slide.fillImage("x", "y", "r", "g", "b", "a", FutureWork);
   Slide.fillRandomDir("dx", "dy");
   Slide.draw();
 
-  Right.fillImage("x", "y", "r", "g", "b", "a", right);
+  Right.fillImage("x", "y", "r", "g", "b", "a", RightButton);
   Right.move(960, 0);
 
   var showRight = 0;
   var doDisperse = 0;
   mousedown.x = 256;
   mousedown.y = 256;
+  loop.start();
 }
 
 static loop() {
@@ -48,6 +52,3 @@ static loop() {
     mousedown.y = 0;
   }
 }
-
-
-

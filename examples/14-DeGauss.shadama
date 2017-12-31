@@ -4,6 +4,13 @@ breed Filler (x, y, r, g, b, a)
 breed Button (x, y, r, g, b, a)
 breed Right (x, y, r, g, b, a)
 patch Blur (level)
+
+data Presentation("presentation.png", "image")
+data BlurBlue("blur-blue.png", "image")
+data Degauss("button.png", "image")
+data RightButton("rightbutton.png", "image")
+data Noise("degauss.mp3", "audio")
+
   
 def move(x, y) {
   this.x = this.x + x;
@@ -63,14 +70,14 @@ def degaussColor(step, begin) {
 }
   
 static setup() {
-  Pict.fillImage("x", "y", "r", "g", "b", "a", presentation);
+  Pict.fillImage("x", "y", "r", "g", "b", "a", Presentation);
   Pict.remember1();
-  Filler.fillImage("x", "y", "r", "g", "b", "a", blurBlue);
+  Filler.fillImage("x", "y", "r", "g", "b", "a", BlurBlue);
   Filler.storeBlur(Blur);
-  Button.fillImage("x", "y", "r", "g", "b", "a", button);
+  Button.fillImage("x", "y", "r", "g", "b", "a", Degauss);
   Button.move(760, 160);
 
-  Right.fillImage("x", "y", "r", "g", "b", "a", right);
+  Right.fillImage("x", "y", "r", "g", "b", "a", RightButton);
   Right.move(960, 0);
 
   Pict.colorize2(Blur);
@@ -78,6 +85,7 @@ static setup() {
   var begin = -1;
   var showButton = 0;
   var showRight = 0;
+  loop.start();
 }
 
 static loop() {
@@ -89,7 +97,7 @@ static loop() {
     if (mousemove.y < 200 && mousemove.y > 60) {
       if (begin == -1) {
         begin = time;
-        Display.playSound("degauss");
+        Display.playSound(Noise);
       }
     }
   }

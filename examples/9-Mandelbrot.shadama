@@ -20,7 +20,7 @@ def fill(field) {
   field.im = 0.0;
 }
 
-def step(field) {
+def oneStep(field) {
   var r = field.re;
   var i = field.im;
   var newR;
@@ -48,15 +48,17 @@ def step(field) {
   }
 }
 
-static setup() {
-  Turtle.fillSpace("x", "y", width, height);
-  Turtle.fill(Field);
-  Turtle.reset();
-}
-
 static loop() {
-  Turtle.step(Field);
+  Turtle.oneStep(Field);
   Turtle.incr();
   Display.clear();
   Field.draw();
 }
+
+static setup() {
+  Turtle.fillSpace("x", "y", width, height);
+  Turtle.fill(Field);
+  Turtle.reset();
+  loop.start();
+}
+

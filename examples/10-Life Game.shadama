@@ -63,13 +63,6 @@ def color(field) {
   }
 }
 
-static setup() {
-  Turtle.fillSpace("x", "y", width, height);
-  Turtle.reset(Field);
-  Turtle.color(Field);
-  Field.draw();
-}
-
 static loop() {
   Turtle.put(Field, mousemove.x, mousemove.y);
   Turtle.zero(Field);
@@ -102,3 +95,12 @@ static loop() {
   Display.clear();
   Field.draw();
 }
+
+static setup() {
+  Turtle.fillSpace("x", "y", width, height);
+  Turtle.reset(Field);
+  Turtle.color(Field);
+  Field.draw();
+  loop.start();
+}
+

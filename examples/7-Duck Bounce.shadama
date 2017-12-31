@@ -4,6 +4,8 @@ breed Turtle (x, y, dx, dy, r, g, b, a, origX, origY)
 breed Filler (x, y)
 patch Field (nx, ny, r, g, b, a)
 
+data Duck("ahiru.png", "image")
+
 def clear(field) {
   field.r = 0.0;
   field.g = 0.0;
@@ -86,13 +88,6 @@ def bounce(field, time) {
   this.dy = ry;
 }
 
-static setup() {
-  Filler.fillSpace("x", "y", 512, 512);
-  Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
-  Turtle.remember();
-  Turtle.fillD();
-}
-
 static loop() {
   Filler.clear(Field);
   Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
@@ -101,3 +96,12 @@ static loop() {
   Field.draw();
   Turtle.draw();
 }
+
+static setup() {
+  Filler.fillSpace("x", "y", 512, 512);
+  Turtle.fillImage("x", "y", "r", "g", "b", "a", Duck);
+  Turtle.remember();
+  Turtle.fillD();
+  loop.start();
+}
+

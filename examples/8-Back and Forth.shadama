@@ -4,6 +4,8 @@ breed Turtle (x, y, dx, dy, r, g, b, a, origX, origY)
 breed Filler (x, y)
 patch Field (nx, ny, r, g, b, a)
 
+data Duck("ahiru.png", "image")
+
 def clear(field) {
   field.r = 0.0;
   field.g = 0.0;
@@ -90,7 +92,7 @@ def bounce(field) {
 
 static setup() {
   Filler.fillSpace("x", "y", 512, 512);
-  Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
+  Turtle.fillImage("x", "y", "r", "g", "b", "a", Duck);
   Turtle.remember();
   Turtle.fillD();
   var goOut = true;

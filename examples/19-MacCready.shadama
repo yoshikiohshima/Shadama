@@ -2,6 +2,9 @@ program "MacCready"
 breed Slide (x, y, dx, dy, r, g, b, a)
 breed Right (x, y, r, g, b, a)
 
+data MacCready("maccready.png", "image")
+data RightButton("rightbutton.png", "image")
+
 def move(x, y) {
   this.x = this.x + x;
   this.y = this.y + y;
@@ -13,11 +16,11 @@ def disperse() {
 }
 
 static setup() {
-  Slide.fillImage("x", "y", "r", "g", "b", "a", maccready);
+  Slide.fillImage("x", "y", "r", "g", "b", "a", MacCready);
   Slide.fillRandomDir("dx", "dy");
   Slide.draw();
 
-  Right.fillImage("x", "y", "r", "g", "b", "a", right);
+  Right.fillImage("x", "y", "r", "g", "b", "a", RightButton);
   Right.move(960, 0);
 
   var showRight = 0;
@@ -48,6 +51,3 @@ static loop() {
     mousedown.y = 0;
   }
 }
-
-
-

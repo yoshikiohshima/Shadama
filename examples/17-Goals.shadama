@@ -2,19 +2,24 @@ program "Goals"
 breed Slide (x, y, r, g, b, a)
 breed Right (x, y, r, g, b, a)
 
+data Goals("goals.png", "image")
+data RightButton("rightbutton.png", "image")
+
+
 def move(x, y) {
   this.x = this.x + x;
   this.y = this.y + y;
 }
 
 static setup() {
-  Slide.fillImage("x", "y", "r", "g", "b", "a", goals);
+  Slide.fillImage("x", "y", "r", "g", "b", "a", Goals);
   Slide.draw();
 
-  Right.fillImage("x", "y", "r", "g", "b", "a", right);
+  Right.fillImage("x", "y", "r", "g", "b", "a", RightButton);
   Right.move(960, 0);
 
   var showRight = 0;
+  loop.start();
 }
 
 static loop() {

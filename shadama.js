@@ -1240,7 +1240,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 		    this.env[js[1]] = new ShadamaEvent();
 		    if (js[3] == "image") {
 			this.env[js[1]] = this.loadImage(js[2]);
+		    } else if (js[3] == "audio") {
+			this.env[js[1]] = this.loadAudio(js[2]);
 		    }
+
 		    if (newData.length == 0) {
 			newData = js[1];
 		    } else {
@@ -1255,6 +1258,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             this.setupCode = newSetupCode;
         }
 
+        this.populateList(this.staticsList);
+
 	// setup should be triggered in response to receicing 'load event',
 	// but for now we keep the old way
 
@@ -1264,11 +1269,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 		if (!success) {return };
 	    } else {
 		var trigger = new ShadamaTrigger(newData, ["step", "setup"]);
-		this.triggers["_trigger" + trigger.toString()] = trigger;
+		this.triggers["_trigger" + trigger.trigger.toString()] = trigger;
 	    }
         }
-        this.populateList(this.staticsList);
-        this.runLoop();
+//        this.runLoop();
         return source;
     }
 
@@ -1426,7 +1430,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     }
 
     Shadama.prototype.updateCode = function() {
-        if (!standalone) {return;}
+        if (!editor) {return;}
         var code = editor.getValue();
         this.loadShadama(null, code);
         this.maybeRunner();
@@ -1543,6 +1547,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         } else {
             loadSound("http://tinlizzie.org/~ohshima/shadama2/" + name);
         }
+	return event;
     }
 
     Shadama.prototype.loadImage = function(name) {
@@ -1935,8 +1940,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         }
     }
 
-    Display.prototype.playSound = function(name) {
-        var buffer = this.shadama.env[name];
+    Display.prototype.playSound = function(buffer) {
         if (!buffer) {return}
 	if (buffer.constructor === ShadamaEvent) {
 	    buffer = buffer.value;
@@ -2083,6 +2087,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         }
 
         fillImage(xName, yName, rName, gName, bName, aName, imagedata) {
+	    if (imagedata === undefined) {
+                var error = new Error("runtime error");
+                error.reason = `imagedata is not available`;
+                error.expected = `imagedata is not available`;
+                error.pos = -1;
+                error.src = null;
+                throw error;
+	    }
 	    if (imagedata.constructor === ShadamaEvent) {
 		imagedata = imagedata.value;
 	    }
@@ -3014,6 +3026,11 @@ Shadama {
             for (var k in primitives) {
                 obj[k] = primitives[k];
             }
+
+	    obj["mousedown"] = {x:0, y:0};
+	    obj["mousemove"] = {x:0, y:0};
+	    obj["mouseup"] = {x:0, y:0};
+
         }
 
         function processHelper(symDict) {
@@ -4253,12 +4270,12 @@ uniform sampler2D u_that_y;
                     var isOther = this.args.isOther;
 		    var left = table[l.sourceString];
 		    if (!left || (!left.isEvent() && !left.isStaticVariable())) {
-                            var error = new Error("semantic error");
-                            error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
-                            error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
-                            error.pos = l.source.endIdx;
-                            error.src = null;
-                            throw error;
+//                            var error = new Error("semantic error");
+//                            error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
+//                            error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
+//                            error.pos = l.source.endIdx;
+//                            error.src = null;
+//                            throw error;
 		    }
                     js.push("env.");
                     js.push(l.sourceString);
@@ -4533,8 +4550,8 @@ uniform sampler2D u_that_y;
 		evt.ready = false;
 	    }
 	} else {
-	    resetTrigger(trigger[1]);
-	    resetTrigger(trigger[2]);
+	    resetTrigger(trigger[1], env);
+	    resetTrigger(trigger[2], env);
 	}
     }
 

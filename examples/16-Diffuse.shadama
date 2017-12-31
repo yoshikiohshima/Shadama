@@ -48,6 +48,15 @@ def move() {
   this.dy = dy;
 }
 
+
+static loop() {
+  Turtle.move();
+  Turtle.drop(Field);
+  Field.diffuse("r");
+  Field.diffuse("a");
+  Field.draw();
+}
+
 static setup() {
   Turtle.setCount(100);
   Turtle.fillRandom("x", 0, width);
@@ -57,12 +66,5 @@ static setup() {
   Filler.fillSpace("x", "y", width, height);
   Filler.reset(Field);
   Display.clear();
-}
-
-static loop() {
-  Turtle.move();
-  Turtle.drop(Field);
-  Field.diffuse("r");
-  Field.diffuse("a");
-  Field.draw();
+  loop.start();
 }
