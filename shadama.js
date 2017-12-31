@@ -1163,6 +1163,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         this.statics = {};    // {name: function}
         this.staticsList = []; // [name];
         this.steppers = {};  // {name: name}
+	this.triggers = {};  // {triggerName: ShadamaTrigger}
         this.loadTime = 0.0;
 
         this.compilation = null;
@@ -1188,6 +1189,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         this.statics = {};
         this.staticsList = [];
         this.scripts = {};
+	this.triggers = {};
         if (!source) {
             var scriptElement = document.getElementById(id);
             if(!scriptElement){return "";}
@@ -1230,7 +1232,11 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
                     var func = dimension == 2 ? programFromTable : programFromTable3;
                     this.scripts[js[1]] = [ func(table, entry[1], entry[2], js[1]),
                                       table.insAndParamsAndOuts()];
-                }
+                } else if (js[0] === "event") {
+		    this.env[js[1]] = new ShadamaEvent();
+		} else if (js[0] === "trigger") {
+		    this.triggers[k] = new ShadamaTrigger(js[1], js[2]);
+		}
             }
         }
 
@@ -1238,6 +1244,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             schemaChange = true;
             this.setupCode = newSetupCode;
         }
+
+	// setup should be triggered in response to receicing 'load event',
+	// but for now we keep the old way
 
         if (schemaChange) {
             var success = this.callSetup();
@@ -2119,6 +2128,65 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
             }
         }
 
+        loadCSV(name) {
+	    var that = this;
+	    return (function() {
+		var xobj = new XMLHttpRequest();
+		var event = new ShadamaEvent();
+
+		// three ways to specify name:
+		// 1. fully qualified path, starting with "http"
+		// 2. [if window.location starts with "http"] path fragment appended to working directory
+		// 3. [otherwise - assuming standalone] path fragment appended to shadama2 directory on tinlizzie
+		var dir;
+		if (name.startsWith("http")) {  // fully qualified
+		    dir = name;
+		} else {
+		    var location = window.location.toString();
+		    if (location.startsWith("http")) {
+			var slash = location.lastIndexOf("/");
+			dir = location.slice(0, slash) + "/" + name;
+		    } else {
+			dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+		    }
+		}
+		xobj.open("GET", dir, true);
+		xobj.responseType = "blob";
+		
+		xobj.onload = function(oEvent) {
+		    var blob = xobj.response;
+		    var file = new File([blob], dir);
+		    Papa.parse(file, {complete: resultCSV, error: errorCSV});
+		};
+		
+		function errorCSV(error, file) {
+		    console.log("ERROR:", error, file);
+		    event.setValue("");
+		}
+		
+		function resultCSV(result) {
+		    var data = result.data;
+		    // assumes that the first line is the schema of the table
+		    var schema = data[0];
+		    
+		    for (var k in that.own) {
+			var ind = schema.indexOf(k);
+			if (ind >= 0) {
+			    var ary = new Float32Array(T * T);
+			    for (var i = 1; i < data.length; i++) {
+				ary[i - 1] = data[i][ind];
+			    }
+			    updateOwnVariable(that, k, ary);
+			}
+			that.setCount(data.length - 1);
+		    }
+		    event.setValue(that);
+		}
+		xobj.send();
+		return event;
+	    })();
+	}
+
         draw() {
             var prog = programs["drawBreed"];
             var t = webglTexture();
@@ -2650,6 +2718,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
 
     Shadama.prototype.step = function() {
         this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
+	for (var k in this.triggers) {
+	    this.triggers[k].maybeFire(this);
+	}
         try {
             for (var k in this.steppers) {
                 var func = this.statics[k];
@@ -2767,11 +2838,13 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
     var shadamaGrammar = String.raw`
 Shadama {
   TopLevel
-    = ProgramDecl? (Breed | Patch | Script | Helper | Static)*
+    = ProgramDecl? (Breed | Patch | Event | Script | Helper | Static | On)*
 
   ProgramDecl = program string
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
+  Event = event ident
+  On = on TriggerExpression arrow (start|stop)? ident
   Script = def ident "(" Formals ")" Block
   Helper = helper ident "(" Formals ")" Block
   Static = static ident "(" Formals ")" Block
@@ -2807,6 +2880,11 @@ Shadama {
 
   LeftHandSideExpression
     = ident "." ident -- field
+    | ident
+
+  TriggerExpression = 
+    | TriggerExpression "&&" ident			-- and
+    | TriggerExpression "||" ident			-- or
     | ident
 
   Expression = LogicalExpression
@@ -2889,6 +2967,11 @@ Shadama {
   static = "static" ~identifierPart
   program = "program" ~identifierPart
   return = "return" ~identifierPart
+  event = "event" ~identifierPart
+  on = "on" ~identifierPart
+  arrow = "=>" ~identifierPart
+  start = "start" ~identifierPart
+  stop = "stop" ~identifierPart
 
   empty =
   space
@@ -2962,6 +3045,8 @@ Shadama {
                 ["param", null, "name"]], true),
             "loadData": new SymTable([
                 ["param", null, "data"]], true),
+            "loadCSV": new SymTable([
+                ["param", null, "data"]], true),
         };
 
         primitives = {};
@@ -3031,6 +3116,9 @@ Shadama {
                         if (ctor == "Script" || ctor == "Static" || ctor == "Helper") {
                             addAsSet(result, d);
                         }
+			if (ctor == "On" || ctor == "Event") {
+                            addAsSet(result, d);
+			}
                     }
                     processHelper(result);
                     globalTable = result;
@@ -3053,6 +3141,24 @@ Shadama {
                     fs.symTable(table);
                     table.process();
                     return {[n.sourceString]: table};
+                },
+
+		Event(_e, n) {
+		    var table = new SymTable();
+		    table.beEvent(n.sourceString);
+		    return {[n.sourceString]: table};
+		},
+
+		On(_o, t, _a, optK, n) {
+		    var table = new SymTable();
+		    var trigger = t.trigger();
+                    if (optK.children.length > 0) {
+                        var k = optK.children[0].sourceString;
+                    } else {
+			k = "step";
+		    }
+		    table.beTrigger(trigger, [k, n.sourceString]);
+		    return {["_trigger" + trigger.toString()]: table};
                 },
 
                 Script(_d, n, _o, ns, _c, b) {
@@ -3099,7 +3205,6 @@ Shadama {
 
                 VariableDeclaration(n, optI) {
                     var table = this.args.table;
-                    var r = {["var." + n.sourceString]: ["var", null, n.sourceString]};
                     table.add("var", null, n.sourceString);
                     if (optI.children.length > 0) {
                         optI.children[0].symTable(table);
@@ -3194,6 +3299,21 @@ Shadama {
             vert.push(")");
         };
 
+	s.addOperation(
+	    "trigger",
+	    {
+		TriggerExpression_and(t, _op, i) {
+		    return ["and", t, i.sourceString];
+		},
+		TriggerExpression_or(t, _op, i) {
+		    return ["or", t, i.sourceString];
+		},
+		TriggerExpression(i) {
+		    return i.sourceString;
+		}
+	    }
+	);
+	
         s.addOperation(
             "glsl_script_formals",
             {
@@ -3703,6 +3823,21 @@ uniform sampler2D u_that_y;
                     return {[n.sourceString]: [table[n.sourceString], "", "" ,js]};
                 },
 
+		Event(_e, n) {
+                    var table = this.args.table;
+                    var js = ["event", n.sourceString];
+                    return {[n.sourceString]: [table[n.sourceString], "", "", js]};
+		},
+
+		On(_o, t, _a, optK, k) {
+                    var table = this.args.table;
+		    var trigger = t.trigger();
+		    var key = "_trigger" + trigger.toString();
+		    var entry = table[key];
+		    var js = ["trigger", entry.trigger, entry.triggerAction];
+		    return {[key]: [table[key], "", "", js]};
+		},
+
                 Script(_d, n, _o, ns, _c, b) {
                     var inTable = this.args.table;
                     var table = inTable[n.sourceString];
@@ -4133,6 +4268,9 @@ uniform sampler2D u_that_y;
                     var js = this.args.js;
                     var method = this.args.method;
                     var isOther = this.args.isOther;
+		    var symTable = new SymTable();
+		    symTable.beStaticVariable(i.sourceString);
+		    table[n.sourceString] = symTable;
                     js.push("env.");
                     js.push(n.sourceString);
                     js.pushWithSpace("= ");
@@ -4148,6 +4286,15 @@ uniform sampler2D u_that_y;
                     var js = this.args.js;
                     var method = this.args.method;
                     var isOther = this.args.isOther;
+		    var left = table[l.sourceString];
+		    if (!left || (!left.isEvent() && !left.isStaticVariable())) {
+                            var error = new Error("semantic error");
+                            error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
+                            error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
+                            error.pos = l.source.endIdx;
+                            error.src = null;
+                            throw error;
+		    }
                     js.push("env.");
                     js.push(l.sourceString);
                     js.pushWithSpace("= ");
@@ -4316,7 +4463,7 @@ uniform sampler2D u_that_y;
 
                     var displayBuiltIns = ["clear", "playSound", "loadProgram"];
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "diffuse", "increasePatch", "increaseVoxel"];
+                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "loadCSV", "diffuse", "increasePatch", "increaseVoxel"];
                     var myTable = table[n.sourceString];
 
                     var actuals = as.static_method_inner(table, null, method, false);
@@ -4396,6 +4543,74 @@ uniform sampler2D u_that_y;
                 js.push(callProgram);
             },
         });
+    }
+
+    function shouldFire(trigger, env) {
+	if (typeof trigger == "string") {
+	    var evt = env[trigger];
+	    return evt && evt.ready;
+	} else {
+	    var key = trigger[0];
+	    if (key == "and") {
+		return shouldFire(trigger[1], env) && shouldFire(trigger[2], env);
+	    } else if (key == "and") {
+		return shouldFire(trigger[1], env) || shouldFire(trigger[2], env);
+	    } else {
+		return false;
+	    }
+	}
+    }
+
+    function resetTrigger(trigger, env) {
+	if (typeof trigger == "string") {
+	    var evt = env[trigger];
+	    if (evt) {
+		evt.ready = false;
+	    }
+	} else {
+	    resetTrigger(trigger[1]);
+	    resetTrigger(trigger[2]);
+	}
+    }
+
+    class ShadamaEvent {
+	constructor() {
+	    this.value = undefined;
+	    this.ready = false;
+	}
+
+	setValue(value) {
+	    this.value = value;
+	    this.ready = true;
+	}
+
+	reset() {
+	    this.ready = false;
+	}
+    }
+
+    class ShadamaTrigger {
+	constructor(trigger, triggerAction) {
+	    this.trigger = trigger;
+	    this.triggerAction = triggerAction;
+	}
+
+	maybeFire(shadama) {
+	    var env = shadama.env;
+	    if (shouldFire(this.trigger, env)) {
+		debugger;
+		resetTrigger(this.trigger, env);
+		var type = this.triggerAction[0];
+		var name = this.triggerAction[1];
+		if (type == "start") {
+		    shadama.startScript(name);
+		} else if (type == "stop") {
+		    shadama.stopScript(this.triggerAction[1]);
+		} else if (type == "step") {
+		    shadama.once(name);
+		}
+	    }
+	}
     }
 
     class OrderedPair {
@@ -4505,6 +4720,32 @@ uniform sampler2D u_that_y;
 
         beStatic() {
             this.type = "static";
+        }
+
+	beEvent(name) {
+	    this.type = "event";
+	    this.eventName = name;
+	}
+
+	isEvent() {
+	    return this.type === "event";
+	}
+
+	beStaticVariable(name) {
+	    this.type = "staticVar";
+	    this.staticVarName = name;
+	}
+
+	isStaticVariable() {
+	    return this.type == "staticVar";
+	}
+
+	beTrigger(trigger, action) {
+	    // trigger: name | ["and", trigger, triger] | [or trigger, trigger]
+	    // action ["start"|"step"|"stop", static name]
+	    this.type = "trigger";
+	    this.trigger = trigger;
+	    this.triggerAction = action;
         }
 
         process() {
