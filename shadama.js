@@ -1561,9 +1561,13 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         var location = window.location.toString();
 
         if (location.startsWith("http")) {
-            var slash = location.lastIndexOf("/");
-            var dir = location.slice(0, slash) + "/" + name;
-            img.src = dir;
+	    if (frame) {
+		var dir = frame.imagePath + name;
+	    } else {
+		var slash = location.lastIndexOf("/");
+		var dir = location.slice(0, slash) + "/" + name;
+	    }
+	    img.src = dir;
         } else {
             img.crossOrigin = "Anonymous";
             img.onerror = function() {
@@ -1594,19 +1598,18 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName) {
         return (function() {
             var xobj = new XMLHttpRequest();
             var event = new ShadamaEvent();
-
-            // three ways to specify name:
-            // 1. fully qualified path, starting with "http"
-            // 2. [if window.location starts with "http"] path fragment appended to working directory
-            // 3. [otherwise - assuming standalone] path fragment appended to shadama2 directory on tinlizzie
+            var location = window.location.toString();
             var dir;
-            if (name.startsWith("http")) {  // fully qualified
+            if (name.startsWith("http")) {
                 dir = name;
             } else {
-                var location = window.location.toString();
                 if (location.startsWith("http")) {
-                    var slash = location.lastIndexOf("/");
-                    dir = location.slice(0, slash) + "/" + name;
+		    if (frame) {
+			var dir = frame.dataPath + name;
+		    } else {
+			var slash = location.lastIndexOf("/");
+			var dir = location.slice(0, slash) + "/" + name;
+		    }
                 } else {
                     dir = "http://tinlizzie.org/~ohshima/shadama2/" + name;
                 }
