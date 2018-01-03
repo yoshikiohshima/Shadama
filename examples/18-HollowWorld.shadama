@@ -1,0 +1,157 @@
+program "Hollow World"
+
+breed Shell (x, y, z, mx, my, mz, dx, dy, dz, r, g, b, a)
+breed Turtle (x, y, z, mx, my, mz, dx, dy, dz, ax, ay, az, r, g, b, a, d)
+patch Field (x, y, z, ax, ay, az)
+
+event AX
+event AY
+event AZ
+
+def initShell() {
+  this.x = 256;
+  this.y = 256;
+  this.z = 256;
+}
+
+def move() {
+  this.x = this.x + this.dx;
+  this.y = this.y + this.dy;
+  this.z = this.z + this.dz;
+}
+
+def savePos() {
+  this.mx = this.x;
+  this.my = this.y;
+  this.mz = this.z;
+}
+
+def storePos(field) {
+  field.x = this.mx;
+  field.y = this.my;
+  field.z = this.mz;
+}
+
+def restorePos() {
+  this.x = this.mx;
+  this.y = this.my;
+  this.z = this.mz;
+}
+
+def setShellColor() {
+  this.r = 0;
+  this.g = 1;
+  this.b = 0;
+  this.a = 0.2;
+}
+
+def setColor() {
+  this.r = 1;
+  this.g = 0;
+  this.b = 1;
+  this.a = 1;
+}
+
+def gotoZero() {
+  this.x = 0;
+  this.y = 0;
+  this.z = 0;
+}
+
+def pickAndComp(field, count) {
+  var cx = field.x;
+  var cy = field.y;
+  var cz = field.z;
+  var dx = this.mx - cx;
+  var dy = this.my - cy;
+  var dz = this.mz - cz;
+
+  var d2 = (dx * dx + dy * dy + dz * dz);
+  var ds = sqrt(d2);
+  
+  this.dx = dx / (ds * d2) / count * 500;
+  this.dy = dy / (ds * d2) / count * 500;
+  this.dz = dz / (ds * d2) / count * 500;
+}
+
+def resetA(field) {
+  field.ax = 0;
+  field.ay = 0;
+  field.az = 0;
+}
+
+def pickA(field) {
+  this.ax = field.ax;
+  this.ay = field.ay;
+  this.az = field.az;
+}
+
+def newD() {
+  this.dx = this.dx + this.ax;
+  this.dy = this.dy + this.ay;
+  this.dz = this.dz + this.az;
+}
+
+def goto(x, y, z) {
+  this.x = x;
+  this.y = y;
+  this.z = z;
+}
+
+def setVec(dx, dy, dz) {
+  this.dx = dx;
+  this.dy = dy;
+  this.dz = dz;
+  this.d = 2000;
+}
+
+static setup() {
+  Shell.setCount(50000);
+  Shell.fillRandomDir3("dx", "dy", "dz");
+  Shell.initShell();
+  Shell.setShellColor();
+
+  Turtle.setCount(1);
+  Turtle.goto(256, 500, 256);
+  Turtle.setVec(0.6, 0.0, 0);
+  Turtle.setColor();
+  
+  var init = 0;
+  var set = 0;
+  loop.start();
+}
+
+static loop() {
+  var init = init + 1;
+  if (init == 150) {
+    set = 1;
+    Shell.savePos();
+  }
+  if (set == 0) {
+    Shell.move();
+  } else {
+    Turtle.savePos();
+    Turtle.gotoZero();
+    Turtle.storePos(Field);
+    Turtle.resetA(Field);
+
+    Shell.gotoZero();
+    Shell.pickAndComp(Field, Shell.count);
+    Shell.increaseVoxel(Field, "ax", "dx");
+    Shell.increaseVoxel(Field, "ay", "dy");
+    Shell.increaseVoxel(Field, "az", "dz");
+    Shell.restorePos();
+
+    Turtle.pickA(Field);
+    Turtle.newD();
+    Turtle.restorePos();
+    Turtle.move();
+  }
+
+  AX = Turtle.readValues("ax", 0, 0, 1, 1);
+  AY = Turtle.readValues("ay", 0, 0, 1, 1);
+  AZ = Turtle.readValues("az", 0, 0, 1, 1);
+
+  Shell.render();
+  Turtle.render();
+}
