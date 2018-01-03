@@ -72,6 +72,7 @@ static setup() {
   Turtle.fillSpace("x", "y", 512, 512);
   Turtle.d();
   Turtle.setColor();
+  loop.start();
 }
 
 static loop() {
