@@ -1808,7 +1808,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.makeEntry = function(name) {
-        if (!editor) {return;}
+        if (!domTools) {return;}
         var entry = document.createElement("div");
         var aClock = this.makeClock();
         var that = this;
@@ -1834,7 +1834,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.detectEntry = function(name) {
-        if (!editor) {return;}
+        if (!domTools) {return;}
         for (var j = 0; j < watcherList.children.length; j++) {
             var oldEntry = watcherList.children[j];
             if (oldEntry.scriptName === name) {return oldEntry;}
