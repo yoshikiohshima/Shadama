@@ -757,7 +757,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             state.setBlending(THREE.NoBlending);
         } else {
             gl.disable(gl.BLEND);
-	}
+        }
 
     }
 
