@@ -758,7 +758,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         } else {
             gl.disable(gl.BLEND);
         }
-
     }
 
     function normalBlend() {
