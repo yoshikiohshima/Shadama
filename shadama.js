@@ -2909,22 +2909,21 @@ Shadama {
     = Block
     | VariableStatement
     | AssignmentStatement
-    | ExpressionStatement
     | IfStatement
     | ExpressionStatement
     | ReturnStatement
 
-  VariableStatement = var VariableDeclaration ";"
+  VariableStatement = var VariableDeclaration ";"?
   VariableDeclaration = ident Initialiser?
   Initialiser = "=" Expression
 
-  ReturnStatement = return Expression ";"
+  ReturnStatement = return Expression ";"?
 
-  ExpressionStatement = Expression ";"
+  ExpressionStatement = Expression ";"?
   IfStatement = if "(" Expression ")" Statement (else Statement)?
 
   AssignmentStatement
-    = LeftHandSideExpression "=" Expression ";"
+    = LeftHandSideExpression "=" Expression ";"?
 
   LeftHandSideExpression
     = ident "." ident -- field
