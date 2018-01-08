@@ -28,7 +28,17 @@ function assert(result, expected, str) {
     return a != b;
 }
 
-function setTestParams() {
+var parse;
+var Entry;
+
+var update;
+var translate;
+var s;
+var Breed;
+var Patch;
+
+
+function setTestParams(tester) {
 //    TEXTURE_SIZE = 16;
 //    FIELD_WIDTH = 32;
 //    FIELD_HEIGHT = 32;
@@ -36,6 +46,15 @@ function setTestParams() {
 //    T = TEXTURE_SIZE;
 //    FW = FIELD_WIDTH;
 //    FH = FIELD_HEIGHT;
+
+    parse = tester.parse;
+    Entry = tester.Entry;
+
+    update = tester.update;
+    translate = tester.translate;
+    s = tester.s;
+    Breed = tester.Breed;
+    Patch = tester.Patch;
 }
 
 function setUp() {
@@ -237,7 +256,8 @@ function grammarTest(aString, rule, ctor) {
     }
 }
 
-function symTableTest(str, prod, sem, expected) {
+function symbolsTest(str, prod, sem, expected, entry) {
+//    console.log("str = ", str);
     var stringify = (obj) => {
         var type = Object.prototype.toString.call(obj);
         if (type === "[object Object]") {
@@ -262,21 +282,17 @@ function symTableTest(str, prod, sem, expected) {
         console.log("did not parse: " + str);
     };
 
-    var rawTable = function(table) {
-        var t;
-        if (table.constructor === SymTable) {
-            t = table;
-        } else {
-            t = table[Object.keys(table)[0]];
-        }
-        return t.rawTable();
+    if (!entry) {
+	entry = new Entry("method");
     }
-
     var n = sem(match);
-    var table = new SymTable();
-    var ret = n.symTable(table);
+    var ret = n.symbols({}, entry);
 
-    var result = rawTable(ret);
+    if (ret.constructor != Entry) {
+	//hack.  For toplevel, it'd be a dictionary of Entries'
+	ret = ret[Object.keys(ret)[0]];
+    }
+    var result = ret.rawTable();
     var a = stringify(result);
     var b = stringify(expected);
     if (a != b) {
@@ -293,6 +309,11 @@ function grammarUnitTests() {
     grammarTest("else", "else");
     grammarTest("def", "def");
     grammarTest("3.4", "number");
+
+    grammarTest("abc:vec2", "TypedVar");
+
+    grammarTest("abc: vec2", "Formals");
+    grammarTest("abc: vec2, def: mat2", "Formals");
 
     grammarTest("abc", "PrimExpression");
     grammarTest("3.5", "PrimExpression");
@@ -316,7 +337,7 @@ function grammarUnitTests() {
 
     grammarTest("forward(this.x + 3);", "Statement");
 
-    grammarTest("a == b", "EqualityExpression");
+    grammarTest("a == b", "RelationalExpression");
     grammarTest("a > 3", "RelationalExpression");
     grammarTest("a > 3 + 4", "RelationalExpression");
 
@@ -331,23 +352,57 @@ function grammarUnitTests() {
     grammarTest("breed Turtle (x, y)", "Breed");
     grammarTest("patch Patch (x, y)", "Patch");
     grammarTest("def foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+    grammarTest("def foo(x: mat3, y) {var x = 3; x = x + 2.1;}", "Script");
+    grammarTest("helper foo: vec2 (input: vec2) {var x = 3; x = x + 2.1; return vec2(x, 2)}", "Helper");
 }
 
-function symTableUnitTests() {
-    symTableTest("this.x = 3;", "Statement", s,{"propOut.this.x": ["propOut", "this","x"]});
-    symTableTest("{this.x = 3; other.y = 4;}", "Statement", s,{"propOut.this.x": ["propOut", "this", "x"], "propOut.other.y": ["propOut", "other", "y"]});
-    symTableTest("{this.x = 3; this.x = 4;}", "Statement", s, {"propOut.this.x": ["propOut", "this", "x"]});
+function symbolsUnitTests() {
 
-    symTableTest("{var x = 3; x = x + 3;}", "Block", s, {"var.null.x": ["var", null, "x"]});
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("this.x = 3;", "Statement", s,
+		{"propOut.this.x": ["propOut", "this","x", null],
+		 "param.null.other": ["param", null, "other", null]},
+		entry);
 
-    symTableTest(`
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("{this.x = 3; other.y = 4;}", "Statement", s,
+		{"propOut.this.x": ["propOut", "this", "x", null],
+		 "propOut.other.y": ["propOut", "other", "y", null],
+		 "param.null.other": ["param", null, "other", null]},
+		entry);
+
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("{this.x = 3; this.x = 4;}", "Statement", s,
+		{"propOut.this.x": ["propOut", "this", "x", null],
+		 "param.null.other": ["param", null, "other", null]},
+		entry);
+
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("{var x = 3; x = x + 3;}", "Block", s,
+		{"var.null.x": ["var", null, "x", null],
+		 "param.null.other": ["param", null, "other", null]},
+		entry);
+
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest(`
        if (other.x > 0) {
          this.x = 3;
          other.a = 4;
        }
-       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propIn.other.x": ["propIn", "other", "x"]});
+       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x", null],
+			   "propOut.other.a": ["propOut", "other", "a", null],
+			   "propIn.other.x": ["propIn", "other", "x", null],
+			   "param.null.other": ["param", null, "other", null]},
+		entry);
 
-    symTableTest(`
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest(`
        if (other.x > 0) {
          this.x = 3;
          other.a = 4;
@@ -355,35 +410,44 @@ function symTableUnitTests() {
          this.y = 3;
          other.a = 4;
        }
-       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propOut.this.y": ["propOut", "this", "y"], "propIn.other.x": ["propIn", "other", "x"]});
+       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x", null],
+			   "propOut.other.a": ["propOut", "other", "a", null],
+			   "propOut.this.y": ["propOut", "this", "y", null],
+			   "propIn.other.x": ["propIn", "other", "x", null],
+			   "param.null.other": ["param", null, "other", null]}, entry);
 
-    symTableTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
-        "propIn.this.y": ["propIn", "this", "y"],
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propOut.other.z": ["propOut" ,"other", "z"],
-        "propIn.this.x": ["propIn" ,"this", "x"]});
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
+        "propIn.this.y": ["propIn", "this", "y", null],
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.other.z": ["propOut" ,"other", "z", null],
+        "propIn.this.x": ["propIn" ,"this", "x", null],
+	"param.null.other": ["param", null, "other", null]}, entry);
 
-    symTableTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"]});
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propIn.other.x": ["propIn", "other", "x", null],
+        "propOut.this.y": ["propOut" ,"this", "y", null],
+	"param.null.other": ["param", null, "other", null]}, entry);
 
-    symTableTest("def foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
-        "propIn.this.x": ["propIn", "this", "x"],
-        "propIn.this.y": ["propIn", "this", "y"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"],
-        "param.null.a": ["param" , null, "a"],
-        "param.null.b": ["param" , null, "b"],
-        "param.null.c": ["param" , null, "c"],
-    });
+    var entry = new Entry("method");
+    entry.add("param", null, "other", null);
+    symbolsTest("def foo(other, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
+        "propIn.other.x": ["propIn", "other", "x", null],
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.this.y": ["propOut" ,"this", "y", null],
+	"param.null.other": ["param", null, "other", null], 
+        "param.null.b": ["param" , null, "b", null],
+        "param.null.c": ["param" , null, "c", null]}, entry);
 }
 
 function translateTests() {
-    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));
+//    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));
 
-    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
-    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
+//    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
+//    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
 }
 

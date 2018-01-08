@@ -2840,13 +2840,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
     Shadama.prototype.tester = function() {
         return {
+	    shadama: this,
             parse: parse,
+	    Entry: Entry,
             update: update,
             translate: translate,
             s: s,
             Breed: Breed,
             Patch: Patch,
-            SymTable: SymTable,
         }
     }
 
@@ -2894,11 +2895,11 @@ Shadama {
   On = on TriggerExpression arrow (start|stop)? ident
   Data = data ident "(" string "," string ")"
   Script = def ident "(" Formals ")" Block
-  Helper = helper ident "(" Formals ")" Block
+  Helper = helper TypedVar "(" Formals ")" Block
   Static = static ident "(" Formals ")" Block
 
   Formals
-    = ident ("," ident)* -- list
+    = TypedVar ("," TypedVar)* -- list
     | empty
 
   Block = "{" StatementList "}"
@@ -2914,7 +2915,7 @@ Shadama {
     | ReturnStatement
 
   VariableStatement = var VariableDeclaration ";"?
-  VariableDeclaration = ident Initialiser?
+  VariableDeclaration = TypedVar Initialiser?
   Initialiser = "=" Expression
 
   ReturnStatement = return Expression ";"?
@@ -2986,6 +2987,12 @@ Shadama {
     = Expression ("," Expression)* -- list
     | empty
 
+  TypedVar
+    = ident ":" TypeName -- explicit
+    | ident
+
+  TypeName = float | vec2 | vec3 | vec4 | mat2 | mat3 | mat4
+
   ident
     = letter (alnum | "_")*
 
@@ -3016,10 +3023,19 @@ Shadama {
   return = "return" ~identifierPart
   event = "event" ~identifierPart
   on = "on" ~identifierPart
-  arrow = "=>" ~identifierPart
   start = "start" ~identifierPart
   stop = "stop" ~identifierPart
   data = "data" ~identifierPart
+
+  float = "float" ~identifierPart
+  vec2 = "vec2" ~identifierPart
+  vec3 = "vec3" ~identifierPart
+  vec4 = "vec4" ~identifierPart
+  mat2 = "mat2" ~identifierPart
+  mat3 = "mat3" ~identifierPart
+  mat4 = "mat4" ~identifierPart
+
+  arrow = "=>"
 
   empty =
   space
@@ -3033,81 +3049,60 @@ Shadama {
     var s;
 
     var globalTable; // This is a bad idea but then I don't know how to keep the reference to global.
-
     var primitives;
 
     function initPrimitiveTable() {
-        var data = {
-            "clear": new SymTable([], true),
-            "setCount": new SymTable([
-                ["param", null, "num"]], true),
-            "draw": new SymTable([], true),
-            "render": new SymTable([], true),
-            "fillRandom": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "min"],
-                ["param", null, "max"]], true),
-            "fillRandomDir": new SymTable([
-                ["param", null, "xDir"],
-                ["param", null, "yDir"]] ,true),
-            "fillRandomDir3":  new SymTable([
-                ["param", null, "xDir"],
-                ["param", null, "yDir"],
-                ["param", null, "zDir"]], true),
-            "fillSpace": new SymTable([
-                ["param", null, "xName"],
-                ["param", null, "yName"],
-                ["param", null, "x"],
-                ["param", null, "y"]], true),
-            "fillCuboid": new SymTable([
-                ["param", null, "xName"],
-                ["param", null, "yName"],
-                ["param", null, "zName"],
-                ["param", null, "x"],
-                ["param", null, "y"],
-                ["param", null, "z"],
-                ["param", null, "step"]], true),
-            "fillImage": new SymTable([
-                ["param", null, "xName"],
-                ["param", null, "yName"],
-                ["param", null, "rName"],
-                ["param", null, "gName"],
-                ["param", null, "bName"],
-                ["param", null, "aName"],
-                ["param", null, "imageData"]], true),
-            "diffuse": new SymTable([
-                ["param", null, "name"]], true),
-            "increasePatch": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "patch"],
-                ["param", null, "valueOrSrcName"]], true),
-            "increaseVoxel": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "patch"],
-                ["param", null, "valueOrSrcName"]], true),
-            "random": new SymTable([
-                ["param", null, "seed"]], true),
-            "playSound": new SymTable([
-                ["param", null, "name"]], true),
-            "loadProgram": new SymTable([
-                ["param", null, "name"]], true),
-            "loadData": new SymTable([
-                ["param", null, "data"]], true),
-            "readValues": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "x"],
-                ["param", null, "y"],
-                ["param", null, "w"],
-                ["param", null, "h"]], true),
-            "start": new SymTable([], true),
-            "step": new SymTable([], true),
-            "stop": new SymTable([], true),
-        };
+        var data = [
+            ["Display", "clear", []],
+	    ["Breed", "draw", []],
+	    ["Patch", "draw", []],
+	    ["Breed", "render", []],
+	    ["Patch", "render", []],
+	    ["Breed", "fillRandom", [["name", "string"], ["min", "number"], ["max", "number"]]],
+	    ["Breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
+	    ["Breed", "fillRandomDir", [["xyDir", "string"]]],
 
-        primitives = {};
-        for (var k in data) {
-            primitives[k] = data[k];
-        }
+	    ["Breed", "fillRandomDir3", [["xDir", "string"], ["yDir", "string"], ["zDir", "string"]]],
+	    ["Breed", "fillRandomDir3", [["xyzDir", "string"]]],
+
+	    ["Breed", "fillSpace", [["xName", "string"],
+				    ["yName", "string"],
+				    ["x", "number"],
+				    ["y", "number"]]],
+	    ["Breed", "fillSpace", [["xyName", "string"],
+				    ["xy", "vec2"]]],
+
+	    ["Breed", "fillCuboid", [["xName", "string"],
+				     ["yName", "string"],
+				     ["zName", "string"],
+				     ["x", "number"],
+				     ["y", "number"],
+				     ["z", "number"]]],
+	    ["Breed", "fillCuboid", [["xyzName", "string"],
+				     "xyz", "vec3"]],
+
+            ["Breed", "fillImage", [["xName", "string"],
+				    ["yName", "string"],
+				    ["rName", "string"],
+				    ["gName", "string"],
+				    ["bName", "string"],
+				    ["aName", "string"],
+				    ["imageData", "object"]]],
+	    ["Display", "playSound", ["name", "object"]],
+            ["Display", "loadProgram", [["name", "string"]]],
+            ["Breed", "loadData", ["data", "object"]],
+            ["Breed", "readValues", [["name", "string"],
+				     ["x", "number"],
+				     ["y", "number"],
+				     ["w", "number"],
+				     ["h", "number"]]],
+            ["Static", "start", []],
+            ["Static", "stop", []],
+            ["Static", "step", []],
+
+	    ["", "sin", [["rad", "number"]]]];
+
+        primitives = data;
     }
 
     function initCompiler() {
@@ -3118,15 +3113,10 @@ Shadama {
     }
 
     function initSemantics() {
-        function addDefaults(obj) {
-            for (var k in primitives) {
-                obj[k] = primitives[k];
-            }
-
-            obj["mousedown"] = {x:0, y:0};
-            obj["mousemove"] = {x:0, y:0};
-            obj["mouseup"] = {x:0, y:0};
-
+        function addDefaultGlobals(obj) {
+            obj["mousedown"] = new Entry("var", ["mousedown", "obj"]);
+            obj["mousemove"] = new Entry("var", ["mousemove", "obj"]);
+            obj["mouseup"] = new Entry("var", ["mouseup", "obj"]);
         }
 
         function processHelper(symDict) {
@@ -3162,138 +3152,136 @@ Shadama {
         }
 
         s.addOperation(
-            "symTable(table)",
+            "symbols(table, entry)",
             {
                 TopLevel(p, ds) {
-                    var result = {};
-                    addDefaults(result);
+                    var table = {};
+                    addDefaults(table);
                     if (p.children.length > 0) {
-                        result = addAsSet(result, p.children[0].symTable(null));
+                        addAsSet(table, p.children[0].symbols(table, null));
                     }
                     for (var i = 0; i< ds.children.length; i++) {
-                        var d = ds.children[i].symTable(null);
-                        var ctor = ds.children[i].ctorName;
-                        if (ctor == "Script" || ctor == "Static" || ctor == "Helper") {
-                            addAsSet(result, d);
-                        }
-                        if (ctor == "On" || ctor == "Event" || ctor == "Data") {
-                            addAsSet(result, d);
-                        }
+                        var d = ds.children[i].symbols(table, null);
+                        addAsSet(result, d);
                     }
-                    processHelper(result);
-                    globalTable = result;
+                    processHelper(table);
                     return result;
                 },
 
                 ProgramDecl(_p, s) {
-                    return {_programName: s.sourceString.slice(1, s.sourceString.length - 1)}
+                    return new Entry("_programName", s.sourceString.slice(1, s.sourceString.length - 1));
                 },
 
                 Breed(_b, n, _o, fs, _c) {
-                    var table = new SymTable();
-                    fs.symTable(table);
-                    table.process();
-                    return {[n.sourceString]: table};
+                    var entry = new Entry("breed");
+		    fs.symbols(entry);
+                    return {[n.sourceString]: entry};
                 },
 
                 Patch(_p, n, _o, fs, _c) {
-                    var table = new SymTable();
-                    fs.symTable(table);
-                    table.process();
-                    return {[n.sourceString]: table};
+                    var entry = new Entry("patch");
+		    fs.symbols(entry);
+                    return {[n.sourceString]: entry};
                 },
 
-                Event(_e, n) {
-                    var table = new SymTable();
-                    table.beEvent(n.sourceString);
-                    return {[n.sourceString]: table};
+                Event(_e, n) {// needs a type?
+                    return {[n.sourceString]: new Entry("event")};
                 },
 
                 On(_o, t, _a, optK, n) {
-                    var table = new SymTable();
-                    var trigger = t.trigger();
+                    var trigger = t.symbols(); // ["and", "a", ["or", "b", "c"]]
                     if (optK.children.length > 0) {
-                        var k = optK.children[0].sourceString;
+                        var key = optK.children[0].sourceString;
                     } else {
-                        k = "step";
+                        key = "step";
                     }
-                    table.beTrigger(trigger, [k, n.sourceString]);
-                    return {["_trigger" + trigger.toString()]: table};
+                    var entry = new Entry("trigger", [trigger, k, n.sourceString]);
+                    return {["_trigger" + trigger.toString()]: entry};
                 },
 
                 Data(_d, n, _o, s1, _a, s2, _c) {
-                    var table = new SymTable();
                     var realS1 = s1.children[1].sourceString;
                     var realS2 = s2.children[1].sourceString;
-                    table.beData(n.sourceString, realS1, realS2);
-                    return {[n.sourceString]: table};
+		    var entry = new Entry("data", [realS1, realS2]);
+                    return {[n.sourceString]: entry};
                 },
 
                 Script(_d, n, _o, ns, _c, b) {
-                    var table = new SymTable();
-                    ns.symTable(table);
-                    b.symTable(table);
-                    table.process();
-                    return {[n.sourceString]: table};
+		    var table = this.args.table;
+                    var entry = new Entry("method");
+                    ns.symbols(table, entry);
+                    b.symbols(table, entry);
+                    return {[n.sourceString]: entry};
                 },
 
                 Helper(_d, n, _o, ns, _c, b) {
-                    var table = new SymTable();
-                    ns.symTable(table);
-                    b.symTable(table);
-                    table.beHelper();
-                    return {[n.sourceString]: table};
+		    var table = this.args.table;
+		    var type = n.type();
+                    var entry = new Entry("helper", type);
+                    ns.symbols(table, entry);
+                    b.symbols(table, entry);
+                    return {[n.sourceString]: entry};
                 },
 
                 Static(_s, n, _o, ns, _c, b) {
-                    var table = new SymTable();
-                    ns.symTable(table);
-                    table.process();
-                    table.beStatic();
-                    return {[n.sourceString]: table};
+		    var table = this.args.table;
+                    var entry = new Entry("static");
+                    ns.symbols(table, entry);
+                    b.symbols(table, entry);
+                    return {[n.sourceString]: entry};
                 },
 
                 Formals_list(h, _c, r) {
-                    var table = this.args.table;
-                    table.add("param", null, h.sourceString);
+		    var table = this.args.table;
+                    var entry = this.args.entry;
+		    var formals = [];
+		    var sym = h.symbols(table, entry);
+                    entry.add("param", null, sym[0], sym[1]);
                     for (var i = 0; i < r.children.length; i++) {
-                        var n = r.children[i].sourceString;
-                        table.add("param", null, n);
+			var sym = r.children[i].symbols(table, entry);
+                        entry.add("param", null, sym[0], sym[1]);
                     }
-                    return table;
+                    return entry;
                 },
 
                 StatementList(ss) { // an iter node
                     var table = this.args.table;
+                    var entry = this.args.entry;
                     for (var i = 0; i< ss.children.length; i++) {
-                        ss.children[i].symTable(table);
+                        ss.children[i].symbols(table, entry);
                     }
-                    return table;
+                    return entry;
                 },
 
                 VariableDeclaration(n, optI) {
                     var table = this.args.table;
-                    table.add("var", null, n.sourceString);
+                    var entry = this.args.entry;
+		    var sym = n.symbols(table, entry);
+                    entry.add("var", null, sym[0], sym[1]);
                     if (optI.children.length > 0) {
-                        optI.children[0].symTable(table);
+                        optI.children[0].symbols(table, entry);
                     }
-                    return table;
+                    return entry;
                 },
 
                 IfStatement(_if, _o, c, _c, t, _e, optF) {
                     var table = this.args.table;
-                    c.symTable(table);
-                    t.symTable(table);
+                    var entry = this.args.entry;
+                    c.symbols(table, entry);
+                    t.symbols(table, entry);
                     if (optF.children.length > 0) {
-                        optF.children[0].symTable(table);
+                        optF.children[0].symbols(table, entry);
                     }
-                    return table;
+                    return entry;
                 },
 
                 LeftHandSideExpression_field(n, _a, f) {
                     var name = n.sourceString;
-                    var table = this.args.table;
-                    if (!table.hasVariable(name)) {
+                    var entry = this.args.entry;
+		    var ok = true;
+                    ok = (entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
+			(entry.type == "helper" && entry.hasVariable(name));
+		    if (!ok) {
                         var error = new Error("syntax error");
                         error.reason = `variable ${name} is not declared`;
                         error.expected = `variable ${name} is not declared`;
@@ -3301,21 +3289,21 @@ Shadama {
                         error.src = null;
                         throw error;
                     }
-
-                    this.args.table.add("propOut", n.sourceString, f.sourceString);
-                    return this.args.table;
+		    entry.add("propOut", n.sourceString, f.sourceString, null);;
+                    return entry;
                 },
 
                 PrimExpression_field(n, _p, f) {
                     var table = this.args.table;
+                    var entry = this.args.entry;
                     if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
                         console.log("you can only use 'this' or incoming patch name");
                     }
                     var name = n.sourceString;
-                    if (!table.isBuiltin(name)) {
-                        table.add("propIn", n.sourceString, f.sourceString);
-                    }
-                    if (!table.hasVariable(name)) {
+		    var ok = true;
+                    ok = (entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
+			(entry.type == "helper" && entry.hasVariable(name));
+		    if (!ok) {
                         var error = new Error("syntax error");
                         error.reason = `variable ${name} is not declared`;
                         error.expected = `variable ${name} is not declared`;
@@ -3323,1304 +3311,66 @@ Shadama {
                         error.src = null;
                         throw error;
                     }
-                    return table;
+                    entry.add("propIn", n.sourceString, f.sourceString, null);
+                    return entry;
                 },
 
                 PrimExpression_variable(n) {
-                    return {};//["var." + n.sourceString]: ["var", null, n.sourceString]};
-                },
-
-                PrimitiveCall(n, _o, as, _c) {
-                    this.args.table.maybeHelperOrPrimitive(n.sourceString);
-                    return as.symTable(this.args.table);
-                },
-
-                Actuals_list(h, _c, r) {
                     var table = this.args.table;
-                    h.symTable(table);
-                    for (var i = 0; i < r.children.length; i++) {
-                        r.children[i].symTable(table);
-                    }
-                    return table;
-                },
-
-                ident(_h, _r) {return this.args.table;},
-                number(s) {return this.args.table;},
-                _terminal() {return this.args.table;},
-                _nonterminal(children) {
-                    var table = this.args.table;
-                    for (var i = 0; i < children.length; i++) {
-                        children[i].symTable(table);
-                    }
-                    return table;
-                },
-            });
-
-        function transBinOp(l, r, op, args) {
-            var table = args.table;
-            var vert = args.vert;
-            var frag = args.frag;
-            vert.push("(");
-            l.glsl(table, vert, frag);
-            vert.push(op);
-            r.glsl(table, vert, frag);
-            vert.push(")");
-        };
-
-        s.addOperation(
-            "trigger",
-            {
-                TriggerExpression_and(t, _op, i) {
-                    return ["and", t, i.sourceString];
-                },
-                TriggerExpression_or(t, _op, i) {
-                    return ["or", t, i.sourceString];
-                },
-                TriggerExpression(i) {
-                    return i.sourceString;
-                }
-            }
-        );
-        
-        s.addOperation(
-            "glsl_script_formals",
-            {
-                Formals_list(h, _c, r) {
-                    return [h.sourceString].concat(r.children.map((c) => c.sourceString));
-                },
-                empty() {
-                    return [];
-                }
-            });
-
-        s.addOperation(
-            "glsl_helper(table, vert)",
-            {
-                Helper(_d, n, _o, ns, _c, b) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.push("float " + n.sourceString);
-                    vert.push("(");
-                    ns.glsl_helper(table, vert);
-                    vert.push(")");
-                    b.glsl_helper(table, vert);
-
-                    vert.crIfNeeded();
-                    var code = vert.contents();
-                    table.helperCode = code;
-
-                    return {[n.sourceString]: [table, code, "", ["updateHelper", n.sourceString]]};
-                },
-
-                Formals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.push("float " + h.sourceString);
-                    for (var i = 0; i < r.children.length; i++) {
-                        var c = r.children[i];
-                        vert.push(", float ");
-                        vert.push(c.sourceString);
-                    }
-                },
-
-                Block(_o, ss, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.pushWithSpace("{\n");
-                    vert.addTab();
-
-                    ss.glsl_helper(table, vert);
-
-                    vert.decTab();
-                    vert.tab();
-                    vert.push("}");
-                },
-
-                StatementList(ss) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    for (var i = 0; i < ss.children.length; i++) {
-                        vert.tab();
-                        ss.children[i].glsl_helper(table, vert);
-                    }
-                },
-
-                Statement(e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    e.glsl_helper(table, vert);
-                    if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
-                        vert.push(";");
-                        vert.cr();
-                    }
-                    if (e.ctorName == "IfStatement") {
-                        vert.cr();
-                    }
-                },
-
-                IfStatement(_i, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.pushWithSpace("if");
-                    vert.pushWithSpace("(");
-                    c.glsl_helper(table, vert);
-                    vert.push(")");
-                    t.glsl_helper(table, vert);
-                    if (optF.children.length === 0) { return;}
-                    vert.pushWithSpace("else");
-                    optF.glsl_helper(table, vert);
-                },
-
-
-                ReturnStatement(_r, e, _s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.pushWithSpace("return");
-                    vert.push(" ");
-                    e.glsl_helper(table, vert);
-                },
-
-                AssignmentStatement(l, _a, e, _) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    l.glsl_helper(table, vert);
-                    vert.push(" = ");
-                    e.glsl_helper(table, vert);
-                },
-
-                VariableStatement(_v, d, _s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    d.glsl_helper(table, vert);
-                },
-
-                VariableDeclaration(n, i) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push("float");
-                    vert.pushWithSpace(n.sourceString);
-                    if (i.children.length !== 0) {
-                        vert.push(" = ");
-                        i.glsl_helper(table, vert);
-                    }
-                },
-
-                Initialiser(_a, e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                LeftHandSideExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push(n.sourceString);
-                },
-
-                ExpressionStatement(e ,_s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    e.glsl_helper(table, vert);
-                },
-
-                Expression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                LogicalExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                LogicalExpression_and(l, _, r) {
-                    transBinOp(l, r, " && ", this.args);
-                },
-
-                LogicalExpression_or(l, _, r) {
-                    transBinOp(l, r, " || ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    transBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    transBinOp(l, r, " >= ", this.args);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    transBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    transBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_equal(l, _, r) {
-                    transBinOp(l, r, " == ", this.args);
-                },
-
-                RelationalExpression_notEqual(l, _, r) {
-                    transBinOp(l, r, " != ", this.args);
-                },
-
-                AddExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                AddExpression_plus(l, _, r) {
-                    transBinOp(l, r, " + ", this.args);
-                },
-
-                AddExpression_minus(l, _, r) {
-                    transBinOp(l, r, " - ", this.args);
-                },
-
-                MulExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                MulExpression_times(l, _, r) {
-                    transBinOp(l, r, " * ", this.args);
-                },
-
-                MulExpression_divide(l, _, r) {
-                    transBinOp(l, r, " / ", this.args);
-                },
-
-                MulExpression_mod(l, _, r) {
-                    transBinOp(l, r, " % ", this.args);
-                },
-
-                UnaryExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                UnaryExpression_plus(_p, e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                UnaryExpression_minus(_p, e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.pushWithSpace("-");
-                    e.glsl_helper(table, vert);
-                },
-
-                UnaryExpression_not(_p, e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.pushWithSpace("!");
-                    e.glsl_helper(table, vert);
-                },
-
-                PrimExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                PrimExpression_paren(_o, e, _c) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                PrimExpression_number(e) {
-                    var vert = this.args.vert;
-                    var ind = e.sourceString.indexOf(".");
-                    if (ind < 0) {
-                        vert.push(e.sourceString + ".0");
-                    } else {
-                        vert.push(e.sourceString);
-                    }
-                },
-
-                PrimExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    if (table.isObject(n.sourceString)) {
-                        vert.push(n.sourceString + "." + f.sourceString);
-                    } else {
-                        throw "error";
-                    }
-                },
-
-                PrimExpression_variable(n) {
-                    this.args.vert.push(n.sourceString);
-                },
-
-                PrimitiveCall(n, _o, as, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push(n.sourceString);
-                    vert.push("(");
-                    as.glsl_helper(table, vert);
-                    vert.push(")");
-                },
-
-                Actuals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    h.glsl_helper(table, vert);
-                    for (var i = 0; i < r.children.length; i++) {
-                        vert.push(", ");
-                        r.children[i].glsl_helper(table, vert);
-                    }
-                },
-
-                ident(n, rest) {
-                    // ??
-                    this.args.vert.push(this.sourceString);
-                },
-            });
-
-        s.addOperation(
-            "glsl_inner(table, vert, frag)",
-            {
-                Block(_o, ss, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-
-                    var patchInput = `
-  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
-  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
-  vec2 _pos = vec2(_x, _y);
-`;
-
-                    var voxelInput = `
-  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
-  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
-  float _z = texelFetch(u_that_z, ivec2(a_index), 0).r;
-  _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
-  _y = floor(_y / v_step); // 8
-  _z = floor(_z / v_step); // 8
-
-  int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
-  vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
-`;
-
-                    var patchPrologue = `
-  vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
-`;
-
-                    var breedPrologue = `
-  vec2 oneToOne = (b_index + u_half) * 2.0 - 1.0;
-`;
-
-                    var voxelPrologue = `
-  vec2 oneToOne = ((_pos / u_resolution.xy) + u_half) * 2.0 - 1.0;
-`;
-
-                    var epilogue = `
-  gl_Position = vec4(oneToOne, 0.0, 1.0);
-  gl_PointSize = 1.0;
-`;
-
-                    vert.pushWithSpace("{\n");
-                    vert.addTab();
-
-                    if ((table.hasPatchInput || !table.forBreed)) {
-                        if (dimension == 2) {
-                            vert.push(patchInput);
-                        } else {
-                            vert.push(voxelInput);
-                        }
-                    }
-
-                    if (table.forBreed) {
-                        vert.push(breedPrologue);
-                    } else {
-                        if (dimension == 2) {
-                            vert.push(patchPrologue);
-                        } else {
-                            vert.push(voxelPrologue);
-                        }
-                    }
-
-                    table.scalarParamTable.keysAndValuesDo((key, entry) => {
-                        var e = entry[2];
-                        var template1 = `float ${e} = u_scalar_${e};`;
-                        vert.tab();
-                        vert.push(template1);
-                        vert.cr();
-                    });
-
-                    table.uniformDefaults().forEach(elem => {
-                        vert.tab();
-                        vert.push(elem);
-                        vert.cr();
-                    });
-
-                    ss.glsl(table, vert, frag);
-                    vert.push(epilogue);
-
-                    vert.decTab();
-                    vert.tab();
-                    vert.push("}");
-                },
-
-                Script(_d, n, _o, ns, _c, b) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-
-                    var breedPrologue =
-`#version 300 es
-precision highp float;
-layout (location = 0) in vec2 a_index;
-layout (location = 1) in vec2 b_index;
-uniform vec${dimension} u_resolution;
-uniform vec2 u_half;
-`;
-
-                    if (dimension == 3) {
-                        breedPrologue = breedPrologue + `uniform float v_step;
-uniform vec3 v_resolution;
-`;
-                    }
-
-                    var patchPrologue = breedPrologue + `
-uniform sampler2D u_that_x;
-uniform sampler2D u_that_y;
-`;
-
-                    if (dimension == 3) {
-                        patchPrologue = patchPrologue + `uniform sampler2D u_that_z;
-`;
-                    }
-
-                    vert.push(table.forBreed && !table.hasPatchInput ? breedPrologue : patchPrologue);
-
-                    table.uniforms().forEach(elem => {
-                        vert.push(elem);
-                        vert.cr();
-                    });
-
-                    table.paramUniforms().forEach(elem => {
-                        vert.push(elem);
-                        vert.cr();
-                    });
-
-                    table.vertVaryings().forEach(elem => {
-                        vert.push(elem);
-                        vert.cr();
-                    });
-
-                    vert.crIfNeeded();
-
-                    table.primitivesAndHelpers().forEach((n) => {
-                        vert.push(n);
-                    });
-
-                    vert.push("void main()");
-
-                    // fragment head
-
-                    frag.push("#version 300 es\n");
-                    frag.push("precision highp float;\n");
-
-                    table.fragVaryings().forEach((elem) =>{
-                        frag.push(elem);
-                        frag.cr();
-                    });
-
-                    table.outs().forEach((elem) => {
-                        frag.push(elem);
-                        frag.cr();
-                    });
-
-                    frag.crIfNeeded();
-                    frag.push("void main()");
-
-                    b.glsl_inner(table, vert, frag);
-
-                    vert.crIfNeeded();
-
-                    frag.pushWithSpace("{");
-                    frag.cr();
-
-                    frag.addTab();
-                    table.fragColors().forEach((line) => {
-                        frag.tab();
-                        frag.push(line);
-                        frag.cr();
-                    });
-                    frag.decTab();
-                    frag.crIfNeeded();
-                    frag.push("}");
-                    frag.cr();
-
-                    return {[n.sourceString]: [table, vert.contents(), frag.contents(), ["updateScript", n.sourceString]]};
-                }
-            });
-
-        s.addOperation(
-            "glsl(table, vert, frag)",
-            {
-                TopLevel(p, ds) {
-                    var table = this.args.table;
-                    var result = {};
-                    for (var i = 0; i < ds.children.length; i++) {
-                        var child = ds.children[i];
-                        if (child.ctorName == "Static") {
-                            var js = new CodeStream();
-                            var val = child.static(table, js, null, false);
-                            addAsSet(result, val);
-                        } else {
-                            var val = child.glsl(table, null, null);
-                            addAsSet(result, val);
-                        }
-                    }
-                    result["_programName"] = table["_programName"];
-                    return result;
-                },
-
-                Breed(_b, n, _o, fs, _c) {
-                    var table = this.args.table;
-                    var js = ["updateBreed", n.sourceString, fs.glsl_script_formals()];
-                    return {[n.sourceString]: [table[n.sourceString], "", "", js]};
-                },
-
-                Patch(_p, n, _o, fs, _c) {
-                    var table = this.args.table;
-                    var js = ["updatePatch", n.sourceString, fs.glsl_script_formals()];
-                    return {[n.sourceString]: [table[n.sourceString], "", "" ,js]};
-                },
-
-                Event(_e, n) {
-                    var table = this.args.table;
-                    var js = ["event", n.sourceString];
-                    return {[n.sourceString]: [table[n.sourceString], "", "", js]};
-                },
-
-                On(_o, t, _a, optK, k) {
-                    var table = this.args.table;
-                    var trigger = t.trigger();
-                    var key = "_trigger" + trigger.toString();
-                    var entry = table[key];
-                    var js = ["trigger", entry.trigger, entry.triggerAction];
-                    return {[key]: [table[key], "", "", js]};
-                },
-
-                Data(_d, i, _o, s1, _a, s2, _c) {
-                    var table = this.args.table;
-                    var key = i.sourceString;
-                    var entry = table[key];
-                    var realS1 = s1.children[1].sourceString;
-                    var realS2 = s2.children[1].sourceString;
-                    var js = ["data", i.sourceString, realS1, realS2];
-                    return {[key]: [entry, "", "", js]};
-                },
-
-                Script(_d, n, _o, ns, _c, b) {
-                    var inTable = this.args.table;
-                    var table = inTable[n.sourceString];
-                    var vert = new CodeStream();
-                    var frag = new CodeStream();
-
-                    return this.glsl_inner(table, vert, frag);
-                },
-
-                Helper(_d, n, _o, ns, _c, b) {
-                    var inTable = this.args.table;
-                    var table = inTable[n.sourceString];
-                    var vert = new CodeStream();
-
-                    return this.glsl_helper(table, vert);
-                },
-
-                Block(_o, ss, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-
-                    vert.pushWithSpace("{");
-                    vert.cr();
-                    vert.addTab();
-                    ss.glsl(table, vert, frag);
-                    vert.decTab();
-                    vert.tab();
-                    vert.push("}");
-                },
-
-                StatementList(ss) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    for (var i = 0; i < ss.children.length; i++) {
-                        vert.tab();
-                        ss.children[i].glsl(table, vert, frag);
-                    }
-                },
-
-                Statement(e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    e.glsl(table, vert, frag);
-                    if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
-                        vert.push(";");
-                        vert.cr();
-                    }
-                    if (e.ctorName == "IfStatement") {
-                        vert.cr();
-                    }
-                },
-
-                IfStatement(_i, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    vert.pushWithSpace("if");
-                    vert.pushWithSpace("(");
-                    c.glsl(table, vert, frag);
-                    vert.push(")");
-                    t.glsl(table, vert, frag);
-                    if (optF.children.length === 0) { return;}
-                    vert.pushWithSpace("else");
-                    optF.glsl(table, vert, frag);
-                },
-
-                AssignmentStatement(l, _a, e, _) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    l.glsl(table, vert, frag);
-                    vert.push(" = ");
-                    e.glsl(table, vert, frag);
-                },
-
-                VariableStatement(_v, d, _s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    d.glsl(table, vert, frag);
-                },
-
-                VariableDeclaration(n, i) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    vert.push("float");
-                    vert.pushWithSpace(n.sourceString);
-                    if (i.children.length !== 0) {
-                        vert.push(" = ");
-                        i.glsl(table, vert, frag);
-                    }
-                },
-
-                Initialiser(_a, e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                LeftHandSideExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push(table.varying(["propOut", n.sourceString, f.sourceString]));
-                },
-
-                ExpressionStatement(e ,_s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    e.glsl(table, vert, frag);
-                },
-
-                Expression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                LogicalExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                LogicalExpression_and(l, _, r) {
-                    transBinOp(l, r, " && ", this.args);
-                },
-
-                LogicalExpression_or(l, _, r) {
-                    transBinOp(l, r, " || ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    transBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    transBinOp(l, r, " >= ", this.args);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    transBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    transBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_equal(l, _, r) {
-                    transBinOp(l, r, " == ", this.args);
-                },
-
-                RelationalExpression_notEqual(l, _, r) {
-                    transBinOp(l, r, " != ", this.args);
-                },
-
-                AddExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                AddExpression_plus(l, _, r) {
-                    transBinOp(l, r, " + ", this.args);
-                },
-
-                AddExpression_minus(l, _, r) {
-                    transBinOp(l, r, " - ", this.args);
-                },
-
-                MulExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                MulExpression_times(l, _, r) {
-                    transBinOp(l, r, " * ", this.args);
-                },
-
-                MulExpression_divide(l, _, r) {
-                    transBinOp(l, r, " / ", this.args);
-                },
-
-                MulExpression_mod(l, _, r) {
-                    transBinOp(l, r, " % ", this.args);
-                },
-
-                UnaryExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                UnaryExpression_plus(_p, e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                UnaryExpression_minus(_p, e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    vert.pushWithSpace("-");
-                    e.glsl(table, vert, frag);
-                },
-
-                UnaryExpression_not(_p, e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    vert.pushWithSpace("!");
-                    e.glsl(table, vert, frag);
-                },
-
-                PrimExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                PrimExpression_paren(_o, e, _c) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
-                },
-
-                PrimExpression_number(e) {
-                    var vert = this.args.vert;
-                    var ind = e.sourceString.indexOf(".");
-                    if (ind < 0) {
-                        vert.push(e.sourceString + ".0");
-                    } else {
-                        vert.push(e.sourceString);
-                    }
-                },
-
-                PrimExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-
-                    if (table.isBuiltin(n.sourceString)) {
-                        vert.push(n.sourceString + "." + f.sourceString);
-                    } else {
-                        if (n.sourceString === "this") {
-                            vert.push("texelFetch(" +
-                                      table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                      `, ivec2(a_index), 0).r`);
-                        } else {
-                            vert.push("texelFetch(" +
-                                      table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                      `, ivec2(_pos), 0).r`);
-                        }
-                    }
-                },
-
-                PrimExpression_variable(n) {
-                    this.args.vert.push(n.sourceString);
-                },
-
-                PrimitiveCall(n, _o, as, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    vert.push(n.sourceString);
-                    vert.push("(");
-                    as.glsl(table, vert, frag);
-                    vert.push(")");
-                },
-
-                Actuals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-                    h.glsl(table, vert, frag);
-                    for (var i = 0; i < r.children.length; i++) {
-                        vert.push(", ");
-                        r.children[i].glsl(table, vert, frag);
-                    }
-                },
-
-                ident(n, rest) {
-                    this.args.vert.push(this.sourceString);
-                }
-            });
-
-        function staticTransBinOp(l, r, op, args) {
-            var table = args.table;
-            var js = args.js;
-            var method = args.method;
-            var isOther = args.isOther;
-            js.push("(");
-            l.static(table, js, method, isOther);
-            js.push(op);
-            r.static(table, js, method, isOther);
-            js.push(")");
-        };
-
-        s.addOperation(
-            "static_method_inner(table, js, method, isOther)",
-            {
-                Actuals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var result = [];
-                    var js = new CodeStream();
-                    var method = this.args.method;
-
-                    function isOther(i) {
-                        var realTable = table[method];
-                        if (!realTable) {return false}
-                        var p = realTable.param.at(i);
-                        if (!p) {
-                            var error = new Error("semantic error");
-                            error.reason = `argument count does not match for method ${method}`;
-                            error.expected = `argument count does not match for method ${method}`;
-                            error.pos = h.source.endIdx;
-                            error.src = null;
-                            throw error;
-                        }
-                        var r = realTable.usedAsOther(p[2]);
-                        return r;
-                    };
-                    h.static(table, js, method, isOther(0));
-                    result.push(js.contents());
-                    for (var i = 0; i < r.children.length; i++) {
-                        var c = r.children[i];
-                        var js = new CodeStream();
-                        c.static(table, js, method, isOther(i+1));
-                        result.push(js.contents());
-                    }
-                    return result;
-                },
-
-                Formals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var result = [];
-                    var js = new CodeStream();
-
-                    result.push(h.sourceString);
-                    for (var i = 0; i < r.children.length; i++) {
-                        var c = r.children[i];
-                        result.push(", ");
-                        result.push(c.sourceString);
-                    }
-                    return result;
-                },
-
-                empty() {
-                    return [];
-                }
-            });
-
-        s.addOperation(
-            "static(table, js, method, isOther)",
-            {
-
-                Static(_s, n, _o, fs, _c, b) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-
-                    js.push("(function");
-                    js.pushWithSpace(n.sourceString);
-                    js.push("(");
-                    js.push(fs.static_method_inner(table, null, null, null));
-                    js.push(") ");
-                    b.static(table, js, method, false);
-                    js.push(")");
-                    return {[n.sourceString]: ["static", js.contents(), this.sourceString]};
-                },
-
-                Block(_o, ss, _c) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    js.pushWithSpace("{");
-                    js.cr();
-                    js.addTab();
-                    ss.static(table, js, method, false);
-                    js.decTab();
-                    js.tab();
-                    js.push("}");
-                },
-
-                StatementList(ss) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    for (var i = 0; i < ss.children.length; i++) {
-                        js.tab();
-                        ss.children[i].static(table, js, method, isOther);
-                    }
-                },
-
-                Statement(e) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    e.static(table, js, method, isOther);
-                    if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
-                        js.push(";");
-                        js.cr();
-                    }
-                    if (e.ctorName == "IfStatement") {
-                        js.cr();
-                    }
-                },
-
-                IfStatement(_i, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    js.push("if");
-                    js.pushWithSpace("(");
-                    c.static(table, js, method, isOther);
-                    js.push(")");
-                    t.static(table, js, method, isOther);
-                    if (optF.children.length === 0) {return;}
-                    js.pushWithSpace("else");
-                    optF.static(table, js, method, isOther);
-                },
-
-                VariableStatement(_v, d, _s) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    d.static(table, js, method, isOther);
-                },
-
-                VariableDeclaration(n, i) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    var symTable = new SymTable();
-                    symTable.beStaticVariable(i.sourceString);
-                    table[n.sourceString] = symTable;
-                    js.push("env.");
-                    js.push(n.sourceString);
-                    js.pushWithSpace("= ");
-                    if (i.children.length !== 0) {
-                        i.static(table, js, method, isOther);
-                    } else {
-                        js.pushWithSpace("null;");
-                    }
-                },
-
-                AssignmentStatement(l, _a, e, _) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    var left = table[l.sourceString];
-                    if (!left || (!left.isEvent() && !left.isStaticVariable())) {
-//                            var error = new Error("semantic error");
-//                            error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
-//                            error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
-//                            error.pos = l.source.endIdx;
-//                            error.src = null;
-//                            throw error;
-                    }
-                    js.push("env.");
-                    js.push(l.sourceString);
-                    js.pushWithSpace("= ");
-                    e.static(table, js, method, isOther);
-                },
-
-                Initialiser(_a, e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                ExpressionStatement(e, _s) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                Expression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                LogicalExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                LogicalExpression_and(l, _, r) {
-                    staticTransBinOp(l, r, " && ", this.args);
-                },
-
-                LogicalExpression_or(l, _, r) {
-                    staticTransBinOp(l, r, " || ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    staticTransBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    staticTransBinOp(l, r, " >= ", this.args);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    staticTransBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    staticTransBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_equal(l, _, r) {
-                    staticTransBinOp(l, r, " == ", this.args);
-                },
-
-                RelationalExpression_notEqual(l, _, r) {
-                    staticTransBinOp(l, r, " != ", this.args);
-                },
-
-                AddExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                AddExpression_plus(l, _, r) {
-                    staticTransBinOp(l, r, " + ", this.args);
-                },
-
-                AddExpression_minus(l, _, r) {
-                    staticTransBinOp(l, r, " - ", this.args);
-                },
-
-                MulExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                MulExpression_times(l, _, r) {
-                    staticTransBinOp(l, r, " * ", this.args);
-                },
-
-                MulExpression_divide(l, _, r) {
-                    staticTransBinOp(l, r, " / ", this.args);
-                },
-
-                MulExpression_mod(l, _, r) {
-                    staticTransBinOp(l, r, " % ", this.args);
-                },
-
-                UnaryExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                UnaryExpression_plus(_p, e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                UnaryExpression_minus(_p, e) {
-                    var js = this.args.js;
-                    js.pushWithSpace("-");
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                UnaryExpression_not(_p, e) {
-                    var js = this.args.js;
-                    js.pushWithSpace("!");
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                PrimExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                PrimExpression_paren(_o, e, _c) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
-                },
-
-                PrimExpression_string(e) {
-                    var js = this.args.js;
-                    js.push(e.sourceString);
-                },
-
-                PrimExpression_number(e) {
-                    var js = this.args.js;
-                    js.push(e.sourceString);
-                },
-
-                PrimExpression_field(n, _p, f) {
-                    var js = this.args.js;
-                    n.static(this.args.table, js, this.args.method, this.args.isOther);
-                    js.push(".");
-                    js.push(f.sourceString);
-                },
-
-                PrimExpression_variable(n) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    js.push('env["' + n.sourceString + '"]');
-                },
-
-                PrimitiveCall(n, _o, as, _c) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var prim = n.sourceString;
-                    var math = ["random", // 0 arg
-                                "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh",
-                                "cbrt", "ceil", "cos", "cosh", "exp", "expm1", "floor",
-                                "log", "log1p", "log10", "log2", "round", "sign", "sin",
-                                "sinh", "sqrt", "tan", "tanh", "trunc", // 1 arg
-                                "atan2", "max", "min", "pow" // 2 args
-                               ];
-                    if (math.indexOf(prim) >= 0) {
-                        var actuals = as.static_method_inner(table, null, null, false);
-                        var str = actuals.join(", ");
-                        js.push("Math.");
-                        js.push(prim);
-                        js.push("(");
-                        js.push(str);
-                        js.push(")");
-                    }
-                },
-
-                MethodCall(r, _p, n, _o, as, _c) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = n.sourceString;
-
-                    var displayBuiltIns = ["clear", "playSound", "loadProgram"];
-
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
-                    var myTable = table[n.sourceString];
-
-                    var actuals = as.static_method_inner(table, null, method, false);
-                    if ((r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) || builtIns.indexOf(method) >= 0) {
-                        if (actuals.length !== primitives[method].param.size()) {
-                            var error = new Error("semantic error");
-                            error.reason = `argument count does not match for primitive ${method}`;
-                            error.expected = `argument count does not match for primitive ${method}`;
-                            error.pos = as.source.endIdx;
-                            error.src = null;
-                            throw error;
-                        }
-                        var str = actuals.join(", ");
-                        js.push(`env["${r.sourceString}"].${method}(${str})`);
-                        return;
-                    }
-
-                    var formals;
-                    if (myTable) {
-                        formals = myTable.param;
-                    }
-
-                    if (formals && (actuals.length !== formals.size())) {
-                        var error = new Error("semantic error");
-                        error.reason = `argument count does not match for method ${n.sourceString}`;
-                        error.expected = `argument count does not match for method ${n.sourceString}`;
-                        error.pos = as.source.endIdx;
+                    var entry = this.args.entry;
+		    var name = n.sourceString;
+                    ok = (entry.type == "method" && entry.hasVariable(name)) ||
+			(entry.type == "helper" && entry.hasVariable(name));
+		    if (!ok) {
+                        var error = new Error("syntax error");
+                        error.reason = `variable ${name} is not declared`;
+                        error.expected = `variable ${name} is not declared`;
+                        error.pos = n.source.endIdx;
                         error.src = null;
                         throw error;
+		    }
+		    entry.add("ref", null, n.sourceString, null);
+		    return entry;
+                },
+
+                PrimitiveCall(n, _o, as, _c) {
+		    var table = this.args.table;
+		    var entry = this.args.entry;
+                    entry.maybeHelperOrPrimitive(n.sourceString);
+                    return as.symbols(table, entry);
+                },
+
+                Actuals_list(h, _c, r) {
+                    var table = this.args.table;
+                    var entry = this.args.entry;
+                    h.symbols(table, entry);
+                    for (var i = 0; i < r.children.length; i++) {
+                        r.children[i].symbols(table, entry);
                     }
-                    var params = new CodeStream();
-                    var objectsString = new CodeStream();
+                    return entry;
+                },
 
-                    params.addTab();
-                    objectsString.addTab();
-                    for (var i = 0; i < actuals.length; i++) {
-                        var actual = actuals[i];
-                        if (formals) {
-                            var formal = formals.at(i);
-                            var shortName = formal[2];
-                            var isOther = myTable.usedAsOther(shortName);
-                        } else {
-                            var shortName = "t" + i;
-                            isOther = false;
-                        }
+		TypedVar(i) {
+		    return [i.sourceString, null];
+		},
 
-                        if (isOther) {
-                            objectsString.tab();
-                            objectsString.push(`objects["${shortName}"] = ${actual};\n`);
-                        } else {
-                            params.push(`params["${shortName}"] = ${actual};\n`);
-                        }
+		TypedVar_explicit(i, _c, t) {
+		    var type = t.sourceString;
+		    return [i.sourceString, type]
+		},
+
+                ident(_h, _r) {return this.args.entry;},
+                number(s) {return this.args.entry;},
+                _terminal() {return this.args.entry;},
+                _nonterminal(children) {
+                    var table = this.args.table;
+                    var entry = this.args.entry;
+                    for (var i = 0; i < children.length; i++) {
+                        children[i].symbols(table, entry);
                     }
-
-                    var callProgram = `
-(function() {
-    var data = scripts["${n.sourceString}"];
-    if (!data) {
-        var error = new Error("semantic error");
-        error.reason = "Method named ${n.sourceString} does not exist";
-        error.expected = "Method named ${n.sourceString} does not exist";
-        error.pos = ${_c.source.endIdx};
-        error.src = null;
-        throw error;
-    }
-    var func = data[0];
-    var ins = data[1][0]; // [[name, <fieldName>]]
-    var formals = data[1][1];
-    var outs = data[1][2]; //[[object, <fieldName>]]
-    var objects = {};
-    objects.this = env["${r.sourceString}"];
-    ${objectsString.contents()}
-    var params = {};
-    ${params.contents()}
-    func(objects, outs, ins, params);
-})()`;
-                js.push(callProgram);
-            },
-        });
+                    return entry;
+                },
+            });
     }
 
     function shouldFire(trigger, env) {
@@ -4721,12 +3471,27 @@ uniform sampler2D u_that_y;
             if (maybeEntry) {
                 if (maybeEntry[0] === entry[0] &&
                     maybeEntry[1] === entry[1] &&
-                    maybeEntry[2] === entry[2]) {
+                    maybeEntry[2] === entry[2] &&
+                    maybeEntry[3] === entry[3]) {
                     return;
-                } else {
-                    throw "error duplicate variable" + k
-                    return;
-                }
+		}
+                if (maybeEntry[0] === entry[0] &&
+		    maybeEntry[1] === entry[1] &&
+		    maybeEntry[2] === entry[2]) {
+		    if (maybeEntry[3] === null && entry[3] !== null) {
+			maybeEntry[3] = entry[3];
+			return;
+		    }
+		    if (maybeEntry[3] !== null && entry[3] === null) {
+			return;
+		    }
+		    if (maybeEntry[3] !== entry[3]) {
+			throw 'error type mismatch';
+			return;
+		    }
+		}
+                throw "error duplicate variable" + k
+                return;
             }
             this.entries[k] = entry;
             this.keys.push(k);
@@ -4775,16 +3540,18 @@ uniform sampler2D u_that_y;
         }
     }
 
-    class SymTable {
-        constructor(entries, optIsPrimitive) {
+    class Entry {
+        constructor(type, optParam) {
+	    this.type = type;
+
             this.forBreed = true;
             this.hasBreedInput = false;
             this.hasPatchInput = false;
-            this.defaultUniforms = null;
-            this.defaultAttributes = null;
+            this.defaultUniforms = ["u_resolution", "u_half"];
+            this.defaultAttributes = ["a_index", "b_index"];
 
             this.usedHelpersAndPrimitives = new OrderedPair();   // foo(a) => foo -> foo
-            this.type = optIsPrimitive ? "primitive" : "method";
+
             // - from source (extensional)
             // I use this term because I want to remember which is which)
 
@@ -4801,40 +3568,11 @@ uniform sampler2D u_that_y;
             this.uniformTable = new OrderedPair();
             this.scalarParamTable = new OrderedPair();
 
-            if (entries) {
-                for (var i = 0; i < entries.length; i++) {
-                    this.add.apply(this, (entries[i]))
-                }
-            }
-
-            this.defaultUniforms = ["u_resolution", "u_half"];
-            this.defaultAttributes = ["a_index", "b_index"];
-        }
-
-        beHelper() {
-            this.type = "helper";
-        }
-
-        beStatic() {
-            this.type = "static";
-        }
-
-        beEvent(name) {
-            this.type = "event";
-            this.eventName = name;
-        }
-
-        isEvent() {
-            return this.type === "event";
-        }
-
-        beStaticVariable(name) {
-            this.type = "staticVar";
-            this.staticVarName = name;
-        }
-
-        isStaticVariable() {
-            return this.type == "staticVar";
+//            if (entries) {
+//                for (var i = 0; i < entries.length; i++) {
+//                    this.add.apply(this, (entries[i]))
+//                }
+//            }
         }
 
         beTrigger(trigger, action) {
@@ -4897,8 +3635,8 @@ uniform sampler2D u_that_y;
             });
         };
 
-        add(tag, rcvr, name) {
-            var entry = [tag, rcvr, name];
+        add(tag, rcvr, name, type) {
+            var entry = [tag, rcvr, name, type];
             var k = [tag, rcvr ? rcvr : "null", name].join(".");
 
             if (tag === "propOut" && rcvr === "this") {
@@ -5198,11 +3936,6 @@ highp float random(float seed) {
         match = /t=([0-9]+)/.exec(window.location.search);
         T = (match && match.length == 2) ? parseInt(match[1]) : TEXTURE_SIZE;
 
-        if (runTests) {
-            setTestParams();
-            document.getElementById("bigTitle").innerHTML = "Shadama Tests";
-        }
-
         readout = document.getElementById("readout");
         watcherList = document.getElementById("watcherList");
         envList = document.getElementById("envList");
@@ -5243,6 +3976,18 @@ highp float random(float seed) {
         }
         shadama.initServerFiles();
         shadama.initFileList();
+
+	initCompiler();
+
+        if (runTests) {
+            document.getElementById("bigTitle").innerHTML = "Shadama Tests";
+
+            setTestParams(shadama.tester());
+            grammarUnitTests();
+            symbolsUnitTests();
+            translateTests();
+	    return;
+        }
 
         if (degaussdemo) {
             document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
@@ -5320,14 +4065,6 @@ highp float random(float seed) {
     programs["increasePatch"] = increasePatchProgram();
     programs["increaseVoxel"] = increaseVoxelProgram();
 
-    initCompiler();
-
-    if (runTests) {
-        setTestParams(shadama.tester());
-        grammarUnitTests();
-        symTableUnitTests();
-        translateTests();
-    }
 //    window.shadama = shadama;
     return shadama;
 }
