@@ -301,6 +301,54 @@ function symbolsTest(str, prod, sem, expected, entry) {
     }
 }
 
+function typeTest(str, prod, sem, expected, entry) {
+    console.log("str = ", str);
+    var stringify = (obj) => {
+        var type = Object.prototype.toString.call(obj);
+        if (type === "[object Object]") {
+            var pairs = [];
+            for (var k in obj) {
+                if (!obj.hasOwnProperty(k)) continue;
+                pairs.push([k, stringify(obj[k])]);
+            }
+            pairs.sort((a, b) => a[0] < b[0] ? -1 : 1);
+            pairs = pairs.map(v => '"' + v[0] + '":' + v[1]);
+            return "{" + pairs + "}";
+        }
+        if (type === "[object Array]") {
+            return "[" + obj.map(v => stringify(v)) + "]";
+        }
+        return JSON.stringify(obj);
+    };
+
+    var match = parse(str, prod);
+    if (!match.succeeded()) {
+        console.log(str);
+        console.log("did not parse: " + str);
+    };
+
+    if (!entry) {
+	entry = new Entry("method");
+    }
+    var n = sem(match);
+    var ret = n.symbols({}, entry);
+
+    if (ret.constructor != Entry) {
+	//hack.  For toplevel, it'd be a dictionary of Entries'
+	ret = ret[Object.keys(ret)[0]];
+    }
+
+    var type = n.type(ret);
+
+    var result = ret.rawTable();
+    var a = stringify(result);
+    var b = stringify(expected);
+    if (a != b) {
+        console.log(str);
+        console.log("Expected: " + b + " got: " + a);
+    }
+}
+
 function grammarUnitTests() {
     grammarTest("abc", "ident");
     grammarTest("if", "if");
@@ -433,16 +481,36 @@ function symbolsUnitTests() {
         "propOut.this.y": ["propOut" ,"this", "y", null],
 	"param.null.other": ["param", null, "other", null]}, entry);
 
-    var entry = new Entry("method");
-    entry.add("param", null, "other", null);
     symbolsTest("def foo(other, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
         "propIn.other.x": ["propIn", "other", "x", null],
         "propOut.this.x": ["propOut" ,"this", "x", null],
         "propOut.this.y": ["propOut" ,"this", "y", null],
 	"param.null.other": ["param", null, "other", null], 
         "param.null.b": ["param" , null, "b", null],
+        "param.null.c": ["param" , null, "c", null]});
+
+    symbolsTest("def foo(other, b, c) {this.x = 3; this.y = other.x : vec2;}", "Script", s, {
+        "propIn.other.x": ["propIn", "other", "x", "vec2"],
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.this.y": ["propOut" ,"this", "y", null],
+	"param.null.other": ["param", null, "other", null], 
+        "param.null.b": ["param" , null, "b", null],
+        "param.null.c": ["param" , null, "c", null]});
+}
+
+
+function typeUnitTests() {
+    var entry = new Entry("method");
+    typeTest("def foo(other, b, c) {this.x = 3; this.y = other.x : vec2;}", "Script", s, {
+        "propIn.other.x": ["propIn", "other", "x", "vec2"],
+        "propOut.this.x": ["propOut" ,"this", "x", "number"],
+        "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
+	"param.null.other": ["param", null, "other", "object"], 
+        "param.null.b": ["param" , null, "b", null],
         "param.null.c": ["param" , null, "c", null]}, entry);
 }
+
+
 
 function translateTests() {
 //    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));

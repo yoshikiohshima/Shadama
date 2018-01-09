@@ -2892,7 +2892,7 @@ Shadama {
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Event = event ident
-  On = on TriggerExpression arrow (start|stop)? ident
+  On = on TriggerExpression arrow ident
   Data = data ident "(" string "," string ")"
   Script = def ident "(" Formals ")" Block
   Helper = helper TypedVar "(" Formals ")" Block
@@ -2928,7 +2928,7 @@ Shadama {
 
   LeftHandSideExpression
     = ident "." ident -- field
-    | ident
+    | ident           -- ident
 
   TriggerExpression = 
     | TriggerExpression "&&" ident                      -- and
@@ -2972,7 +2972,7 @@ Shadama {
     = "(" Expression ")"  -- paren
     | PrimitiveCall
     | MethodCall
-    | PrimExpression "." ident     -- field
+    | PrimExpression "." ident ColonType?    -- field
     | ident               -- variable
     | string              -- string
     | number              -- number
@@ -2988,8 +2988,11 @@ Shadama {
     | empty
 
   TypedVar
-    = ident ":" TypeName -- explicit
+    = ident ColonType -- explicit
     | ident
+
+  ColonType
+    = ":" TypeName
 
   TypeName = float | vec2 | vec3 | vec4 | mat2 | mat3 | mat4
 
@@ -3017,14 +3020,11 @@ Shadama {
   def = "def" ~identifierPart
   helper = "helper" ~identifierPart
   this = "this" ~identifierPart
-  self = "self" ~identifierPart
   static = "static" ~identifierPart
   program = "program" ~identifierPart
   return = "return" ~identifierPart
   event = "event" ~identifierPart
   on = "on" ~identifierPart
-  start = "start" ~identifierPart
-  stop = "stop" ~identifierPart
   data = "data" ~identifierPart
 
   float = "float" ~identifierPart
@@ -3188,13 +3188,8 @@ Shadama {
                     return {[n.sourceString]: new Entry("event")};
                 },
 
-                On(_o, t, _a, optK, n) {
+                On(_o, t, _a, n) {
                     var trigger = t.symbols(); // ["and", "a", ["or", "b", "c"]]
-                    if (optK.children.length > 0) {
-                        var key = optK.children[0].sourceString;
-                    } else {
-                        key = "step";
-                    }
                     var entry = new Entry("trigger", [trigger, k, n.sourceString]);
                     return {["_trigger" + trigger.toString()]: entry};
                 },
@@ -3276,24 +3271,20 @@ Shadama {
                 },
 
                 LeftHandSideExpression_field(n, _a, f) {
-                    var name = n.sourceString;
                     var entry = this.args.entry;
+                    var name = n.sourceString;
 		    var ok = true;
-                    ok = (entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
-			(entry.type == "helper" && entry.hasVariable(name));
-		    if (!ok) {
-                        var error = new Error("syntax error");
-                        error.reason = `variable ${name} is not declared`;
-                        error.expected = `variable ${name} is not declared`;
-                        error.pos = n.source.endIdx;
-                        error.src = null;
-                        throw error;
-                    }
+
+                    check((entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
+			  (entry.type == "helper" && entry.hasVariable(name)),
+                          n.source.endIdx,
+			  `variable ${name} is not declared`);
+
 		    entry.add("propOut", n.sourceString, f.sourceString, null);;
                     return entry;
                 },
 
-                PrimExpression_field(n, _p, f) {
+                PrimExpression_field(n, _p, f, optType) {
                     var table = this.args.table;
                     var entry = this.args.entry;
                     if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
@@ -3311,7 +3302,12 @@ Shadama {
                         error.src = null;
                         throw error;
                     }
-                    entry.add("propIn", n.sourceString, f.sourceString, null);
+
+		    var type = null;
+                    if (optType.children.length > 0) {
+			type = optType.children[0].symbols(table, entry);
+		    }
+                    entry.add("propIn", n.sourceString, f.sourceString, type);
                     return entry;
                 },
 
@@ -3319,17 +3315,12 @@ Shadama {
                     var table = this.args.table;
                     var entry = this.args.entry;
 		    var name = n.sourceString;
-                    ok = (entry.type == "method" && entry.hasVariable(name)) ||
-			(entry.type == "helper" && entry.hasVariable(name));
-		    if (!ok) {
-                        var error = new Error("syntax error");
-                        error.reason = `variable ${name} is not declared`;
-                        error.expected = `variable ${name} is not declared`;
-                        error.pos = n.source.endIdx;
-                        error.src = null;
-                        throw error;
-		    }
-		    entry.add("ref", null, n.sourceString, null);
+                    check(entry.type == "method" && entry.hasVariable(name) ||
+			  (entry.type == "helper" && entry.hasVariable(name)), 
+			  n.source.endIdx,
+			  `variable ${name} is not declared`);
+
+		    //entry.add("ref", null, n.sourceString, null);
 		    return entry;
                 },
 
@@ -3354,9 +3345,14 @@ Shadama {
 		    return [i.sourceString, null];
 		},
 
-		TypedVar_explicit(i, _c, t) {
+		TypedVar_explicit(i, t) {
 		    var type = t.sourceString;
-		    return [i.sourceString, type]
+		    return [i.sourceString, type];
+		},
+
+		ColonType(_c, t) {
+		    var type = t.sourceString;
+		    return type;
 		},
 
                 ident(_h, _r) {return this.args.entry;},
@@ -3371,6 +3367,148 @@ Shadama {
                     return entry;
                 },
             });
+
+	s.addOperation(
+	    "type(entry)",
+	    {
+		_nonterminal(children) {
+                    var entry = this.args.entry;
+		    var type = null;
+                    for (var i = 0; i < children.length; i++) {
+			var val = children[i].type(entry);
+			if (type === null) {
+			    type = val;
+			}
+		    }
+		    return type;
+		},
+
+                Script(_d, n, _o, ns, _c, b) {
+		    var entry = this.args.entry;
+                    b.type(entry);
+                    ns.type(entry);
+                },
+
+                Helper(_d, n, _o, ns, _c, b) {
+		    var entry = this.args.entry;
+                    ns.type(entry);
+                    b.type(entry);
+		},
+
+                Static(_s, n, _o, ns, _c, b) {
+		    var entry = this.args.entry;
+		    b.type(entry);
+		},
+
+		Formals_list(h, _c, r) {
+                    var entry = this.args.entry;
+		    var sym = h.symbols({}, entry);
+		    if (entry.usedAsOther(sym[0])) {
+			entry.setType("param", null, sym[0], "object");
+		    }
+		},
+
+                VariableDeclaration(n, optI) {
+                    var entry = this.args.entry;
+		    var nType = n.type(entry);
+		    var sym = n.symbols(null, entry); // Hmm
+                    if (optI.children.length > 0) {
+                        var type = optI.children[0].type(entry);
+			if (nType == null) {
+			    var realType = (type != null) ? type : "number";
+			    entry.setType("var", null, sym[0], realType);
+			}
+                    }
+		    //if  mismatch {error}
+                    return entry.type(entry);
+                },
+
+		AssignmentStatement(l, _e, e, _c) {
+                    var entry = this.args.entry;
+		    var left = l.type(entry);
+		    var type = e.type(entry);
+		    if (!type) {
+			if (!type) {console.log("it should have a type by now")};
+			return null;
+		    }
+		    entry.setType(left[0], left[1], left[2], type);
+		},
+
+
+                LeftHandSideExpression_field(n, _a, f) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+		    return ["propOut", name, f.sourceString];
+		},
+
+                LeftHandSideExpression_ident(n) {
+                    var entry = this.args.entry;
+		    return ["var", null, n.sourceString];
+		},
+
+                PrimExpression_field(n, _p, f, optType) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+		    var type = entry.getType("propIn", name, f.sourceString);
+		    if (!type) {
+			entry.setType("propIn", name, f.sourceString, "number");
+			return "number";
+		    }
+		    //if (!type) {console.log("it should have a type by now")};
+		    return type;
+		},
+
+                PrimExpression_variable(n) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+		    debugger;
+		    var type = entry.getType("var", null, name);
+		    if (!type) {
+			entry.setType("var", null, name, "number");
+			return "number";
+		    }
+		    //if (!type) {console.log("it should have a type by now")};
+		    return type;
+		},
+
+                PrimitiveCall(n, _o, as, _c) {
+		    var name = n.sourceString;
+		    if (name == "sqrt") {
+			check(as.children.length === 1 && as.children[0].type(entry) == "number", n.source.endIdx, "type error");
+			return "number";
+		    }
+		    else if (name == "vec2") {
+			check(as.children.length === 1 && as.children[0].type(entry) == "vec2"
+			      || (as.children.length === 2 && as.children[0].type(entry) == "number" &&  as.children[1].type(entry) == "number"));
+			return "vec2";
+		    }
+		},
+
+                Actuals_list(h, _c, r) {
+                    var entry = this.args.entry;
+		    var result = [];
+                    result.push(h.type(entry));
+                    for (var i = 0; i < r.children.length; i++) {
+                        result.push(r.children[i].type(entry));
+                    }
+                    return result;
+                },
+
+                ident(_h, _r) {return null},
+                number(s) {return "number"},
+                _terminal() {return null},
+	    });
+    }
+
+    function check(aBoolean, pos, message) {
+	if (!aBoolean) {
+            var error = new Error("syntax error");
+            error.reason = message;
+            error.expected = message;
+            error.pos = pos;
+            error.src = null;
+            throw error;
+	}
     }
 
     function shouldFire(trigger, env) {
@@ -3510,6 +3648,16 @@ Shadama {
             }
         }
 
+        atName(name) {
+            var found = null;
+            this.keysAndValuesDo((key, value) => {
+                if (value[2] == name) {
+                    found = value;
+                }
+            });
+            return found;
+        }
+
         keysAndValuesDo(func) {
             for (var i = 0; i < this.keys.length; i++) {
                 func(this.keys[i], this.entries[this.keys[i]]);
@@ -3532,7 +3680,7 @@ Shadama {
                     found = value;
                 }
             });
-            return found != null;
+            return found;
         }
 
         size() {
@@ -3664,6 +3812,32 @@ Shadama {
             }
         }
 
+	setType(tag, rcvr, name, type) {
+	    return this.add(tag, rcvr, name, type);
+	}
+
+	getType(tag, rcvr, name, type) {
+	    var entry;
+            if (tag === "propOut" && rcvr === "this") {
+                entry = this.thisOut.has(name);
+            } else if (tag === "propOut" && rcvr !== "this") {
+                entry = this.otherOut.has(name);
+            } else if (tag === "propIn" && rcvr === "this") {
+                entry = this.thisIn.has(name);
+            } else if (tag === "propIn" && rcvr !== "this") {
+                entry = this.otherIn.has(name);
+            } else if (tag === "param") {
+                entry = this.param.has(name);
+            } else if (tag === "var") {
+                entry = this.local.has(name);
+            }
+	    if (entry) {
+		return entry[3];
+	    }
+	    return null;
+	}
+	    
+
         usedAsOther(n) {
             var result = false;
             this.otherIn.keysAndValuesDo((k, entry) => {
@@ -3747,8 +3921,8 @@ Shadama {
         }
 
         hasVariable(n) {
-            if (this.param.has(n)) {return true;}
-            if (this.local.has(n)) {return true;}
+            if (this.param.has(n) !== null) {return true;}
+            if (this.local.has(n) !== null) {return true;}
             if (["this", "u_resolution", "u_half", "a_index", "b_index"].indexOf(n) >= 0) {
                 return true;
             }
@@ -3985,6 +4159,7 @@ highp float random(float seed) {
             setTestParams(shadama.tester());
             grammarUnitTests();
             symbolsUnitTests();
+	    typeUnitTests();
             translateTests();
 	    return;
         }
