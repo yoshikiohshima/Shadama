@@ -2886,7 +2886,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     var shadamaGrammar = String.raw`
 Shadama {
   TopLevel
-    = ProgramDecl? (Breed | Patch | Event | On | Data | Script | Helper | Static)*
+    = ProgramDecl? (Breed | Patch | Event | On | Data | Method | Helper | Static)*
 
   ProgramDecl = program string
   Breed = breed ident "(" Formals ")"
@@ -2894,7 +2894,7 @@ Shadama {
   Event = event ident
   On = on TriggerExpression arrow ident
   Data = data ident "(" string "," string ")"
-  Script = def ident "(" Formals ")" Block
+  Method = def ident "(" Formals ")" Block
   Helper = helper TypedVar "(" Formals ")" Block
   Static = static ident "(" Formals ")" Block
 
@@ -3114,9 +3114,13 @@ Shadama {
 
     function initSemantics() {
         function addDefaultGlobals(obj) {
-            obj["mousedown"] = new Entry("var", ["mousedown", "obj"]);
-            obj["mousemove"] = new Entry("var", ["mousemove", "obj"]);
-            obj["mouseup"] = new Entry("var", ["mouseup", "obj"]);
+            obj["mousedown"] = new Entry("var");
+	    obj["mousedown"].setInfo(["mousedown", "obj"]);
+
+            obj["mousemove"] = new Entry("var");
+	    obj["mousemove"].setInfo(["mousemove", "obj"]);
+            obj["mouseup"] = new Entry();
+	    obj["mouseup"].setInfo("var", ["mouseup", "obj"]);
         }
 
         function processHelper(symDict) {
@@ -3152,128 +3156,134 @@ Shadama {
         }
 
         s.addOperation(
-            "symbols(table, entry)",
+            "symbols(entry)",
             {
                 TopLevel(p, ds) {
                     var table = {};
+		    var entry;
                     addDefaults(table);
                     if (p.children.length > 0) {
-                        addAsSet(table, p.children[0].symbols(table, null));
+			// program name
+			entry = new Entry();
+			entry.setGlobal(table);
+			table[p.children[0].symbols(entry)] = entry;
                     }
                     for (var i = 0; i< ds.children.length; i++) {
-                        var d = ds.children[i].symbols(table, null);
-                        addAsSet(result, d);
+			entry = new Entry();
+			entry.setGlobal(table);
+                        var name = ds.children[i].symbols(entry);
+                        table[name] = entry;
                     }
-                    processHelper(table);
+                    //processHelper(table);
                     return result;
                 },
 
                 ProgramDecl(_p, s) {
-                    return new Entry("_programName", s.sourceString.slice(1, s.sourceString.length - 1));
+                    var entry = this.args.entry;
+		    entry.setEntryType("_programName");
+		    return s.sourceString.slice(1, s.sourceString.length - 1);
                 },
 
                 Breed(_b, n, _o, fs, _c) {
-                    var entry = new Entry("breed");
+                    var entry = this.args.entry;
+		    entry.setEntryType("breed");
 		    fs.symbols(entry);
-                    return {[n.sourceString]: entry};
+                    return n.sourceString;
                 },
 
                 Patch(_p, n, _o, fs, _c) {
-                    var entry = new Entry("patch");
+                    var entry = this.args.entry;
+		    entry.setEntryType("patch");
 		    fs.symbols(entry);
-                    return {[n.sourceString]: entry};
+                    return n.sourceString;
                 },
 
-                Event(_e, n) {// needs a type?
-                    return {[n.sourceString]: new Entry("event")};
+                Event(_e, n) {
+                    var entry = this.args.entry;
+		    entry.setEntryType("event");
+                    return n.sourceString;
                 },
 
                 On(_o, t, _a, n) {
-                    var trigger = t.symbols(); // ["and", "a", ["or", "b", "c"]]
-                    var entry = new Entry("trigger", [trigger, k, n.sourceString]);
-                    return {["_trigger" + trigger.toString()]: entry};
+                    var entry = this.args.entry;
+		    entry.setEntryType("trigger");
+		    entry.setInfo(t.symbols(entry));
+                    return "_trigger" + trigger.toString();
                 },
 
-                Data(_d, n, _o, s1, _a, s2, _c) {
+                Data(_d, n, _o, s1, _a, s2, _c) {  // synonym for event?
+                    var entry = this.args.entry;
+		    entry.setEntryType("event");
                     var realS1 = s1.children[1].sourceString;
                     var realS2 = s2.children[1].sourceString;
-		    var entry = new Entry("data", [realS1, realS2]);
+		    entry.setInfo([realS1, realS2]);
                     return {[n.sourceString]: entry};
                 },
 
-                Script(_d, n, _o, ns, _c, b) {
-		    var table = this.args.table;
-                    var entry = new Entry("method");
-                    ns.symbols(table, entry);
-                    b.symbols(table, entry);
-                    return {[n.sourceString]: entry};
+                Method(_d, n, _o, ns, _c, b) {
+		    var entry = this.args.entry;
+                    entry.setEntryType("method");
+                    ns.symbols(entry);
+                    b.symbols(entry);
+                    return n.sourceString;
                 },
 
                 Helper(_d, n, _o, ns, _c, b) {
-		    var table = this.args.table;
+		    var entry = this.args.entry;
+		    entry.setEntryType("helper");
 		    var type = n.type();
-                    var entry = new Entry("helper", type);
-                    ns.symbols(table, entry);
-                    b.symbols(table, entry);
-                    return {[n.sourceString]: entry};
+                    ns.symbols(entry);
+                    b.symbols(entry);
+                    return n.sourceString;
                 },
 
                 Static(_s, n, _o, ns, _c, b) {
-		    var table = this.args.table;
-                    var entry = new Entry("static");
-                    ns.symbols(table, entry);
-                    b.symbols(table, entry);
-                    return {[n.sourceString]: entry};
+		    var entry = this.args.entry;
+                    entry.setEntryType("static");
+                    ns.symbols(entry);
+                    b.symbols(entry);
+                    return n.sourceString;
                 },
 
                 Formals_list(h, _c, r) {
-		    var table = this.args.table;
                     var entry = this.args.entry;
 		    var formals = [];
-		    var sym = h.symbols(table, entry);
+		    var sym = h.symbols(entry);
                     entry.add("param", null, sym[0], sym[1]);
                     for (var i = 0; i < r.children.length; i++) {
-			var sym = r.children[i].symbols(table, entry);
+			var sym = r.children[i].symbols(entry);
                         entry.add("param", null, sym[0], sym[1]);
                     }
-                    return entry;
                 },
 
                 StatementList(ss) { // an iter node
-                    var table = this.args.table;
                     var entry = this.args.entry;
                     for (var i = 0; i< ss.children.length; i++) {
-                        ss.children[i].symbols(table, entry);
+                        ss.children[i].symbols(entry);
                     }
-                    return entry;
                 },
 
                 VariableDeclaration(n, optI) {
-                    var table = this.args.table;
                     var entry = this.args.entry;
-		    var sym = n.symbols(table, entry);
+		    var sym = n.symbols(entry);
                     entry.add("var", null, sym[0], sym[1]);
                     if (optI.children.length > 0) {
-                        optI.children[0].symbols(table, entry);
+                        optI.children[0].symbols(entry);
                     }
-                    return entry;
                 },
 
                 IfStatement(_if, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
                     var entry = this.args.entry;
-                    c.symbols(table, entry);
-                    t.symbols(table, entry);
+                    c.symbols(entry);
+                    t.symbols(entry);
                     if (optF.children.length > 0) {
-                        optF.children[0].symbols(table, entry);
+                        optF.children[0].symbols(entry);
                     }
-                    return entry;
                 },
 
                 LeftHandSideExpression_field(n, _a, f) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
-		    var ok = true;
 
                     check((entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
 			  (entry.type == "helper" && entry.hasVariable(name)),
@@ -3281,38 +3291,27 @@ Shadama {
 			  `variable ${name} is not declared`);
 
 		    entry.add("propOut", n.sourceString, f.sourceString, null);;
-                    return entry;
                 },
 
                 PrimExpression_field(n, _p, f, optType) {
-                    var table = this.args.table;
                     var entry = this.args.entry;
-                    if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
-                        console.log("you can only use 'this' or incoming patch name");
-                    }
+		    check(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"),
+			  n.source.endIdx,
+			  "you can only use 'this' or incoming patch name");
                     var name = n.sourceString;
-		    var ok = true;
-                    ok = (entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
-			(entry.type == "helper" && entry.hasVariable(name));
-		    if (!ok) {
-                        var error = new Error("syntax error");
-                        error.reason = `variable ${name} is not declared`;
-                        error.expected = `variable ${name} is not declared`;
-                        error.pos = n.source.endIdx;
-                        error.src = null;
-                        throw error;
-                    }
+		    check((entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
+			  (entry.type == "helper" && entry.hasVariable(name)),
+			  n.source.endIdx,
+			  `variable ${name} is not declared`);
 
 		    var type = null;
                     if (optType.children.length > 0) {
-			type = optType.children[0].symbols(table, entry);
+			type = optType.children[0].symbols(entry);
 		    }
                     entry.add("propIn", n.sourceString, f.sourceString, type);
-                    return entry;
                 },
 
                 PrimExpression_variable(n) {
-                    var table = this.args.table;
                     var entry = this.args.entry;
 		    var name = n.sourceString;
                     check(entry.type == "method" && entry.hasVariable(name) ||
@@ -3321,24 +3320,20 @@ Shadama {
 			  `variable ${name} is not declared`);
 
 		    //entry.add("ref", null, n.sourceString, null);
-		    return entry;
                 },
 
                 PrimitiveCall(n, _o, as, _c) {
-		    var table = this.args.table;
 		    var entry = this.args.entry;
                     entry.maybeHelperOrPrimitive(n.sourceString);
-                    return as.symbols(table, entry);
+                    as.symbols(entry);
                 },
 
                 Actuals_list(h, _c, r) {
-                    var table = this.args.table;
                     var entry = this.args.entry;
-                    h.symbols(table, entry);
+                    h.symbols(entry);
                     for (var i = 0; i < r.children.length; i++) {
-                        r.children[i].symbols(table, entry);
+                        r.children[i].symbols(entry);
                     }
-                    return entry;
                 },
 
 		TypedVar(i) {
@@ -3346,25 +3341,22 @@ Shadama {
 		},
 
 		TypedVar_explicit(i, t) {
-		    var type = t.sourceString;
-		    return [i.sourceString, type];
+		    var entrty = this.args.entry;
+		    return [i.sourceString, t.symbols(entry)];
 		},
 
 		ColonType(_c, t) {
-		    var type = t.sourceString;
-		    return type;
+		    return t.sourceString;;
 		},
 
-                ident(_h, _r) {return this.args.entry;},
-                number(s) {return this.args.entry;},
-                _terminal() {return this.args.entry;},
+                ident(_h, _r) {},
+                number(s) {},
+                _terminal() {},
                 _nonterminal(children) {
-                    var table = this.args.table;
                     var entry = this.args.entry;
                     for (var i = 0; i < children.length; i++) {
-                        children[i].symbols(table, entry);
+                        children[i].symbols(entry);
                     }
-                    return entry;
                 },
             });
 
@@ -3383,7 +3375,7 @@ Shadama {
 		    return type;
 		},
 
-                Script(_d, n, _o, ns, _c, b) {
+                Method(_d, n, _o, ns, _c, b) {
 		    var entry = this.args.entry;
                     b.type(entry);
                     ns.type(entry);
@@ -3402,7 +3394,7 @@ Shadama {
 
 		Formals_list(h, _c, r) {
                     var entry = this.args.entry;
-		    var sym = h.symbols({}, entry);
+		    var sym = h.symbols(entry);
 		    if (entry.usedAsOther(sym[0])) {
 			entry.setType("param", null, sym[0], "object");
 		    }
@@ -3411,7 +3403,7 @@ Shadama {
                 VariableDeclaration(n, optI) {
                     var entry = this.args.entry;
 		    var nType = n.type(entry);
-		    var sym = n.symbols(null, entry); // Hmm
+		    var sym = n.symbols(entry); // Hmm
                     if (optI.children.length > 0) {
                         var type = optI.children[0].type(entry);
 			if (nType == null) {
@@ -3461,7 +3453,6 @@ Shadama {
                 PrimExpression_variable(n) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
-		    debugger;
 		    var type = entry.getType("var", null, name);
 		    if (!type) {
 			entry.setType("var", null, name, "number");
@@ -3472,14 +3463,22 @@ Shadama {
 		},
 
                 PrimitiveCall(n, _o, as, _c) {
+		    var entry = this.args.entry;
 		    var name = n.sourceString;
+		    var types = [];
+
+		    if (as.children[0].ctorName === "Actuals_list") {
+			types = as.children[0].type(entry);
+		    }
 		    if (name == "sqrt") {
-			check(as.children.length === 1 && as.children[0].type(entry) == "number", n.source.endIdx, "type error");
+			check(types.length === 1 && types[0] == "number", n.source.endIdx, "type error");
 			return "number";
 		    }
 		    else if (name == "vec2") {
-			check(as.children.length === 1 && as.children[0].type(entry) == "vec2"
-			      || (as.children.length === 2 && as.children[0].type(entry) == "number" &&  as.children[1].type(entry) == "number"));
+			check((types.length === 1 && types[0] == "vec2") ||
+			      (types.length === 2 && types[0] == "number" &&  types[1] == "number"),
+			      n.source.endIdx,
+			      "type error");
 			return "vec2";
 		    }
 		},
@@ -3498,6 +3497,7 @@ Shadama {
                 number(s) {return "number"},
                 _terminal() {return null},
 	    });
+
     }
 
     function check(aBoolean, pos, message) {
@@ -3689,9 +3689,7 @@ Shadama {
     }
 
     class Entry {
-        constructor(type, optParam) {
-	    this.type = type;
-
+        constructor(optType) {
             this.forBreed = true;
             this.hasBreedInput = false;
             this.hasPatchInput = false;
@@ -3716,12 +3714,25 @@ Shadama {
             this.uniformTable = new OrderedPair();
             this.scalarParamTable = new OrderedPair();
 
-//            if (entries) {
-//                for (var i = 0; i < entries.length; i++) {
-//                    this.add.apply(this, (entries[i]))
-//                }
-//            }
+	    this.type = optType;
         }
+
+	setGlobal(table) {
+	    this.global = table;
+	}
+
+	setEntryType(type) {
+	    this.type = type;
+	}
+
+	setInfo(info) {
+	    this.info = info;
+	    // case var: [name, type]
+	    // case _programName: string
+	    // case trigger: trigger array // ["and", "a", ["or", "b", "c"]]
+	    // case event: url and datatype
+
+	}
 
         beTrigger(trigger, action) {
             // trigger: name | ["and", trigger, triger] | [or trigger, trigger]
@@ -3836,7 +3847,6 @@ Shadama {
 	    }
 	    return null;
 	}
-	    
 
         usedAsOther(n) {
             var result = false;
