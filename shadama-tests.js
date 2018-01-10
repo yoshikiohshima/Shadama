@@ -298,7 +298,6 @@ function symbolsTest(str, prod, sem, expected, entry) {
 }
 
 function typeTest(str, prod, sem, expected, entry) {
-    console.log("str = ", str);
     var stringify = (obj) => {
         var type = Object.prototype.toString.call(obj);
         if (type === "[object Object]") {
@@ -353,6 +352,7 @@ function translateTest(str) {
     n.type(table);
 
     var result = n.compile(table);
+    debugger;
     console.log(result.foo[1]);
     console.log(result.foo[2]);
 }
@@ -486,8 +486,8 @@ function symbolsUnitTests() {
     entry.add("param", null, "other", null);
     symbolsTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
         "propOut.this.x": ["propOut" ,"this", "x", null],
-        "propIn.other.x": ["propIn", "other", "x", null],
         "propOut.this.y": ["propOut" ,"this", "y", null],
+        "propIn.other.x": ["propIn", "other", "x", null],
 	"param.null.other": ["param", null, "other", null]}, entry);
 
     symbolsTest("def foo(other, b, c) {this.x = 3; this.y = other.x;}", "Method", s, {
@@ -513,13 +513,17 @@ function typeUnitTests() {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
         "propOut.this.x": ["propOut" ,"this", "x", "number"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
+        "propIn.this.x": ["propIn" ,"this", "x", "number"],
+        "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
 	"param.null.other": ["param", null, "other", "object"]});
 
 
     typeTest("def foo(other) {this.x = 3; this.y = other.x:vec2 + vec2(2, 3);}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
-        "propOut.this.x": ["propOut" ,"this", "x", "number"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
+        "propOut.this.x": ["propOut" ,"this", "x", "number"],
+        "propIn.this.x": ["propIn" ,"this", "x", "number"],
+        "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
 	"param.null.other": ["param", null, "other", "object"]});
 }
 

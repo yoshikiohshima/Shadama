@@ -88,6 +88,35 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     var degaussdemo;
 
     var fragments = {
+	patchInput: {
+	    number2: `
+  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
+  vec2 _pos = vec2(_x, _y);
+`,
+	    vec2: `
+  vec2 _pos = texelFetch(u_that_xy, ivec2(a_index), 0).rg;
+`,},
+
+	noPatchInput:`
+  vec2 _pos = a_index;
+`,
+
+	blockPatchPrologue: `
+  vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
+`,
+
+	blockBreedPrologue: `
+  vec2 oneToOne = (b_index + u_half) * 2.0 - 1.0;
+`,
+
+	blockEpilogue: `
+  gl_Position = vec4(oneToOne, 0.0, 1.0);
+  gl_PointSize = 1.0;
+`,
+
+
+
 	patchPrologue: {
 	    number2: `
 uniform sampler2D u_that_x;
@@ -3486,7 +3515,7 @@ Shadama {
 		Formals_list(h, _c, r) {
                     var entry = this.args.entry;
 		    var sym = h.symbols(entry);
-		    if (entry.usedAsOther(sym[0])) {
+		    if (entry.usedAsObject(sym[0])) {
 			entry.setType("param", null, sym[0], "object");
 		    }
 		},
@@ -3716,7 +3745,7 @@ Shadama {
                     frag.crIfNeeded();
                     frag.push("void main()");
 
-                    b.glsl_inner(entry, vert, frag);
+                    b.glsl_method(entry, vert, frag);
 
                     vert.crIfNeeded();
 
@@ -3735,7 +3764,50 @@ Shadama {
                     frag.cr();
 
                     return [entry, vert.contents(), frag.contents(), ["updateScript", n.sourceString]];
-                }
+                },
+
+                Block(_o, ss, _c) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+
+                    vert.pushWithSpace("{\n");
+                    vert.addTab();
+
+                    if (entry.hasPatchInput) {
+                        vert.push(fragments.patchInput.vec2);
+		    } else {
+                        vert.push(fragments.noPatchInput);
+		    }
+
+		    if (entry.forBreed) {
+                        vert.push(fragments.blockBreedPrologue);
+                    } else {
+                        vert.push(fragments.blockPatchPrologue);
+                    }
+
+                    entry.scalarParamTable.keysAndValuesDo((key, value) => {
+                        var name = value[2];
+                        vert.tab();
+                        vert.push(`${value[3]} ${name} = u_scalar_${name};`);
+                        vert.cr();
+                    });
+
+                    entry.uniformDefaults().forEach(elem => {
+                        vert.tab();
+                        vert.push(elem);
+                        vert.cr();
+                    });
+
+                    ss.glsl_inner(entry, vert, frag);
+                    vert.push(fragments.blockEpilogue);
+
+                    vert.decTab();
+                    vert.tab();
+                    vert.push("}");
+                },
+
+
             });
 
 	s.addOperation(
@@ -4299,14 +4371,10 @@ Shadama {
 	    // For cases when a method does not output a value due to an if statement,
 	    // It'd have to read values from the original.
             this.thisOut.keysAndValuesDo((key, entry) => {
-                var newEntry = ["propIn", "this", entry[2]];
-                var newK = newEntry.join(".");
-                this.thisIn.add(newK, newEntry);
+                this.add("propIn", entry[1], entry[2], entry[3]);
             });
             this.otherOut.keysAndValuesDo((key, entry) => {
-                var newEntry = ["propIn", entry[1], entry[2]];
-                var newK = newEntry.join(".");
-                this.otherIn.add(newK, newEntry);
+                this.add("propIn", entry[1], entry[2], entry[3]);
             });
 
             this.uniformTable.addAll(this.thisIn);
@@ -4325,7 +4393,7 @@ Shadama {
                 this.varyingTable.addAll(this.otherOut);
             }
             this.param.keysAndValuesDo((key, entry) => {
-                if (!this.usedAsOther(entry[2])) {
+                if (!this.usedAsObject(entry[2])) {
                     this.scalarParamTable.add(key, entry);
                 }
             });
@@ -4375,7 +4443,7 @@ Shadama {
 	    return null;
 	}
 
-        usedAsOther(n) {
+        usedAsObject(n) {
             var result = false;
             this.otherIn.keysAndValuesDo((k, entry) => {
                 result = result || (entry[1] === n);
