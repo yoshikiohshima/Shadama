@@ -339,6 +339,25 @@ function typeTest(str, prod, sem, expected, entry) {
     }
 }
 
+function translateTest(str) {
+    var match = parse(str, "TopLevel");
+    if (!match.succeeded()) {
+        console.log(str);
+        console.log("did not parse: " + str);
+    };
+
+    var sem = s;
+    var n = sem(match);
+    var table = n.symbols(null);
+
+    n.type(table);
+
+    var result = n.compile(table);
+    console.log(result.foo[1]);
+    console.log(result.foo[2]);
+}
+
+
 function grammarUnitTests() {
     grammarTest("abc", "ident");
     grammarTest("if", "if");
@@ -502,13 +521,10 @@ function typeUnitTests() {
         "propOut.this.x": ["propOut" ,"this", "x", "number"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
 	"param.null.other": ["param", null, "other", "object"]});
-
 }
 
-
-
-function translateTests() {
-//    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));
+function translateUnitTests() {
+    translateTest("def foo(other) {this.pos = other.pos:vec2}", "TopLevel");
 
 //    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
 //    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));

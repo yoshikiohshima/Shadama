@@ -87,6 +87,45 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     var showAllEnv;
     var degaussdemo;
 
+    var fragments = {
+	patchPrologue: {
+	    number2: `
+uniform sampler2D u_that_x;
+uniform sampler2D u_that_y;
+`,
+	    vec2: `
+uniform sampler2D u_that_xy;
+`,
+	    number3: `
+uniform sampler2D u_that_x;
+uniform sampler2D u_that_y;
+uniform sampler2D u_that_z;
+`,
+	    vec3: `
+uniform sampler2D u_that_xyz;
+`,
+},
+
+	breedPrologue: {
+	    "2": `#version 300 es
+precision highp float;
+layout (location = 0) in vec2 a_index;
+layout (location = 1) in vec2 b_index;
+uniform vec2 u_resolution;
+uniform vec2 u_half;
+`},
+	
+	    "3": `#version 300 es
+precision highp float;
+layout (location = 0) in vec2 a_index;
+layout (location = 1) in vec2 b_index;
+uniform vec3 u_resolution;
+uniform vec2 u_half;
+`};
+	
+
+    
+
     var shaders = {
         "drawBreed.vert":
         `#version 300 es
@@ -929,7 +968,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             });
 
             table.uniformTable.keysAndValuesDo((key, entry) => {
-                var uni = table.uniform(entry);
+                var uni = table.uniform(entry[1], entry[2]);
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
@@ -1041,7 +1080,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             });
 
             table.uniformTable.keysAndValuesDo((key, entry) => {
-                var uni = table.uniform(entry);
+                var uni = table.uniform(entry[1], entry[2]);
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
@@ -3155,13 +3194,54 @@ Shadama {
             }
         }
 
+	s.addAttribute(
+	    "topLevelName",
+	    {
+                ProgramDecl(_p, s) {
+                    return s.sourceString.slice(1, s.sourceString.length - 1);
+                },
+
+                Breed(_b, n, _o, fs, _c) {
+		    return n.sourceString;
+		},
+
+                Patch(_p, n, _o, fs, _c) {
+		    return n.sourceString;
+		},
+
+                Event(_e, n) {
+		    return n.sourceString;
+		},
+
+                On(_o, t, _a, n) {
+		    var trigger = t.trigger();
+                    return "_trigger" + trigger.toString();
+		},
+
+                Data(_d, n, _o, s1, _a, s2, _c) {  // synonym for event?
+                    return n.sourceString;
+		},		    
+
+                Method(_d, n, _o, ns, _c, b) {
+                    return n.sourceString;
+		},
+
+                Helper(_d, n, _o, ns, _c, b) {
+                    return n.sourceString;
+		},
+
+                Static(_s, n, _o, ns, _c, b) {
+                    return n.sourceString;
+		}});
+
+
         s.addOperation(
             "symbols(entry)",
             {
                 TopLevel(p, ds) {
                     var table = {};
 		    var entry;
-                    addDefaults(table);
+                    addDefaultGlobals(table);
                     if (p.children.length > 0) {
 			// program name
 			entry = new Entry();
@@ -3175,40 +3255,41 @@ Shadama {
                         table[name] = entry;
                     }
                     //processHelper(table);
-                    return result;
+                    return table;
                 },
 
                 ProgramDecl(_p, s) {
                     var entry = this.args.entry;
 		    entry.setEntryType("_programName");
-		    return s.sourceString.slice(1, s.sourceString.length - 1);
+		    return this.topLevelName;
                 },
 
                 Breed(_b, n, _o, fs, _c) {
                     var entry = this.args.entry;
 		    entry.setEntryType("breed");
 		    fs.symbols(entry);
-                    return n.sourceString;
+                    return this.topLevelName;
                 },
 
                 Patch(_p, n, _o, fs, _c) {
                     var entry = this.args.entry;
 		    entry.setEntryType("patch");
 		    fs.symbols(entry);
-                    return n.sourceString;
+                    return this.topLevelName;
                 },
 
                 Event(_e, n) {
                     var entry = this.args.entry;
 		    entry.setEntryType("event");
-                    return n.sourceString;
+                    return this.topLevelName;
                 },
 
                 On(_o, t, _a, n) {
                     var entry = this.args.entry;
+		    var trigger = t.trigger();
 		    entry.setEntryType("trigger");
 		    entry.setInfo(t.symbols(entry));
-                    return "_trigger" + trigger.toString();
+                    return this.topLevelName;
                 },
 
                 Data(_d, n, _o, s1, _a, s2, _c) {  // synonym for event?
@@ -3217,7 +3298,7 @@ Shadama {
                     var realS1 = s1.children[1].sourceString;
                     var realS2 = s2.children[1].sourceString;
 		    entry.setInfo([realS1, realS2]);
-                    return {[n.sourceString]: entry};
+                    return this.topLevelName;
                 },
 
                 Method(_d, n, _o, ns, _c, b) {
@@ -3225,7 +3306,7 @@ Shadama {
                     entry.setEntryType("method");
                     ns.symbols(entry);
                     b.symbols(entry);
-                    return n.sourceString;
+                    return this.topLevelName;
                 },
 
                 Helper(_d, n, _o, ns, _c, b) {
@@ -3234,7 +3315,7 @@ Shadama {
 		    var type = n.type();
                     ns.symbols(entry);
                     b.symbols(entry);
-                    return n.sourceString;
+                    return this.topLevelName;
                 },
 
                 Static(_s, n, _o, ns, _c, b) {
@@ -3242,7 +3323,7 @@ Shadama {
                     entry.setEntryType("static");
                     ns.symbols(entry);
                     b.symbols(entry);
-                    return n.sourceString;
+                    return this.topLevelName;
                 },
 
                 Formals_list(h, _c, r) {
@@ -3363,6 +3444,13 @@ Shadama {
 	s.addOperation(
 	    "type(entry)",
 	    {
+                TopLevel(p, ds) {
+		    var table = this.args.entry; // actuall the table
+                    for (var i = 0; i< ds.children.length; i++) {
+                        ds.children[i].type(table[ds.children[i].topLevelName]);
+                    }
+		},
+
 		_nonterminal(children) {
                     var entry = this.args.entry;
 		    var type = null;
@@ -3377,14 +3465,17 @@ Shadama {
 
                 Method(_d, n, _o, ns, _c, b) {
 		    var entry = this.args.entry;
+		    entry.setPositionType("vec2");
                     b.type(entry);
                     ns.type(entry);
+		    entry.process();
                 },
 
                 Helper(_d, n, _o, ns, _c, b) {
 		    var entry = this.args.entry;
                     ns.type(entry);
                     b.type(entry);
+		    entry.process();
 		},
 
                 Static(_s, n, _o, ns, _c, b) {
@@ -3497,6 +3588,421 @@ Shadama {
                 number(s) {return "number"},
                 _terminal() {return null},
 	    });
+
+			
+
+        s.addOperation(
+            "compile(table)",
+            {
+                TopLevel(p, ds) {
+                    var table = this.args.table;
+                    var result = {};
+                    for (var i = 0; i < ds.children.length; i++) {
+                        var child = ds.children[i];
+                        result[child.topLevelName] = child.compile(table);
+                    }
+                    return result;
+                },
+
+                Breed(_b, n, _o, fs, _c) {
+                    var table = this.args.table;
+		    var entry = table[this.topLevelName];
+                    return ["updateBreed", n.sourceString, fs.properties(entry)];
+                },
+
+                Patch(_p, n, _o, fs, _c) {
+                    var table = this.args.table;
+		    var entry = table[this.topLevelName];
+                    return ["updatePatch", n.sourceString, fs.properties(entry)];
+                },
+
+                Event(_e, n) {
+                    var table = this.args.table;
+		    var entry = table[this.topLevelName];
+                    return entry.info;
+                },
+
+                On(_o, t, _a, k) {
+                    var table = this.args.table;
+		    var entry = table[this.topLevelName];
+                    return entry.info;
+                },
+
+                Data(_d, i, _o, s1, _a, s2, _c) {
+                    var table = this.args.table;
+		    var entry = table[this.topLevelName];
+                    return entry.info;
+                },
+
+                Method(_d, n, _o, ns, _c, b) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    var vert = new CodeStream();
+                    var frag = new CodeStream();
+
+                    return this.glsl_method(entry, vert, frag);
+                },
+
+                Helper(_d, n, _o, ns, _c, b) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    var vert = new CodeStream();
+                    var frag = new CodeStream();
+
+                    return this.glsl_helper(entry, vert, frag);
+                },
+
+                Static(_d, n, _o, ns, _c, b) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    var js = new CodeStream();
+                    return this.static(table, js);
+                }
+	    });
+
+	s.addOperation(
+	    "glsl_method(entry, vert, frag)",
+	    {
+                Method(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+
+		    var prologue = fragments.breedPrologue["2"];
+
+		    if (!entry.forBreed || entry.hasPatchInput) {
+			prologue = prologue + fragments.patchPrologue.vec2;
+		    }
+                    vert.push(prologue);
+
+                    entry.uniforms().forEach(elem => {
+                        vert.push(elem);
+                        vert.cr();
+                    });
+
+                    entry.paramUniforms().forEach(elem => {
+                        vert.push(elem);
+                        vert.cr();
+                    });
+
+                    entry.vertVaryings().forEach(elem => {
+                        vert.push(elem);
+                        vert.cr();
+                    });
+
+                    vert.crIfNeeded();
+
+//                    entry.primitivesAndHelpers().forEach((n) => {
+//                        vert.push(n);
+//                    });
+
+                    vert.push("void main()");
+
+                    // fragment head
+
+                    frag.push("#version 300 es\n");
+                    frag.push("precision highp float;\n");
+
+                    entry.fragVaryings().forEach((elem) =>{
+                        frag.push(elem);
+                        frag.cr();
+                    });
+
+                    entry.outs().forEach((elem) => {
+                        frag.push(elem);
+                        frag.cr();
+                    });
+
+                    frag.crIfNeeded();
+                    frag.push("void main()");
+
+                    b.glsl_inner(entry, vert, frag);
+
+                    vert.crIfNeeded();
+
+                    frag.pushWithSpace("{");
+                    frag.cr();
+
+                    frag.addTab();
+                    entry.fragOut().forEach((line) => {
+                        frag.tab();
+                        frag.push(line);
+                        frag.cr();
+                    });
+                    frag.decTab();
+                    frag.crIfNeeded();
+                    frag.push("}");
+                    frag.cr();
+
+                    return [entry, vert.contents(), frag.contents(), ["updateScript", n.sourceString]];
+                }
+            });
+
+	s.addOperation(
+	    "glsl_inner(entry, vert, frag)",
+	    {
+                Block(_o, ss, _c) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+
+                    vert.pushWithSpace("{");
+                    vert.cr();
+                    vert.addTab();
+                    ss.glsl_inner(entry, vert, frag);
+                    vert.decTab();
+                    vert.tab();
+                    vert.push("}");
+                },
+
+                StatementList(ss) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    for (var i = 0; i < ss.children.length; i++) {
+                        vert.tab();
+                        ss.children[i].glsl_inner(entry, vert, frag);
+                    }
+                },
+
+                Statement(e) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    e.glsl_inner(entry, vert, frag);
+                    if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
+                        vert.push(";");
+                        vert.cr();
+                    }
+                    if (e.ctorName == "IfStatement") {
+                        vert.cr();
+                    }
+                },
+
+                IfStatement(_i, _o, c, _c, t, _e, optF) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    vert.pushWithSpace("if");
+                    vert.pushWithSpace("(");
+                    c.glsl_inner(entry, vert, frag);
+                    vert.push(")");
+                    t.glsl_inner(entry, vert, frag);
+                    if (optF.children.length === 0) { return;}
+                    vert.pushWithSpace("else");
+                    optF.glsl_inner(entry, vert, frag);
+                },
+
+                AssignmentStatement(l, _a, e, _) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    l.glsl_inner(entry, vert, frag);
+                    vert.push(" = ");
+                    e.glsl_inner(entry, vert, frag);
+                },
+
+                VariableStatement(_v, d, _s) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    d.glsl_inner(entry, vert, frag);
+                },
+
+                VariableDeclaration(n, i) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    vert.push(entry.getType("var", null, n.sourceString));
+                    vert.pushWithSpace(n.sourceString);
+                    if (i.children.length !== 0) {
+                        vert.push(" = ");
+                        i.glsl(entry, vert, frag);
+                    }
+                },
+
+                Initialiser(_a, e) {
+                    e.glsl(this.args.entry, this.args.entry, this.args.entry);
+                },
+
+                LeftHandSideExpression_field(n, _p, f) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    vert.push(entry.varying(n.sourceString, f.sourceString));
+                },
+
+                ExpressionStatement(e ,_s) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    e.glsl_inner(entry, vert, frag);
+                },
+
+                Expression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                LogicalExpression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                LogicalExpression_and(l, _, r) {
+                    transBinOp(l, r, " && ", this.args);
+                },
+
+                LogicalExpression_or(l, _, r) {
+                    transBinOp(l, r, " || ", this.args);
+                },
+
+                RelationalExpression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                RelationalExpression_le(l, _, r) {
+                    transBinOp(l, r, " <= ", this.args);
+                },
+
+                RelationalExpression_ge(l, _, r) {
+                    transBinOp(l, r, " >= ", this.args);
+                },
+
+                RelationalExpression_lt(l, _, r) {
+                    transBinOp(l, r, " < ", this.args);
+                },
+
+                RelationalExpression_gt(l, _, r) {
+                    transBinOp(l, r, " > ", this.args);
+                },
+
+                RelationalExpression_equal(l, _, r) {
+                    transBinOp(l, r, " == ", this.args);
+                },
+
+                RelationalExpression_notEqual(l, _, r) {
+                    transBinOp(l, r, " != ", this.args);
+                },
+
+                AddExpression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                AddExpression_plus(l, _, r) {
+                    transBinOp(l, r, " + ", this.args);
+                },
+
+                AddExpression_minus(l, _, r) {
+                    transBinOp(l, r, " - ", this.args);
+                },
+
+                MulExpression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                MulExpression_times(l, _, r) {
+                    transBinOp(l, r, " * ", this.args);
+                },
+
+                MulExpression_divide(l, _, r) {
+                    transBinOp(l, r, " / ", this.args);
+                },
+
+                MulExpression_mod(l, _, r) {
+                    transBinOp(l, r, " % ", this.args);
+                },
+
+                UnaryExpression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                UnaryExpression_plus(_p, e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                UnaryExpression_minus(_p, e) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    vert.pushWithSpace("-");
+                    e.glsl_inner(entry, vert, frag);
+                },
+
+                UnaryExpression_not(_p, e) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    vert.pushWithSpace("!");
+                    e.glsl_inner(entry, vert, frag);
+                },
+
+                PrimExpression(e) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                PrimExpression_paren(_o, e, _c) {
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
+                },
+
+                PrimExpression_number(e) {
+                    var vert = this.args.vert;
+                    var ind = e.sourceString.indexOf(".");
+                    if (ind < 0) {
+                        vert.push(e.sourceString + ".0");
+                    } else {
+                        vert.push(e.sourceString);
+                    }
+                },
+
+                PrimExpression_field(n, _p, f, optType) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+
+                    if (entry.isBuiltin(n.sourceString)) {
+                        vert.push(n.sourceString + "." + f.sourceString);
+                    } else {
+			var type = entry.getType("propIn", n.sourceString, f.sourceString);
+			var suffix = entry.swizzle(type);
+                        if (n.sourceString === "this") {
+                            vert.push("texelFetch(" +
+                                      entry.uniform(n.sourceString, f.sourceString) +
+                                      ", ivec2(a_index), 0)." + suffix);
+                        } else {
+                            vert.push("texelFetch(" +
+                                      entry.uniform(n.sourceString, f.sourceString) +
+                                      ", ivec2(_pos), 0)." + suffix);
+                        }
+                    }
+                },
+
+                PrimExpression_variable(n) {
+                    this.args.vert.push(n.sourceString);
+                },
+
+                PrimitiveCall(n, _o, as, _c) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    vert.push(n.sourceString);
+                    vert.push("(");
+                    as.glsl_inner(entry, vert, frag);
+                    vert.push(")");
+                },
+
+                Actuals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+                    h.glsl_inner(entry, vert, frag);
+                    for (var i = 0; i < r.children.length; i++) {
+                        vert.push(", ");
+                        r.children[i].glsl_inner(entry, vert, frag);
+                    }
+                },
+
+                ident(n, rest) {
+                    this.args.vert.push(this.sourceString);
+                }
+            });
 
     }
 
@@ -3734,6 +4240,10 @@ Shadama {
 
 	}
 
+	setPositionType(type) {
+	    this.positionType = type;
+	}
+
         beTrigger(trigger, action) {
             // trigger: name | ["and", trigger, triger] | [or trigger, trigger]
             // action ["start"|"step"|"stop", static name]
@@ -3749,7 +4259,45 @@ Shadama {
         }
 
         process() {
-            // maybe a hack: look for outs that are not ins and add them to ins.  Those are use
+	    // When a method takes a patch, it'd have to index them with the position of turtles
+	    // To fill them in, we
+            if (this.otherOut.size() > 0 || this.otherIn.size() > 0) {
+		var addition;
+		if (dimension == 3) {
+		    if (this.positionType == "number") {
+			addition = ["u_that_x", "u_that_y", "u_that_z", "v_step", "v_resolution"];
+		    } else if (this.positionType == "vec3") {
+			addition = ["u_that_xyz", "v_step", "v_resolution"];
+		    }
+		} else if (dimension == 2) {
+		    if (this.positionType == "number") {
+			addition = ["u_that_x", "u_that_y"];
+		    } else if (this.positionType == "vec2") {
+			addition = ["u_that_xy"];
+		    }
+		}
+		if (addition) {
+                    this.defaultUniforms = this.defaultUniforms.concat(addition);
+		} else {
+		    throw "wrong";
+		}
+	    }
+
+            if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
+                var error = new Error("semantic error");
+                error.reason = "shadama cannot write into this and others from the same script.";
+                error.expected = "Make sure " + this.methodName + " only writes into either properties of 'this', or properties of method arguments";
+                error.pos = this.methodPos;
+                error.src = null;
+                throw error;
+            } else {
+                this.forBreed = this.thisOut.size() > 0;
+            }
+
+
+            // Maybe a hack: look for outs that are not ins and add them to ins.
+	    // For cases when a method does not output a value due to an if statement,
+	    // It'd have to read values from the original.
             this.thisOut.keysAndValuesDo((key, entry) => {
                 var newEntry = ["propIn", "this", entry[2]];
                 var newK = newEntry.join(".");
@@ -3769,17 +4317,6 @@ Shadama {
             }
             if (this.otherIn.size() > 0) {
                 this.hasPatchInput = true;
-            }
-
-            if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
-                var error = new Error("semantic error");
-                error.reason = "shadama cannot write into this and others from the same script.";
-                error.expected = "Make sure " + this.methodName + " only writes into either properties of 'this', or properties of method arguments";
-                error.pos = this.methodPos;
-                error.src = null;
-                throw error;
-            } else {
-                this.forBreed = this.thisOut.size() > 0;
             }
 
             if (this.forBreed) {
@@ -3810,16 +4347,6 @@ Shadama {
                 this.param.add(k, entry);
             } else if (tag === "var") {
                 this.local.add(k, entry);
-            }
-
-            if ((this.otherOut.size() > 0 || this.otherIn.size() > 0) &&
-                this.defaultUniforms.indexOf("u_that_x") < 0) {
-                this.defaultUniforms = this.defaultUniforms.concat(["u_that_x", "u_that_y"]);
-                if (dimension == 3) {
-                    if (this.defaultUniforms.indexOf("u_that_z") < 0) {
-                        this.defaultUniforms = this.defaultUniforms.concat(["u_that_z", "v_step", "v_resolution"]);
-                    }
-                }
             }
         }
 
@@ -3859,8 +4386,8 @@ Shadama {
             return result;
         }
 
-        uniform(entry) {
-            var k = ["propIn", entry[1], entry[2]].join(".");
+        uniform(name, field) {
+            var k = ["propIn", name, field].join(".");
             var entry = this.uniformTable.at(k);
             if (!entry) {
                 debugger;
@@ -3868,8 +4395,8 @@ Shadama {
             return ["u", entry[1], entry[2]].join("_");
         }
 
-        varying(entry) {
-            var k = ["propOut", entry[1], entry[2]].join(".");
+        varying(name, field) {
+            var k = ["propOut", name, field].join(".");
             var entry = this.varyingTable.at(k);
             return ["v", entry[1],  entry[2]].join("_");
         }
@@ -3882,7 +4409,7 @@ Shadama {
 
         uniforms() {
             return this.uniformTable.keysAndValuesCollect((key, entry) =>
-                                                          "uniform sampler2D " + this.uniform(entry) + ";");
+                                                          "uniform sampler2D " + this.uniform(entry[1], entry[2]) + ";");
         }
 
         paramUniforms() {
@@ -3895,19 +4422,19 @@ Shadama {
 
         vertVaryings() {
             return this.varyingTable.keysAndValuesCollect((key, entry) =>
-                                                          "out float " + this.varying(entry) + ";");
+                                                          "out " + entry[3] + " " + this.varying(entry[1], entry[2]) + ";");
         }
 
         fragVaryings() {
             return this.varyingTable.keysAndValuesCollect((key, entry) =>
-                                                          "in float " + this.varying(entry) + ";");
+                                                          "in " + entry[3] + " " + this.varying(entry[1], entry[2]) + ";");
         }
 
         uniformDefaults() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
                 var u_entry = ["propIn", entry[1], entry[2]];
                 var ind = entry[1] === "this" ? `ivec2(a_index)` : `ivec2(_pos)`;
-                return `${this.varying(entry)} = texelFetch(${this.uniform(u_entry)}, ${ind}, 0).r;`;
+                return `${this.varying(entry[1], entry[2])} = texelFetch(${this.uniform(entry[1], entry[2])}, ${ind}, 0).r;`;
             })
         }
 
@@ -3915,15 +4442,15 @@ Shadama {
             var i = 0;
             var result = [];
             this.varyingTable.keysAndValuesDo((key, entry) => {
-                result.push("layout (location = " + i + ") out float " + this.out(entry) + ";");
+                result.push("layout (location = " + i + ") out " + entry[3] + " " + this.out(entry) + ";");
                 i++;
             })
             return result;
         }
 
-        fragColors() {
+        fragOut() {
             return this.varyingTable.keysAndValuesCollect((key, entry) =>
-                                                          this.out(entry) + " = " + this.varying(entry) + ";");
+                                                          this.out(entry) + " = " + this.varying(entry[1], entry[2]) + ";");
         }
 
         isBuiltin(n) {
@@ -3950,6 +4477,19 @@ Shadama {
             }
             return [ins, shortParams, outs];
         }
+
+	swizzle(type) {
+	    switch (type) {
+		case "number":
+		return "r";
+		case "vec2":
+		return "rg";
+		case "vec3":
+		return "rgb";
+		case "vec4":
+		return "rgba" // ?
+	    }
+	}
 
         rawTable() {
             var result = {};
@@ -4170,7 +4710,7 @@ highp float random(float seed) {
             grammarUnitTests();
             symbolsUnitTests();
 	    typeUnitTests();
-            translateTests();
+            translateUnitTests();
 	    return;
         }
 
