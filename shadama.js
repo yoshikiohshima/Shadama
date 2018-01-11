@@ -1239,7 +1239,6 @@ uniform vec2 u_half;
         this.programName = null;
 
         this.readPixelArray = null;
-        this.readPixelCallback = null;
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -1250,7 +1249,7 @@ uniform vec2 u_half;
         return eval(source);
     }
 
-    Shadama.prototype.loadShadama = function(id, source) {
+    Shadama.prototype.loadShadama = function(source) {
         var newSetupCode;
         var oldProgramName = this.programName;
         var schemaChange = false;
@@ -1259,11 +1258,6 @@ uniform vec2 u_half;
         this.scripts = {};
         this.triggers = {};
         var newData = [];
-        if (!source) {
-            var scriptElement = document.getElementById(id);
-            if(!scriptElement){return "";}
-            source = scriptElement.text;
-        }
         this.cleanUpEditorState();
         try {
             var result = translate(source, "TopLevel", this.reportError.bind(this));
@@ -1280,9 +1274,13 @@ uniform vec2 u_half;
         this.programName = result["_programName"];
         delete result["_programName"];
 
+	debugger;
+
         for (var k in result) {
-            var entry = result[k];
-            if (entry[0] == "static") { // static function case
+            var item = result[k];
+	    var entry = item[0];
+	    var type = entry.type;
+            if (type == "static") { // static function case
                 var src = entry[2];
                 var js = entry[1];
                 this.statics[k] = this.evalShadama(js);
@@ -1291,36 +1289,40 @@ uniform vec2 u_half;
                 if (k === "setup") {
                     newSetupCode = src;
                 }
-            } else {
-                var js = entry[3];
-                if (js[0] === "updateBreed") {
-                    schemaChange = update(Breed, js[1], js[2], this.env) || schemaChange;
-                } else if (js[0] === "updatePatch") {
-                    schemaChange = update(Patch, js[1], js[2], this.env) || schemaChange;
-                } else if (js[0] === "updateScript") {
-                    var table = entry[0];
-                    var func = dimension == 2 ? programFromTable : programFromTable3;
-                    this.scripts[js[1]] = [ func(table, entry[1], entry[2], js[1]),
-                                      table.insAndParamsAndOuts()];
-                } else if (js[0] === "event") {
-                    this.env[js[1]] = new ShadamaEvent();
-                } else if (js[0] === "trigger") {
-                    this.triggers[k] = new ShadamaTrigger(js[1], js[2]);
-                } else if (js[0] === "data") {
-                    this.env[js[1]] = new ShadamaEvent();
-                    if (js[3] == "image") {
-                        this.env[js[1]] = this.loadImage(js[2]);
-                    } else if (js[3] == "audio") {
-                        this.env[js[1]] = this.loadAudio(js[2]);
-                    } else if (js[3] == "csv") {
-                        this.env[js[1]] = this.loadCSV(js[2]);
-                    }
+            }
 
-                    if (newData.length == 0) {
-                        newData = js[1];
-                    } else {
-                        newData = ["and", js[1], newData];
-                    }
+            if (type === "breed") {
+                schemaChange = update(Breed, js[1], js[2], this.env) || schemaChange;
+	    }
+            if (type === "updatePatch") {
+                schemaChange = update(Patch, js[1], js[2], this.env) || schemaChange;
+	    }
+            if (type == "method") {
+		debugger;
+                var func = dimension == 2 ? programFromTable : programFromTable3;
+                this.scripts[js[1]] = [ func(table, entry[1], entry[2], js[1]),
+                                      table.insAndParamsAndOuts()];
+	    }
+            if (type === "event") {
+                this.env[js[1]] = new ShadamaEvent();
+	    }
+            if (type === "trigger") {
+                this.triggers[k] = new ShadamaTrigger(js[1], js[2]);
+	    }
+	    if (type === "data") {
+                this.env[js[1]] = new ShadamaEvent();
+                if (js[3] == "image") {
+                    this.env[js[1]] = this.loadImage(js[2]);
+                } else if (js[3] == "audio") {
+                    this.env[js[1]] = this.loadAudio(js[2]);
+                } else if (js[3] == "csv") {
+                    this.env[js[1]] = this.loadCSV(js[2]);
+                }
+		
+                if (newData.length == 0) {
+                    newData = js[1];
+                } else {
+                    newData = ["and", js[1], newData];
                 }
             }
         }
@@ -1354,10 +1356,6 @@ uniform vec2 u_half;
 
     function webglTexture() {
         return withThreeJS ? (targetTexture && renderer.properties.get(targetTexture).__webglTexture || null) : null;
-    }
-
-    Shadama.prototype.setReadPixelCallback = function(func) {
-        this.readPixelCallback = func;
     }
 
     Shadama.prototype.makeOnAfterRender = function() {
@@ -3117,58 +3115,58 @@ Shadama {
     var s;
 
     var globalTable; // This is a bad idea but then I don't know how to keep the reference to global.
-    var primitives;
+    var primitives; // {Receiver: {selector: [[name, type], ...]}}
 
     function initPrimitiveTable() {
         var data = [
             ["Display", "clear", []],
-	    ["Breed", "draw", []],
-	    ["Patch", "draw", []],
-	    ["Breed", "render", []],
-	    ["Patch", "render", []],
-	    ["Breed", "fillRandom", [["name", "string"], ["min", "number"], ["max", "number"]]],
-	    ["Breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
-	    ["Breed", "fillRandomDir", [["xyDir", "string"]]],
+	    ["breed", "draw", []],
+	    ["patch", "draw", []],
+	    ["breed", "render", []],
+	    ["patch", "render", []],
+	    ["breed", "fillRandom", [["name", "string"], ["min", "number"], ["max", "number"]]],
+	    ["breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
+	    ["breed", "fillRandomDir", [["xyDir", "string"]]],
 
-	    ["Breed", "fillRandomDir3", [["xDir", "string"], ["yDir", "string"], ["zDir", "string"]]],
-	    ["Breed", "fillRandomDir3", [["xyzDir", "string"]]],
+	    ["breed", "fillRandomDir3", [["xDir", "string"], ["yDir", "string"], ["zDir", "string"]]],
+	    ["breed", "fillRandomDir3", [["xyzDir", "string"]]],
 
-	    ["Breed", "fillSpace", [["xName", "string"],
+	    ["breed", "fillSpace", [["xName", "string"],
 				    ["yName", "string"],
 				    ["x", "number"],
 				    ["y", "number"]]],
-	    ["Breed", "fillSpace", [["xyName", "string"],
+	    ["breed", "fillSpace", [["xyName", "string"],
 				    ["xy", "vec2"]]],
 
-	    ["Breed", "fillCuboid", [["xName", "string"],
+	    ["breed", "fillCuboid", [["xName", "string"],
 				     ["yName", "string"],
 				     ["zName", "string"],
 				     ["x", "number"],
 				     ["y", "number"],
 				     ["z", "number"]]],
-	    ["Breed", "fillCuboid", [["xyzName", "string"],
+	    ["breed", "fillCuboid", [["xyzName", "string"],
 				     "xyz", "vec3"]],
 
-            ["Breed", "fillImage", [["xName", "string"],
+            ["breed", "fillImage", [["xName", "string"],
 				    ["yName", "string"],
 				    ["rName", "string"],
 				    ["gName", "string"],
 				    ["bName", "string"],
 				    ["aName", "string"],
 				    ["imageData", "object"]]],
-	    ["Display", "playSound", ["name", "object"]],
-            ["Display", "loadProgram", [["name", "string"]]],
-            ["Breed", "loadData", ["data", "object"]],
-            ["Breed", "readValues", [["name", "string"],
+	    ["display", "playSound", ["name", "object"]],
+            ["display", "loadProgram", [["name", "string"]]],
+            ["breed", "loadData", ["data", "object"]],
+            ["breed", "readValues", [["name", "string"],
 				     ["x", "number"],
 				     ["y", "number"],
 				     ["w", "number"],
 				     ["h", "number"]]],
-            ["Static", "start", []],
-            ["Static", "stop", []],
-            ["Static", "step", []],
+            ["static", "start", []],
+            ["static", "stop", []],
+            ["static", "step", []]];
 
-	    ["", "sin", [["rad", "number"]]]];
+	
 
         primitives = data;
     }
@@ -3326,7 +3324,7 @@ Shadama {
 		    entry.setEntryType("event");
                     var realS1 = s1.children[1].sourceString;
                     var realS2 = s2.children[1].sourceString;
-		    entry.setInfo([realS1, realS2]);
+		    entry.setInfo([n, realS1, realS2]);
                     return this.topLevelName;
                 },
 
@@ -3474,7 +3472,7 @@ Shadama {
 	    "type(entry)",
 	    {
                 TopLevel(p, ds) {
-		    var table = this.args.entry; // actuall the table
+		    var table = this.args.entry; // actually the table for toplevel
                     for (var i = 0; i< ds.children.length; i++) {
                         ds.children[i].type(table[ds.children[i].topLevelName]);
                     }
@@ -3617,8 +3615,6 @@ Shadama {
                 number(s) {return "number"},
                 _terminal() {return null},
 	    });
-
-			
 
         s.addOperation(
             "compile(table)",
@@ -4076,6 +4072,376 @@ Shadama {
                 }
             });
 
+        s.addOperation(
+            "static(entry, js)",
+            {
+
+                Static(_s, n, _o, fs, _c, b) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+
+                    js.push("(function");
+                    js.pushWithSpace(n.sourceString);
+                    js.push("(");
+                    js.push(""); //fs.static(table, null, null, null));
+                    js.push(") ");
+                    b.static(entry, js, method, false);
+                    js.push(")");
+                    return ["static", js.contents(), this.sourceString];
+                },
+
+                Actuals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var js = new CodeStream();
+
+                    function isOther(i) {
+                        var p = entry.param.at(i);
+                        if (!p) {
+                            var error = new Error("semantic error");
+                            error.reason = `argument count does not match for method ${method}`;
+                            error.expected = `argument count does not match for method ${method}`;
+                            error.pos = h.source.endIdx;
+                            error.src = null;
+                            throw error;
+                        }
+                        var r = realTable.usedAsOther(p[2]);
+                        return r;
+                    };
+                    h.static(table, js, method, isOther(0));
+                    result.push(js.contents());
+                    for (var i = 0; i < r.children.length; i++) {
+                        var c = r.children[i];
+                        var js = new CodeStream();
+                        c.static(table, js, method, isOther(i+1));
+                        result.push(js.contents());
+                    }
+                    return result;
+                },
+
+
+
+                Block(_o, ss, _c) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    js.pushWithSpace("{");
+                    js.cr();
+                    js.addTab();
+                    ss.static(table, js);
+                    js.decTab();
+                    js.tab();
+                    js.push("}");
+                },
+
+                StatementList(ss) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    for (var i = 0; i < ss.children.length; i++) {
+                        js.tab();
+                        ss.children[i].static(entry, js);
+                    }
+                },
+
+                Statement(e) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    e.static(entry, js);
+                    if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
+                        js.push(";");
+                        js.cr();
+                    }
+                    if (e.ctorName == "IfStatement") {
+                        js.cr();
+                    }
+                },
+
+                IfStatement(_i, _o, c, _c, t, _e, optF) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    js.push("if");
+                    js.pushWithSpace("(");
+                    c.static(entry, js);
+                    js.push(")");
+                    t.static(entry, js);
+                    if (optF.children.length === 0) {return;}
+                    js.pushWithSpace("else");
+                    optF.static(entry, js);
+                },
+
+                VariableStatement(_v, d, _s) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    var method = this.args.method;
+                    var isOther = this.args.isOther;
+                    d.static(entry, js);
+                },
+
+                VariableDeclaration(n, i) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    var variable = new Entry("event");
+		    var sym = n.symbols(entry);
+                    variable.setInfo(sym[0], null, sym[1]);
+                    entry.global[sym[0]] = variable;
+		    var value;
+                    if (i.children.length !== 0) {
+			value = i.static(entry, js);
+		    } else {
+			value = 'null';
+		    }
+		    js.push(`env.atPut(${n.sourceString}, (${value}));`);
+                },
+
+                AssignmentStatement(l, _a, e, _) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    var left = entry.global[l.sourceString];
+		    check(left && (left.type == "event"),
+			  l.source.endIdx,
+			  `assignment into undeclared static variable or event ${l.sourceString}`);
+		    var val = e.static(entry, js);
+                    js.push(`env.setValue(${l.sourceString}, (${val}));`);
+                },
+
+                Initialiser(_a, e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                ExpressionStatement(e, _s) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                Expression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                LogicalExpression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                LogicalExpression_and(l, _, r) {
+                    staticTransBinOp(l, r, " && ", this.args);
+                },
+
+                LogicalExpression_or(l, _, r) {
+                    staticTransBinOp(l, r, " || ", this.args);
+                },
+
+                RelationalExpression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                RelationalExpression_le(l, _, r) {
+                    staticTransBinOp(l, r, " <= ", this.args);
+                },
+
+                RelationalExpression_ge(l, _, r) {
+                    staticTransBinOp(l, r, " >= ", this.args);
+                },
+
+                RelationalExpression_lt(l, _, r) {
+                    staticTransBinOp(l, r, " < ", this.args);
+                },
+
+                RelationalExpression_gt(l, _, r) {
+                    staticTransBinOp(l, r, " > ", this.args);
+                },
+
+                RelationalExpression_equal(l, _, r) {
+                    staticTransBinOp(l, r, " == ", this.args);
+                },
+
+                RelationalExpression_notEqual(l, _, r) {
+                    staticTransBinOp(l, r, " != ", this.args);
+                },
+
+                AddExpression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                AddExpression_plus(l, _, r) {
+                    staticTransBinOp(l, r, " + ", this.args);
+                },
+
+                AddExpression_minus(l, _, r) {
+                    staticTransBinOp(l, r, " - ", this.args);
+                },
+
+                MulExpression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                MulExpression_times(l, _, r) {
+                    staticTransBinOp(l, r, " * ", this.args);
+                },
+
+                MulExpression_divide(l, _, r) {
+                    staticTransBinOp(l, r, " / ", this.args);
+                },
+
+                MulExpression_mod(l, _, r) {
+                    staticTransBinOp(l, r, " % ", this.args);
+                },
+
+                UnaryExpression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                UnaryExpression_plus(_p, e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                UnaryExpression_minus(_p, e) {
+                    var js = this.args.js;
+                    js.pushWithSpace("-");
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                UnaryExpression_not(_p, e) {
+                    var js = this.args.js;
+                    js.pushWithSpace("!");
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                PrimExpression(e) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                PrimExpression_paren(_o, e, _c) {
+                    e.static(this.args.entry, this.args.js);
+                },
+
+                PrimExpression_string(e) {
+                    var js = this.args.js;
+                    js.push(e.sourceString);
+                },
+
+                PrimExpression_number(e) {
+                    var js = this.args.js;
+                    js.push(e.sourceString);
+                },
+
+                PrimExpression_field(n, _p, f, optT) {
+                    var js = this.args.js;
+                    n.static(this.args.entry, js);
+                    js.push(".");
+                    js.push(f.sourceString);
+                },
+
+                PrimExpression_variable(n) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    js.push("env.at('" + n.sourceString + "').value");
+                },
+
+                PrimitiveCall(n, _o, as, _c) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+                    var prim = n.sourceString;
+                    var math = ["random", // 0 arg
+                                "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh",
+                                "cbrt", "ceil", "cos", "cosh", "exp", "expm1", "floor",
+                                "log", "log1p", "log10", "log2", "round", "sign", "sin",
+                                "sinh", "sqrt", "tan", "tanh", "trunc", // 1 arg
+                                "atan2", "max", "min", "pow" // 2 args
+                               ];
+                    if (math.indexOf(prim) >= 0) {
+                        var actuals = as.static(table, null);
+                        var str = actuals.join(", ");
+                        js.push("Math.");
+                        js.push(prim);
+                        js.push("(");
+                        js.push(str);
+                        js.push(")");
+                    }
+                },
+
+                MethodCall(r, _p, n, _o, as, _c) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+
+		    var rcvr = r.sourceString;
+		    var obj = global[rcvr];
+		    var selector = n.sourceString;
+		    var global = entry.global;
+
+		    check(!obj, 
+			r.source.endIdx,
+			`${rcvr} is not known`);
+
+		    var type = obj.type;
+
+                    var actuals = as.static(table, null);
+		    var formals = entry.param;
+
+		    // Now, if the receiver is not a breed, or even if it is,
+		    // the selector is not a known method in the compilation environment, 
+		    // is compiled to be a primitive.  If the call fails.
+
+		    if (type === "breed") {
+			var method = global[selector];
+			if (method && method.type == "method") {
+
+			    check((actuals.length !== formals.size()),
+				  as.source.endIdx,
+				  `argument count does not match for method ${selector}`);
+
+			    var params = new CodeStream();
+			    var objectsString = new CodeStream();
+
+			    params.addTab();
+			    objectsString.addTab();
+			    for (var i = 0; i < actuals.length; i++) {
+				var actual = actuals[i];
+				var formal = formals.at(i); // ["param", null, name, type]
+				var shortName = formal[2];
+				if (formal[3] == "object") {
+				    objectsString.tab();
+				    objectsString.push(`objects["${shortName}"] = ${actual};\n`);
+				} else {
+				    params.push(`params["${shortName}"] = ${actual};\n`);
+				}
+			    }
+			}
+
+                    var callProgram = `
+(function() {
+    var data = scripts["${selector}"];
+    var func = data[0];
+    var ins = data[1][0]; // [[name, <fieldName>]]
+    var formals = data[1][1];
+    var outs = data[1][2]; //[[object, <fieldName>]]
+    var objects = {};
+    objects.this = env["${rcvr}"].value;
+    ${objectsString.contents()}
+    var params = {};
+    ${params.contents()}
+    func(objects, outs, ins, params);
+})()`;
+			js.push(callProgram);
+			return;
+		    }
+
+		    var primArgs;
+		    if (rcvr === "Display") {
+			primArgs = primitives["Display"][selector];
+		    } else if (type == "breed" || type == "patch" || type == "static") {
+			primArgs = primitives[type][selector];
+		    }
+
+		    check(primArgs,
+			  as.source.endIdx,
+			  `primitive ${selector} for ${rcvr} is not known`);
+
+                    var actuals = as.static_actuals(table, null);
+		    check(actuals.length === primArgs,
+			  as.source.endIdx,
+			  `the argument count for primitive ${selector}`);
+
+                    var str = actuals.join(", ");
+                    js.push(`env["${rcvr}"].value.${method}(${str})`);
+	    }
+
+        });
     }
 
     function check(aBoolean, pos, message) {
@@ -4117,6 +4483,25 @@ Shadama {
         }
     }
 
+    class ShadamaEnv {
+	constructor() {
+	    this.values = {};
+	}
+
+	atPut(key, value) {
+	    this.values[key] = new ShadamaEvent(value);
+	    return value;
+	}
+
+	at(key) {
+	    var val = this.values[key];
+	    if (val !== undefined) {
+		return val.value;
+	    }
+	    return undefined;
+	}
+    }
+
     class ShadamaFunction {
         constructor(name, shadama) {
             this.name = name;
@@ -4137,7 +4522,11 @@ Shadama {
     }
 
     class ShadamaEvent {
-        constructor() {
+        constructor(value) {
+	    if (value !== undefined) {
+		this.setValue(value);
+		return;
+	    }
             this.value = undefined;
             this.ready = false;
         }
@@ -4500,9 +4889,10 @@ Shadama {
 
         uniformDefaults() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
-                var u_entry = ["propIn", entry[1], entry[2]];
                 var ind = entry[1] === "this" ? `ivec2(a_index)` : `ivec2(_pos)`;
-                return `${this.varying(entry[1], entry[2])} = texelFetch(${this.uniform(entry[1], entry[2])}, ${ind}, 0).r;`;
+
+		var swizzle = this.swizzle(entry[3]);
+                return `${this.varying(entry[1], entry[2])} = texelFetch(${this.uniform(entry[1], entry[2])}, ${ind}, 0).${swizzle};`;
             })
         }
 
@@ -4691,8 +5081,10 @@ highp float random(float seed) {
         }
 
         var n = s(match);
-        var symTable = n.symTable(null);
-        return n.glsl(symTable, null, null);
+	var table = n.symbols(null);
+	n.type(table);
+	var result = n.compile(table);
+	return result;
     }
 
     var shadama;

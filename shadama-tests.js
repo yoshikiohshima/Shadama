@@ -28,6 +28,7 @@ function assert(result, expected, str) {
     return a != b;
 }
 
+var shadama;
 var parse;
 var Entry;
 
@@ -47,11 +48,11 @@ function setTestParams(tester) {
 //    FW = FIELD_WIDTH;
 //    FH = FIELD_HEIGHT;
 
+    shadama = tester.shadama;
     parse = tester.parse;
     Entry = tester.Entry;
 
     update = tester.update;
-    translate = tester.translate;
     s = tester.s;
     Breed = tester.Breed;
     Patch = tester.Patch;
@@ -339,22 +340,7 @@ function typeTest(str, prod, sem, expected, entry) {
 }
 
 function translateTest(str) {
-    var match = parse(str, "TopLevel");
-    if (!match.succeeded()) {
-        console.log(str);
-        console.log("did not parse: " + str);
-    };
-
-    var sem = s;
-    var n = sem(match);
-    var table = n.symbols(null);
-
-    n.type(table);
-
-    var result = n.compile(table);
-    debugger;
-    console.log(result.foo[1]);
-    console.log(result.foo[2]);
+    shadama.loadShadama(str);
 }
 
 
