@@ -514,7 +514,18 @@ function typeUnitTests() {
 }
 
 function translateUnitTests() {
-    translateTest("def foo(other) {this.pos = other.pos:vec2}", "TopLevel");
+//    translateTest("def foo(other) {this.pos = other.pos:vec2}", "TopLevel");
+
+    translateTest(`breed Turtle (pos:vec2)
+patch Patch (pos:vec2)
+
+def foo(other) {this.pos = other.pos:vec2}
+static x() {
+  Turtle.foo(Patch);
+}
+
+`, "TopLevel");
+
 
 //    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
 //    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
