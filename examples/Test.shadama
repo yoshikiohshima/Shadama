@@ -6,7 +6,8 @@ def foo(patch) {
 }
 
 def bar(patch) {
-  this.new = patch.pos:vec2 + vec2(2, 2)
+  this.new = patch.pos:vec2 + vec2(2, 3)
+  this.pos = patch.pos:vec2 + vec2(1, 1)
 }
 
 static x() {

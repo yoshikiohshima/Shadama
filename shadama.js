@@ -3900,6 +3900,17 @@ Shadama {
 
             });
 
+        function transBinOp(l, r, op, args) {
+            var entry = args.entry;
+            var vert = args.vert;
+            var frag = args.frag;
+            vert.push("(");
+            l.glsl_inner(entry, vert, frag);
+            vert.push(op);
+            r.glsl_inner(entry, vert, frag);
+            vert.push(")");
+        };
+
         s.addOperation(
             "glsl_inner(entry, vert, frag)",
             {
