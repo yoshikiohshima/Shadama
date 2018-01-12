@@ -496,9 +496,9 @@ function symbolsUnitTests() {
 function typeUnitTests() {
     typeTest("def foo(other) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
-        "propOut.this.x": ["propOut" ,"this", "x", "number"],
+        "propOut.this.x": ["propOut" ,"this", "x", "float"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
-        "propIn.this.x": ["propIn" ,"this", "x", "number"],
+        "propIn.this.x": ["propIn" ,"this", "x", "float"],
         "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
 	"param.null.other": ["param", null, "other", "object"]});
 
@@ -506,10 +506,17 @@ function typeUnitTests() {
     typeTest("def foo(other) {this.x = 3; this.y = other.x:vec2 + vec2(2, 3);}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
-        "propOut.this.x": ["propOut" ,"this", "x", "number"],
-        "propIn.this.x": ["propIn" ,"this", "x", "number"],
+        "propOut.this.x": ["propOut" ,"this", "x", "float"],
+        "propIn.this.x": ["propIn" ,"this", "x", "float"],
         "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
 	"param.null.other": ["param", null, "other", "object"]});
+
+    typeTest("def foo(other) {other.x = this.x:vec2;}", "Method", s, {
+        "propOut.other.x": ["propOut", "other", "x", "vec2"],
+        "propIn.other.x": ["propIn" ,"other", "x", "vec2"],
+        "propIn.this.x": ["propIn" ,"this", "x", "vec2"],
+	"param.null.other": ["param", null, "other", "object"]});
+
 }
 
 function translateUnitTests() {

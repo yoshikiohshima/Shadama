@@ -89,7 +89,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
     var fragments = {
         patchInput: {
-            number2: `
+            float2: `
   float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
   float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
   vec2 _pos = vec2(_x, _y);
@@ -118,14 +118,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
 
         patchPrologue: {
-            number2: `
+            float2: `
 uniform sampler2D u_that_x;
 uniform sampler2D u_that_y;
 `,
             vec2: `
 uniform sampler2D u_that_xy;
 `,
-            number3: `
+            float3: `
 uniform sampler2D u_that_x;
 uniform sampler2D u_that_y;
 uniform sampler2D u_that_z;
@@ -884,9 +884,9 @@ uniform vec2 u_half;
             gl.deleteTexture(obj[N + name]);
         }
 
-        obj.own[name] = name;
+        obj.own[name] = [name, type];
 
-        if (type == "number") {
+        if (type == "float") {
             var ary = optData || new Float32Array(width * height);
             var format = gl.R32F;
         } else if (type == "vec2") {
@@ -947,32 +947,44 @@ uniform vec2 u_half;
 
         var oldOwn = obj.own;
         var toBeDeleted = [];  // [<str>]
-        var toBeCreated = [];  // [<str>]
+        var toBeCreated = [];  // [[<str>, type]]
         var newOwn = {};
 
         // common case: when the existing own and fields are the same
         for (var i = 0; i < fields.length; i++) {
-            var k = fields[i];
-            newOwn[k] = k;
+            var field = fields[i];
+	    var k = field[2];
+	    var type = field[3];
+            newOwn[k] = [k, type];
         }
         if (stringify(newOwn) === stringify(oldOwn)) {
             return false;
         }
 
+	function find(list, pair) {
+	    for (var i = 0; i < list.length; i++) {
+		if (list[i][0] === pair[0] && list[i][1] === pair[1]) {
+		    return i;
+		}
+	    }
+	    return -1;
+	}
+
         // other case: get things into toBeDeleted and toBeCreated, and toBeMoved
         for (var k in oldOwn) {
-            if (fields.indexOf(k) < 0) {
+            if (find(fields, oldOwn[k]) < 0) {
                 toBeDeleted.push(k)
             }
         }
         for (var i = 0; i < fields.length; i++) {
-            var k = fields[i];
+            var k = fields[i][2];
+	    var type = fields[i][3];
             if (!oldOwn[k]) {
-                toBeCreated.push(k);
+                toBeCreated.push([k, type]);
             }
         }
 
-        toBeCreated.forEach((k) => updateOwnVariable(obj, k));
+        toBeCreated.forEach((pair) => updateOwnVariable(obj, pair[0], pair[1]));
         toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
         return true;
     }
@@ -1015,8 +1027,6 @@ uniform vec2 u_half;
                 // params: {shortName: value}
             if (debugName === "x") {
             }
-                debugger;
-
                 var object = objects["this"];
 
 		var targetTypes = [];
@@ -1437,6 +1447,7 @@ uniform vec2 u_half;
         gl.bindVertexArray(prog.vao);
 
         var tex = object[name];
+	var type = object.own[name][1];
 
         state.activeTexture(gl.TEXTURE0);
         state.bindTexture(gl.TEXTURE_2D, tex);
@@ -1461,13 +1472,28 @@ uniform vec2 u_half;
         gl.flush();
 
         debugArray = new Float32Array(width * height * 4);
-        debugArray1 = new Float32Array(width * height);
+	var scale;
+	switch(type) {
+	    case "float":
+	    scale = 1;	    break;
+	    case "vec2":
+	    scale = 2;	    break;
+	    case "vec3":
+	    scale = 3;	    break;
+	    case "vec4":
+	    scale = 4;	    break;
+	}
+
+        debugArray1 = new Float32Array(width * height * scale);
         debugArray2 = new Uint8ClampedArray(width * height * 4);
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray, 0);
 
         for (var i = 0; i < width * height; i++) {
-            debugArray1[i] = debugArray[i * 4 + 0];
-        }
+	    var ind = i * scale;
+	    for (var j = 0; j < scale; j++) {
+		debugArray1[ind + j] = debugArray[i * 4 + j];
+	    }
+	}
 
         for (var i = 0; i < width * height; i++) {
             debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
@@ -2187,20 +2213,57 @@ uniform vec2 u_half;
             updateOwnVariable(this, zName, z);
         }
 
-        fillSpace(xName, yName, xDim, yDim) {
-            this.setCount(xDim * yDim);
-            var x = new Float32Array(T * T);
-            var y = new Float32Array(T * T);
+        fillSpace(a1, a2, a3, a4) {
+	    //xName, yName, xDim, yDim
+	    var xName, yName, xDim, yDim;
+	    var type;
+	    if (typeof a1 == "string" && 
+		typeof a2 == "string") {
+		xName = a1;
+		yName = a2;
+		type = "float";
+		if (typeof a3 == "object" && typeof a4 != "object") {
+		    xDim = a3.x;
+		    yDim = a3.y;
+		} else if (typeof a3 == "float" && typeof a4 == "float") {
+		    xDim = a3;
+		    yDim = a4;
+		} else if (typeof a3 == "object" && typeof a4 == "object") {
+		    xDim = a3.x;
+		    yDim = a4.x;
+		}
+	    } else if (typeof a1 == "string" && typeof a2 == "object") {
+		xName = a1;
+		xDim = a2.x;
+		yDim = a2.y;
+		type = "vec2";
+	    }
 
-            for (var j = 0; j < yDim; j++) {
-                for (var i = 0; i < xDim; i++) {
-                    var ind = xDim * j + i;
-                    x[ind] = i;
-                    y[ind] = j;
-                }
-            }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
+            this.setCount(xDim * yDim);
+	    if (type == "float") {
+		var x = new Float32Array(T * T);
+		var y = new Float32Array(T * T);
+
+		for (var j = 0; j < yDim; j++) {
+                    for (var i = 0; i < xDim; i++) {
+			var ind = xDim * j + i;
+			x[ind] = i;
+			y[ind] = j;
+                    }
+		}
+		updateOwnVariable(this, xName, "float", x);
+		updateOwnVariable(this, yName, "float", y);
+	    } else {
+		var xy = new Float32Array(T * T * 2);
+		for (var j = 0; j < yDim; j++) {
+                    for (var i = 0; i < xDim; i++) {
+			var ind = (xDim * j + i) * 2;
+			xy[ind] = i;
+			xy[ind+1] = j;
+                    }
+		}
+		updateOwnVariable(this, xName, "vec2", xy);
+	    }
         }
 
         fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
@@ -2392,7 +2455,7 @@ uniform vec2 u_half;
 
             var maybeD = breed["d"];
             if (maybeD !== undefined) {
-                if (typeof maybeD == "number") {
+                if (typeof maybeD == "float") {
                     gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
                     gl.uniform1f(prog.uniLocations["u_dotSize"], maybeD);
                     gl.uniform1i(prog.uniLocations["u_d"], 0);
@@ -2541,11 +2604,13 @@ uniform vec2 u_half;
 
         setCount(n) {
             var oldCount = this.count;
+	    if (typeof n != "number") { //vec
+		n = n.x;
+	    }
             if (n < 0 || !n) {
                 n = 0;
             }
             this.count = n;
-            //
         }
     }
 
@@ -3125,7 +3190,7 @@ Shadama {
     var s;
 
     var globalTable; // This is a bad idea but then I don't know how to keep the reference to global.
-    var primitives; // {Receiver: {selector: [[name, type], ...]}}
+    var primitives; // {Receiver: {selector: [[[name, type], ...]]}}
 
     function initPrimitiveTable() {
         var data = [
@@ -3134,8 +3199,8 @@ Shadama {
             ["patch", "draw", []],
             ["breed", "render", []],
             ["patch", "render", []],
-	    ["breed", "setCount", [["count", "number"]]],
-            ["breed", "fillRandom", [["name", "string"], ["min", "number"], ["max", "number"]]],
+	    ["breed", "setCount", [["count", "float"]]],
+            ["breed", "fillRandom", [["name", "string"], ["min", "float"], ["max", "float"]]],
             ["breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
             ["breed", "fillRandomDir", [["xyDir", "string"]]],
 
@@ -3144,17 +3209,17 @@ Shadama {
 
             ["breed", "fillSpace", [["xName", "string"],
                                     ["yName", "string"],
-                                    ["x", "number"],
-                                    ["y", "number"]]],
+                                    ["x", "float"],
+                                    ["y", "float"]]],
             ["breed", "fillSpace", [["xyName", "string"],
                                     ["xy", "vec2"]]],
 
             ["breed", "fillCuboid", [["xName", "string"],
                                      ["yName", "string"],
                                      ["zName", "string"],
-                                     ["x", "number"],
-                                     ["y", "number"],
-                                     ["z", "number"]]],
+                                     ["x", "float"],
+                                     ["y", "float"],
+                                     ["z", "float"]]],
             ["breed", "fillCuboid", [["xyzName", "string"],
                                      "xyz", "vec3"]],
 
@@ -3169,10 +3234,10 @@ Shadama {
             ["display", "loadProgram", [["name", "string"]]],
             ["breed", "loadData", ["data", "object"]],
             ["breed", "readValues", [["name", "string"],
-                                     ["x", "number"],
-                                     ["y", "number"],
-                                     ["w", "number"],
-                                     ["h", "number"]]],
+                                     ["x", "float"],
+                                     ["y", "float"],
+                                     ["w", "float"],
+                                     ["h", "float"]]],
             ["static", "start", []],
             ["static", "stop", []],
             ["static", "step", []]];
@@ -3188,7 +3253,10 @@ Shadama {
 	    if (!primitives[obj]) {
 		primitives[obj] = {};
 	    }
-	    primitives[obj][sel] = args;
+	    if (!primitives[obj][sel]) {
+		primitives[obj][sel] = [];
+	    }
+	    primitives[obj][sel].push(args);
 	}
     }
 
@@ -3551,7 +3619,7 @@ Shadama {
                     if (optI.children.length > 0) {
                         var type = optI.children[0].type(entry);
                         if (nType == null) {
-                            var realType = (type != null) ? type : "number";
+                            var realType = (type != null) ? type : "float";
                             entry.setType("var", null, sym[0], realType);
                         }
                     }
@@ -3587,8 +3655,8 @@ Shadama {
                     var name = n.sourceString;
                     var type = entry.getType("propIn", name, f.sourceString);
                     if (!type) {
-                        entry.setType("propIn", name, f.sourceString, "number");
-                        return "number";
+                        entry.setType("propIn", name, f.sourceString, "float");
+                        return "float";
                     }
                     //if (!type) {console.log("it should have a type by now")};
                     return type;
@@ -3599,8 +3667,8 @@ Shadama {
                     var name = n.sourceString;
                     var type = entry.getType("var", null, name);
                     if (!type) {
-                        entry.setType("var", null, name, "number");
-                        return "number";
+                        entry.setType("var", null, name, "float");
+                        return "float";
                     }
                     //if (!type) {console.log("it should have a type by now")};
                     return type;
@@ -3615,12 +3683,12 @@ Shadama {
                         types = as.children[0].type(entry);
                     }
                     if (name == "sqrt") {
-                        check(types.length === 1 && types[0] == "number", n.source.endIdx, "type error");
-                        return "number";
+                        check(types.length === 1 && types[0] == "float", n.source.endIdx, "type error");
+                        return "float";
                     }
                     else if (name == "vec2") {
                         check((types.length === 1 && types[0] == "vec2") ||
-                              (types.length === 2 && types[0] == "number" &&  types[1] == "number"),
+                              (types.length === 2 && types[0] == "float" &&  types[1] == "float"),
                               n.source.endIdx,
                               "type error");
                         return "vec2";
@@ -3638,7 +3706,7 @@ Shadama {
                 },
 
                 ident(_h, _r) {return null},
-                number(s) {return "number"},
+                number(s) {return "float"},
                 _terminal() {return null},
             });
 
@@ -4098,6 +4166,21 @@ Shadama {
                 }
             });
 
+        function staticTransBinOp(l, r, op, args) {
+            var entry = args.entry;
+            var js = args.js;
+	    
+	    var ops = {"+": "add"};
+
+            js.push("vec." + ops[op] + "(");
+            l.static(entry, js);
+            js.push(", ");
+            r.static(entry, js);
+            js.push(", ");
+            js.push("" + r.source.endIdx);
+            js.push(")");
+        };
+
         s.addOperation(
             "static(entry, js)",
             {
@@ -4131,8 +4214,6 @@ Shadama {
                     }
                     return result;
                 },
-
-
 
                 Block(_o, ss, _c) {
                     var entry = this.args.entry;
@@ -4331,7 +4412,7 @@ Shadama {
 
                 PrimExpression_number(e) {
                     var js = this.args.js;
-                    js.push(e.sourceString);
+                    js.push("new vec(1, " + e.sourceString + ")");
                 },
 
                 PrimExpression_field(n, _p, f, optT) {
@@ -4359,14 +4440,26 @@ Shadama {
                                 "atan2", "max", "min", "pow" // 2 args
                                ];
                     if (math.indexOf(prim) >= 0) {
-                        var actuals = as.static(table, null);
+                        var actuals = as.static(entry, null);
                         var str = actuals.join(", ");
                         js.push("Math.");
                         js.push(prim);
                         js.push("(");
                         js.push(str);
                         js.push(")");
+			return;
                     }
+		    var vec = ["vec2", "vec3", "vec4"];
+		    var ind = vec.indexOf(prim);
+		    if (ind >= 0) {
+                        var actuals = as.static(entry, null);
+                        var str = actuals.join(", ");
+                        js.push("new vec(");
+                        js.push("" + (ind+2));
+                        js.push(", ");
+                        js.push(str);
+                        js.push(")");
+		    }
                 },
 
                 MethodCall(r, _p, n, _o, as, _c) {
@@ -4385,7 +4478,6 @@ Shadama {
 
                     var type = obj.type;
 
-		    debugger;
                     var actuals = as.static(entry, null);
 
                     // Now, if the receiver is not a breed, or even if it is,
@@ -4436,18 +4528,26 @@ Shadama {
 			}
 		    }
 
-                    var primArgs;
+                    var primArgsList;
                     if (rcvr === "Display") {
-                        primArgs = primitives["Display"][selector];
+                        primArgsList = primitives["Display"][selector];
                     } else if (type == "breed" || type == "patch" || type == "static") {
-                        primArgs = primitives[type][selector];
+                        primArgsList = primitives[type][selector];
                     }
 
-                    check(primArgs,
+
+                    check(primArgsList,
                           as.source.endIdx,
                           `primitive ${selector} for ${rcvr} is not known`);
 
-                    check(actuals.length === primArgs.length,
+		    var match = false;
+		    for (var pi = 0; pi < primArgsList.length; pi++) {
+			var primArgs = primArgsList[pi];
+			match |= actuals.length === primArgs.length
+		    }
+
+
+                    check(match,
                           as.source.endIdx,
                           `the argument count for primitive ${selector}`);
 
@@ -4495,6 +4595,73 @@ Shadama {
             resetTrigger(trigger[1], env);
             resetTrigger(trigger[2], env);
         }
+    }
+
+    class vec {
+	constructor(arity, x, y, z, w) {
+	    this.arity = arity; // arity, has to be 1, 2, 3 or 4
+	    if (typeof x === "object") {
+		x = x.x;
+	    }
+	    if (typeof y === "object") {
+		y = y.x;
+	    }
+	    if (typeof z === "object") {
+		z = z.x;
+	    }
+	    if (typeof w === "object") {
+		w = w.x;
+	    }
+
+	    this.x = x | 0;
+	    this.y = y | 0;
+	    this.z = z | 0;
+	    this.w = w | 0;
+	}
+
+	get r() {return this.x;}
+	get g() {return this.y;}
+	get b() {return this.z;}
+	get a() {return this.w;}
+
+	get rg() {return new vec(2, this.x, this.y)}
+	get rb() {return new vec(2, this.x, this.z)}
+	get ra() {return new vec(2, this.x, this.w)}
+
+	get gb() {return new vec(2, this.y, this.z)}
+	get ga() {return new vec(2, this.y, this.w)}
+
+	get ba() {return new vec(2, this.z, this.w)}
+
+	get ba() {return new vec(2, this.z, this.w)}
+
+
+	get rgb() {return new vec(3, this.x, this.y, this.z)}
+	get rga() {return new vec(3, this.x, this.y, this.w)}
+	get rba() {return new vec(3, this.x, this.z, this.w)}
+	get gba() {return new vec(3, this.y, this.z, this.w)}
+
+	get xy() {return new vec(2, this.x, this.y)}
+	get xz() {return new vec(2, this.x, this.z)}
+	get xw() {return new vec(2, this.x, this.w)}
+
+	get yz() {return new vec(2, this.y, this.z)}
+	get yw() {return new vec(2, this.y, this.w)}
+
+	get zw() {return new vec(2, this.z, this.w)}
+
+	get xyz() {return new vec(3, this.x, this.y, this.z)}
+	get xyw() {return new vec(3, this.x, this.y, this.w)}
+	get xzw() {return new vec(3, this.x, this.z, this.w)}
+	get yzw() {return new vec(3, this.y, this.z, this.w)}
+
+    }
+
+    vec.add = function(a, b, pos) {
+	check (a.arity != b.arity,
+	       pos,
+	       "wrong arity");
+	return new vec(this.arity, a.x + b.x, a.y + b.y, a.z = b.z, a.w + b.w);
     }
 
     class ShadamaTexture {
@@ -4754,13 +4921,13 @@ Shadama {
             if (this.otherOut.size() > 0 || this.otherIn.size() > 0) {
                 var addition;
                 if (dimension == 3) {
-                    if (this.positionType == "number") {
+                    if (this.positionType == "float") {
                         addition = ["u_that_x", "u_that_y", "u_that_z", "v_step", "v_resolution"];
                     } else if (this.positionType == "vec3") {
                         addition = ["u_that_xyz", "v_step", "v_resolution"];
                     }
                 } else if (dimension == 2) {
-                    if (this.positionType == "number") {
+                    if (this.positionType == "float") {
                         addition = ["u_that_x", "u_that_y"];
                     } else if (this.positionType == "vec2") {
                         addition = ["u_that_xy"];
@@ -4967,7 +5134,7 @@ Shadama {
 
         swizzle(type) {
             switch (type) {
-                case "number":
+                case "float":
                 return "r";
                 case "vec2":
                 return "rg";

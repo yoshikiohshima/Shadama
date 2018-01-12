@@ -1,0 +1,22 @@
+breed Turtle (pos:vec2, new:vec2)
+patch Patch (pos:vec2)
+
+def foo(patch) {
+    patch.pos = this.pos:vec2
+}
+
+def bar(patch) {
+  this.new = patch.pos:vec2 + vec2(2, 2)
+}
+
+static x() {
+  Turtle.fillSpace("pos", vec2(100, 100))
+}
+
+static y() {
+  Turtle.foo(Patch)
+}
+
+static z() {
+  Turtle.bar(Patch)
+}
