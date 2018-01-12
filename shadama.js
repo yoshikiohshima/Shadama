@@ -757,9 +757,9 @@ uniform vec2 u_half;
         if (format == gl.R32F) {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
         } else if (format == gl.UNSIGNED_BYTE) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, null);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
         }
         state.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -941,7 +941,7 @@ uniform vec2 u_half;
             for (var i = 0; i < fields.length; i++) {
                 updateOwnVariable(obj, fields[i][2], fields[i][3]);
             }
-            env[name] = obj;
+            env.atPut(name, obj);
             return true;
         }
 
@@ -1013,13 +1013,21 @@ uniform vec2 u_half;
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-            if (debugName === "set") {
+            if (debugName === "x") {
             }
                 debugger;
 
                 var object = objects["this"];
 
-                var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
+		var targetTypes = [];
+		var targets = [];
+                outs.forEach(
+		    (triple) => {
+			targets.push(objects[triple[0]][N + triple[1]]);
+			targetTypes.push(triple[2]);
+		    }
+		);
+
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
@@ -1043,24 +1051,32 @@ uniform vec2 u_half;
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
-                    state.activeTexture(gl.TEXTURE0);
-                    state.bindTexture(gl.TEXTURE_2D, object.x);
-                    gl.uniform1i(uniLocations["u_that_x"], 0);
-
-                    state.activeTexture(gl.TEXTURE1);
-                    state.bindTexture(gl.TEXTURE_2D, object.y);
-                    gl.uniform1i(uniLocations["u_that_y"], 1);
-                    offset = 2;
-                }
+		    //object.hasPos
+		    if (true) {
+			state.activeTexture(gl.TEXTURE0);
+			state.bindTexture(gl.TEXTURE_2D, object.pos);
+			gl.uniform1i(uniLocations["u_that_xy"], 0);
+			offset = 1;
+		    } else {
+			state.activeTexture(gl.TEXTURE0);
+			state.bindTexture(gl.TEXTURE_2D, object.x);
+			gl.uniform1i(uniLocations["u_that_x"], 0);
+			
+			state.activeTexture(gl.TEXTURE1);
+			state.bindTexture(gl.TEXTURE_2D, object.y);
+			gl.uniform1i(uniLocations["u_that_y"], 1);
+			offset = 2;
+                    }
+		}
 
                 for (var ind = 0; ind < ins.length; ind++) {
-                    var pair = ins[ind];
+                    var triple = ins[ind];
                     var glIndex = gl.TEXTURE0 + ind + offset;
-                    var k = pair[1]
-                    var val = objects[pair[0]][k];
+                    var k = triple[1];
+                    var val = objects[triple[0]][k];
                     state.activeTexture(glIndex);
                     state.bindTexture(gl.TEXTURE_2D, val);
-                    gl.uniform1i(uniLocations["u" + "_" + pair[0] + "_" + k], ind + offset);
+                    gl.uniform1i(uniLocations["u" + "_" + triple[0] + "_" + k], ind + offset);
                 }
 
                 for (var k in params) {
@@ -1080,9 +1096,9 @@ uniform vec2 u_half;
                 gl.flush();
                 setTargetBuffers(null, null);
                 for (var i = 0; i < outs.length; i++) {
-                    var pair = outs[i];
-                    var o = objects[pair[0]];
-                    var name = pair[1];
+                    var triple = outs[i];
+                    var o = objects[triple[0]];
+                    var name = triple[1];
                     var tmp = o[name];
                     o[name] = o[N + name];
                     o[N + name] = tmp;
@@ -1262,7 +1278,7 @@ uniform vec2 u_half;
         this.triggers = {};
         var newData = [];
         this.cleanUpEditorState();
-        try {
+	try {
             var result = translate(source, "TopLevel", this.reportError.bind(this));
         } catch (e) {
             this.reportError(e);
@@ -1283,9 +1299,8 @@ uniform vec2 u_half;
             var type = entry.type;
             var info = item[3];
             if (type === "static") {
-                debugger;
-                var src = item[3];
-                var js = item[2];
+                var js = item[1];
+                var src = item[2];
                 this.statics[k] = this.evalShadama(js);
                 this.staticsList.push(k);
                 this.env.atPut(k, new ShadamaFunction(k, this));
@@ -1571,7 +1586,7 @@ uniform vec2 u_half;
     Shadama.prototype.updateCode = function() {
         if (!editor) {return;}
         var code = editor.getValue();
-        this.loadShadama(null, code);
+        this.loadShadama(code);
         this.maybeRunner();
         if (!this.programName) {
             this.programName = prompt("Enter the program name:", "My Cool Effect!");
@@ -1945,7 +1960,7 @@ uniform vec2 u_half;
                 this.env.at("Display").clear();
                 console.log("loading: " + name);
                 this.resetSystem();
-                this.loadShadama(null, source);
+                this.loadShadama(source);
                 if (editor) {
                     editor.doc.setValue(source);
                 }
@@ -2100,7 +2115,7 @@ uniform vec2 u_half;
                 if (func) {
                     func(serverCode);
                 } else {
-                    that.shadama.loadShadama(null, serverCode);
+                    that.shadama.loadShadama(serverCode);
                     if (editor) {
                         editor.doc.setValue(serverCode);
                     }
@@ -2132,7 +2147,7 @@ uniform vec2 u_half;
     class Breed {
         constructor(count) {
             this.own = {};
-            this.count = count;
+            this.count = count || 0;
         }
 
         fillRandom(name, min, max) {
@@ -3119,6 +3134,7 @@ Shadama {
             ["patch", "draw", []],
             ["breed", "render", []],
             ["patch", "render", []],
+	    ["breed", "setCount", [["count", "number"]]],
             ["breed", "fillRandom", [["name", "string"], ["min", "number"], ["max", "number"]]],
             ["breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
             ["breed", "fillRandomDir", [["xyDir", "string"]]],
@@ -3161,9 +3177,19 @@ Shadama {
             ["static", "stop", []],
             ["static", "step", []]];
 
-        
+	primitives = {};
 
-        primitives = data;
+        for (var k in data) {
+	    var ary = data[k];
+	    var obj = ary[0];
+	    var sel = ary[1];
+	    var args = ary[2];
+
+	    if (!primitives[obj]) {
+		primitives[obj] = {};
+	    }
+	    primitives[obj][sel] = args;
+	}
     }
 
     function initCompiler() {
@@ -4086,8 +4112,8 @@ Shadama {
                     js.push(""); //fs.static(table, null, null, null));
                     js.push(") ");
                     b.static(entry, js);
-                    js.push(")");
-                    return [entry, "static", js.contents(), this.sourceString];
+		    js.push(")");
+                    return [entry, js.contents(), this.sourceString];
                 },
 
                 Actuals_list(h, _c, r) {
@@ -4318,7 +4344,7 @@ Shadama {
                 PrimExpression_variable(n) {
                     var entry = this.args.entry;
                     var js = this.args.js;
-                    js.push("env.at('" + n.sourceString + "').value");
+                    js.push("env.at('" + n.sourceString + "')");
                 },
 
                 PrimitiveCall(n, _o, as, _c) {
@@ -4359,6 +4385,7 @@ Shadama {
 
                     var type = obj.type;
 
+		    debugger;
                     var actuals = as.static(entry, null);
 
                     // Now, if the receiver is not a breed, or even if it is,
@@ -4390,25 +4417,24 @@ Shadama {
                                     params.push(`params["${shortName}"] = ${actual};\n`);
                                 }
                             }
-                        }
-
                     var callProgram = `
 (function() {
-    var data = scripts["${selector}"];
+    var data = scripts['${selector}'];
     var func = data[0];
     var ins = data[1][0]; // [[name, <fieldName>]]
     var formals = data[1][1];
     var outs = data[1][2]; //[[object, <fieldName>]]
     var objects = {};
-    objects.this = env["${rcvr}"].value;
+    objects.this = env.at('${rcvr}');
     ${objectsString.contents()}
     var params = {};
     ${params.contents()}
     func(objects, outs, ins, params);
 })()`;
-                        js.push(callProgram);
-                        return;
-                    }
+                            js.push(callProgram);
+                            return;
+			}
+		    }
 
                     var primArgs;
                     if (rcvr === "Display") {
@@ -4421,13 +4447,12 @@ Shadama {
                           as.source.endIdx,
                           `primitive ${selector} for ${rcvr} is not known`);
 
-                    var actuals = as.static_actuals(entry, null);
-                    check(actuals.length === primArgs,
+                    check(actuals.length === primArgs.length,
                           as.source.endIdx,
                           `the argument count for primitive ${selector}`);
 
                     var str = actuals.join(", ");
-                    js.push(`env["${rcvr}"].value.${method}(${str})`);
+                    js.push(`env.at('${rcvr}').${selector}(${str})`);
             }
 
         });
@@ -5169,13 +5194,11 @@ highp float random(float seed) {
 
         if (runTests) {
             document.getElementById("bigTitle").innerHTML = "Shadama Tests";
-
             setTestParams(shadama.tester());
             grammarUnitTests();
             symbolsUnitTests();
             typeUnitTests();
             translateUnitTests();
-            return;
         }
 
         if (degaussdemo) {
@@ -5203,7 +5226,7 @@ highp float random(float seed) {
 
         shadama.initEnv(function() {
             var func = function (source) {
-                shadama.loadShadama(null, source);
+                shadama.loadShadama(source);
                 if (editor) {
                     editor.doc.setValue(source);
                 }

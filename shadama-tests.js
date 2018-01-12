@@ -28,7 +28,6 @@ function assert(result, expected, str) {
     return a != b;
 }
 
-var shadama;
 var parse;
 var Entry;
 
