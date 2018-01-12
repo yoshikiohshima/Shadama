@@ -3056,7 +3056,7 @@ Shadama {
     | ReturnStatement
 
   VariableStatement = var VariableDeclaration ";"?
-  VariableDeclaration = TypedVar Initialiser?
+  VariableDeclaration = ident ColonType? Initialiser?
   Initialiser = "=" Expression
 
   ReturnStatement = return Expression ";"?
@@ -3128,14 +3128,12 @@ Shadama {
     = Expression ("," Expression)* -- list
     | empty
 
-  TypedVar
-    = ident ColonType -- explicit
-    | ident           -- implicit
+  TypedVar = ident ColonType
 
   ColonType
     = ":" TypeName
 
-  TypeName = float | vec2 | vec3 | vec4 | mat2 | mat3 | mat4
+  TypeName = float | vec2 | vec3 | vec4 | mat2 | mat3 | mat4 | object
 
   ident
     = letter (alnum | "_")*
@@ -3175,6 +3173,7 @@ Shadama {
   mat2 = "mat2" ~identifierPart
   mat3 = "mat3" ~identifierPart
   mat4 = "mat4" ~identifierPart
+  object = "object" ~identifierPart
 
   arrow = "=>"
 
@@ -3460,13 +3459,18 @@ Shadama {
                     }
                 },
 
-                VariableDeclaration(n, optI) {
+                VariableDeclaration(n, optType, optI) {
                     var entry = this.args.entry;
-                    var sym = n.symbols(entry);
-                    entry.add("var", null, sym[0], sym[1]);
+		    var type = null;
+                    if (optType.children.length > 0) {
+                        type = optType.children[0].symbols(entry);
+                    }
+
                     if (optI.children.length > 0) {
                         optI.children[0].symbols(entry);
                     }
+
+                    entry.add("var", null, n.sourceString, type);
                 },
 
                 IfStatement(_if, _o, c, _c, t, _e, optF) {
@@ -3534,15 +3538,7 @@ Shadama {
                     }
                 },
 
-                TypedVar(i) {
-                    return i.symbols(this.args.entry);
-                },
-
-                TypedVar_implicit(i) {
-                    return [i.sourceString, null];
-                },
-
-                TypedVar_explicit(i, t) {
+                TypedVar(i, t) {
                     var entry = this.args.entry;
                     return [i.sourceString, t.symbols(entry)];
                 },
@@ -3612,17 +3608,18 @@ Shadama {
                     }
                 },
 
-                VariableDeclaration(n, optI) {
+                VariableDeclaration(n, optType, optI) {
                     var entry = this.args.entry;
-                    var nType = n.type(entry);
-                    var sym = n.symbols(entry); // Hmm
-                    if (optI.children.length > 0) {
-                        var type = optI.children[0].type(entry);
-                        if (nType == null) {
-                            var realType = (type != null) ? type : "float";
-                            entry.setType("var", null, sym[0], realType);
-                        }
-                    }
+
+                    var type = optType.symbols(entry); // Hmm
+
+//                    if (optI.children.length > 0) {
+//                        var type = optI.children[0].type(entry);
+//                        if (nType == null) {
+//                            var realType = (type != null) ? type : "float";
+//                            entry.setType("var", null, sym[0], realType);
+//                        }
+//                    }
                     //if  mismatch {error}
                     return entry.type(entry);
                 },
@@ -3982,7 +3979,7 @@ Shadama {
                     d.glsl_inner(entry, vert, frag);
                 },
 
-                VariableDeclaration(n, i) {
+                VariableDeclaration(n, optT, i) {
                     var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
@@ -4281,7 +4278,7 @@ Shadama {
                     d.static(entry, js);
                 },
 
-                VariableDeclaration(n, i) {
+                VariableDeclaration(n, optT, i) {
                     var entry = this.args.entry;
                     var js = this.args.js;
                     var variable = new Entry("event");
@@ -5377,6 +5374,7 @@ highp float random(float seed) {
             symbolsUnitTests();
             typeUnitTests();
             translateUnitTests();
+	    return;
         }
 
         if (degaussdemo) {

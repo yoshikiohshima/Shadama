@@ -391,10 +391,10 @@ function grammarUnitTests() {
     grammarTest("var x = 3;", "VariableStatement");
     grammarTest("{var x = 3; x = x + 3;}", "Block");
 
-    grammarTest("breed Turtle (x, y)", "Breed");
-    grammarTest("patch Patch (x, y)", "Patch");
-    grammarTest("def foo(x, y) {var x = 3; x = x + 2.1;}", "Method");
-    grammarTest("def foo(x: mat3, y) {var x = 3; x = x + 2.1;}", "Method");
+    grammarTest("breed Turtle (x:float, y:float)", "Breed");
+    grammarTest("patch Patch (x:vec2, y:float)", "Patch");
+    grammarTest("def foo(x:float, y:float) {var x = 3; x = x + 2.1;}", "Method");
+    grammarTest("def foo(x: mat3, y:float) {var x = 3; x = x + 2.1;}", "Method");
     grammarTest("helper foo: vec2 (input: vec2) {var x = 3; x = x + 2.1; return vec2(x, 2)}", "Helper");
 }
 
@@ -475,26 +475,26 @@ function symbolsUnitTests() {
         "propIn.other.x": ["propIn", "other", "x", null],
 	"param.null.other": ["param", null, "other", null]}, entry);
 
-    symbolsTest("def foo(other, b, c) {this.x = 3; this.y = other.x;}", "Method", s, {
+    symbolsTest("def foo(other:object, b:float, c:float) {this.x = 3; this.y = other.x;}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", null],
         "propOut.this.x": ["propOut" ,"this", "x", null],
         "propOut.this.y": ["propOut" ,"this", "y", null],
-	"param.null.other": ["param", null, "other", null], 
-        "param.null.b": ["param" , null, "b", null],
-        "param.null.c": ["param" , null, "c", null]});
+	"param.null.other": ["param", null, "other", "object"], 
+        "param.null.b": ["param" , null, "b", "float"],
+        "param.null.c": ["param" , null, "c", "float"]});
 
-    symbolsTest("def foo(other, b, c) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
+    symbolsTest("def foo(other:object, b:float, c:vec2) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
         "propOut.this.x": ["propOut" ,"this", "x", null],
         "propOut.this.y": ["propOut" ,"this", "y", null],
-	"param.null.other": ["param", null, "other", null], 
-        "param.null.b": ["param" , null, "b", null],
-        "param.null.c": ["param" , null, "c", null]});
+	"param.null.other": ["param", null, "other", "object"], 
+        "param.null.b": ["param" , null, "b", "float"],
+        "param.null.c": ["param" , null, "c", "vec2"]});
 }
 
 
 function typeUnitTests() {
-    typeTest("def foo(other) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
+    typeTest("def foo(other:object) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
         "propOut.this.x": ["propOut" ,"this", "x", "float"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
@@ -503,7 +503,7 @@ function typeUnitTests() {
 	"param.null.other": ["param", null, "other", "object"]});
 
 
-    typeTest("def foo(other) {this.x = 3; this.y = other.x:vec2 + vec2(2, 3);}", "Method", s, {
+    typeTest("def foo(other:object) {this.x = 3; this.y = other.x:vec2 + vec2(2, 3);}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", "vec2"],
         "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
         "propOut.this.x": ["propOut" ,"this", "x", "float"],
@@ -511,7 +511,7 @@ function typeUnitTests() {
         "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
 	"param.null.other": ["param", null, "other", "object"]});
 
-    typeTest("def foo(other) {other.x = this.x:vec2;}", "Method", s, {
+    typeTest("def foo(other:object) {other.x = this.x:vec2;}", "Method", s, {
         "propOut.other.x": ["propOut", "other", "x", "vec2"],
         "propIn.other.x": ["propIn" ,"other", "x", "vec2"],
         "propIn.this.x": ["propIn" ,"this", "x", "vec2"],
@@ -525,7 +525,7 @@ function translateUnitTests() {
     translateTest(`breed Turtle (pos:vec2)
 patch Patch (pos:vec2)
 
-def foo(other) {this.pos = other.pos:vec2}
+def foo(other:object) {this.pos = other.pos:vec2}
 static x() {
   Turtle.foo(Patch);
 }
