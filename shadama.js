@@ -3427,7 +3427,7 @@ Shadama {
                 Helper(_d, n, _o, ns, _c, b) {
                     var entry = this.args.entry;
                     entry.setEntryType("helper");
-                    var type = n.type();
+                    var type = n.type(entry);
                     ns.symbols(entry);
                     b.symbols(entry);
                     return this.topLevelName;
@@ -3558,6 +3558,14 @@ Shadama {
                 },
             });
 
+        function checkBinOp(l, op, r, args) {
+	    var entry = args.entry;
+	    check(l.type(entry) == r.type(entry),
+		  op.source.endIdx,
+		  "operand type mismatch");
+	    return l.type(entry);
+        };
+
         s.addOperation(
             "type(entry)",
             {
@@ -3566,6 +3574,94 @@ Shadama {
                     for (var i = 0; i< ds.children.length; i++) {
                         ds.children[i].type(table[ds.children[i].topLevelName]);
                     }
+		    return null;
+                },
+
+
+                Method(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    entry.setPositionType("vec2");
+                    b.type(entry);
+                    ns.type(entry);
+                    entry.process();
+		    return null;
+                },
+
+                Helper(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    ns.type(entry);
+                    b.type(entry);
+                    entry.process();
+		    return null;
+                },
+
+                Static(_s, n, _o, ns, _c, b) {
+		    return null;
+                },
+
+                Formals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var sym = h.symbols(entry);
+		    return null;
+                },
+
+                VariableDeclaration(n, optType, optI) {
+                    var entry = this.args.entry;
+		    var nType = null;
+		    if (optType.children.length > 0) {
+			nType = optType.symbols(entry);
+		    }
+		    if (optI.children.length > 0) {
+			var type = optI.children[0].type(entry);
+			check(type !== null,
+			      optI.source.endIdx,
+			      "incomplete type");
+
+			check(nType === type,
+			      n.source.endIdx,
+			      "type mismatch");
+		    }
+		    return nType;
+                },
+
+                AssignmentStatement(l, _e, e, _c) {
+                    var entry = this.args.entry;
+                    var left = l.type(entry);
+                    var type = e.type(entry);
+                    check (type, 
+			   e.source.endIdx,
+			   "incomplete type");
+
+		    check(!left || left == type,
+                          l.source.endIdx,
+			  "type mismatch");
+
+		    var isVar = l.children[0].ctorName == "LeftHandSideExpression_ident";
+		    if (isVar) {
+			if (!left) {
+			    entry.setType("var", left[1], left[2], type);
+			}
+		    } else { // field
+			if (!left) {
+			    var field = l.children[0];
+			    var n = l.children[0].children[0].sourceString;
+			    var f = l.children[0].children[2].sourceString;
+			    entry.setType("propOut", n, f, type);
+			}
+		    }
+                },
+
+                LeftHandSideExpression_field(n, _a, f) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+		    var type = entry.add("propOut", name, f.sourceString, null);
+		    return null;
+                },
+
+                LeftHandSideExpression_ident(n) {
+                    var entry = this.args.entry;
+		    var type = entry.add("var", null, n.sourceString, null);
+		    return null;
                 },
 
                 _nonterminal(children) {
@@ -3580,82 +3676,78 @@ Shadama {
                     return type;
                 },
 
-                Method(_d, n, _o, ns, _c, b) {
-                    var entry = this.args.entry;
-                    entry.setPositionType("vec2");
-                    b.type(entry);
-                    ns.type(entry);
-                    entry.process();
+                LogicalExpression_and(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-                Helper(_d, n, _o, ns, _c, b) {
-                    var entry = this.args.entry;
-                    ns.type(entry);
-                    b.type(entry);
-                    entry.process();
+                LogicalExpression_or(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-                Static(_s, n, _o, ns, _c, b) {
-                    var entry = this.args.entry;
-                    b.type(entry);
+                RelationalExpression_le(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-                Formals_list(h, _c, r) {
-                    var entry = this.args.entry;
-                    var sym = h.symbols(entry);
-                    if (entry.usedAsObject(sym[0])) {
-                        entry.setType("param", null, sym[0], "object");
-                    }
+                RelationalExpression_ge(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-                VariableDeclaration(n, optType, optI) {
-                    var entry = this.args.entry;
-
-                    var type = optType.symbols(entry); // Hmm
-
-//                    if (optI.children.length > 0) {
-//                        var type = optI.children[0].type(entry);
-//                        if (nType == null) {
-//                            var realType = (type != null) ? type : "float";
-//                            entry.setType("var", null, sym[0], realType);
-//                        }
-//                    }
-                    //if  mismatch {error}
-                    return entry.type(entry);
+                RelationalExpression_lt(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-                AssignmentStatement(l, _e, e, _c) {
-                    var entry = this.args.entry;
-                    var left = l.type(entry);
-                    var type = e.type(entry);
-                    if (!type) {
-                        if (!type) {console.log("it should have a type by now")};
-                        return null;
-                    }
-                    entry.setType(left[0], left[1], left[2], type);
+                RelationalExpression_gt(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-
-                LeftHandSideExpression_field(n, _a, f) {
-                    var entry = this.args.entry;
-                    var name = n.sourceString;
-                    return ["propOut", name, f.sourceString];
+                RelationalExpression_equal(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
                 },
 
-                LeftHandSideExpression_ident(n) {
-                    var entry = this.args.entry;
-                    return ["var", null, n.sourceString];
+                RelationalExpression_notEqual(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
+                },
+
+                AddExpression_plus(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
+                },
+
+                AddExpression_minus(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
+                },
+
+                MulExpression_times(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
+                },
+
+                MulExpression_divide(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
+                },
+
+                MulExpression_mod(l, op, r) {
+		    return checkBinOp(l, op, r, this.args);
+                },
+
+                UnaryExpression_plus(_p, e) {
+		    return e.type(this.args.entry);
+                },
+
+                UnaryExpression_minus(_p, e) {
+		    return e.type(this.args.entry);
+                },
+
+                UnaryExpression_not(_p, e) {
+		    return e.type(this.args.entry);
                 },
 
                 PrimExpression_field(n, _p, f, optType) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
                     var type = entry.getType("propIn", name, f.sourceString);
-                    if (!type) {
-                        entry.setType("propIn", name, f.sourceString, "float");
-                        return "float";
-                    }
-                    //if (!type) {console.log("it should have a type by now")};
+		    if (!type) {debugger;}
+                    check(type,
+			  f.source.endIdx,
+			  "type not specified");
                     return type;
                 },
 
@@ -3663,11 +3755,10 @@ Shadama {
                     var entry = this.args.entry;
                     var name = n.sourceString;
                     var type = entry.getType("var", null, name);
-                    if (!type) {
-                        entry.setType("var", null, name, "float");
-                        return "float";
-                    }
-                    //if (!type) {console.log("it should have a type by now")};
+		    if (!type) {debugger;}
+                    check(type,
+			  n.source.endIdx,
+			  "type not specified");
                     return type;
                 },
 
@@ -4273,8 +4364,6 @@ Shadama {
                 VariableStatement(_v, d, _s) {
                     var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
                     d.static(entry, js);
                 },
 
