@@ -1,13 +1,14 @@
-breed Turtle (pos:vec2, new:vec2)
+breed Turtle (pos:vec2, new:float)
 patch Patch (pos:vec2)
 
-def foo(patch:object) {
+def foo(patch:object, vec:vec2) {
     patch.pos = this.pos:vec2
 }
 
 def bar(patch:object) {
-  this.new = patch.pos:vec2 - vec2(2, 3)
   this.pos = patch.pos:vec2
+  var v = patch.pos;
+  this.new = v.x;
 }
 
 static x() {
@@ -15,7 +16,7 @@ static x() {
 }
 
 static y() {
-  Turtle.foo(Patch)
+  Turtle.foo(Patch, vec2(100, 100) + vec2(50, 50))
 }
 
 static z() {

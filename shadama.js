@@ -1015,7 +1015,7 @@ uniform vec2 u_half;
             });
 
             entry.scalarParamTable.keysAndValuesDo((key, entry) => {
-                var varName = info[2];
+                var varName = entry[2];
                 var uni = "u_scalar_" + varName;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
@@ -3616,10 +3616,13 @@ Shadama {
                         check(type !== null,
                               optI.source.endIdx,
                               "incomplete type");
-
-                        check(nType === type,
+			debugger;
+                        check(!nType || (nType === type),
                               n.source.endIdx,
                               "type mismatch");
+			if (!nType && type) {
+			    entry.setType("var", null, n.sourceString, type);
+			}
                     }
                     return nType;
                 },
@@ -4217,21 +4220,23 @@ Shadama {
                     var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-
+		    
+		    // need to fix
                     if (entry.isBuiltin(n.sourceString)) {
                         vert.push(n.sourceString + "." + f.sourceString);
+			return;
+		    }
+                    
+		    var type = entry.getType("propIn", n.sourceString, f.sourceString);
+                    var suffix = entry.swizzle(type);
+                    if (n.sourceString === "this") {
+                        vert.push("texelFetch(" +
+                                  entry.uniform(n.sourceString, f.sourceString) +
+                                  ", ivec2(a_index), 0)." + suffix);
                     } else {
-                        var type = entry.getType("propIn", n.sourceString, f.sourceString);
-                        var suffix = entry.swizzle(type);
-                        if (n.sourceString === "this") {
-                            vert.push("texelFetch(" +
-                                      entry.uniform(n.sourceString, f.sourceString) +
-                                      ", ivec2(a_index), 0)." + suffix);
-                        } else {
-                            vert.push("texelFetch(" +
-                                      entry.uniform(n.sourceString, f.sourceString) +
-                                      ", ivec2(_pos), 0)." + suffix);
-                        }
+                        vert.push("texelFetch(" +
+                                  entry.uniform(n.sourceString, f.sourceString) +
+                                  ", ivec2(_pos), 0)." + suffix);
                     }
                 },
 
@@ -5165,7 +5170,7 @@ Shadama {
         paramUniforms() {
             var result = [];
             this.scalarParamTable.keysAndValuesDo((key, entry) => {
-                result.push("uniform float u_scalar_" + entry[2] + ";");
+                result.push("uniform " + entry[3] + " u_scalar_" + entry[2] + ";");
             });
             return result;
         }
