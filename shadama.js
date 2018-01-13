@@ -953,22 +953,22 @@ uniform vec2 u_half;
         // common case: when the existing own and fields are the same
         for (var i = 0; i < fields.length; i++) {
             var field = fields[i];
-	    var k = field[2];
-	    var type = field[3];
+            var k = field[2];
+            var type = field[3];
             newOwn[k] = [k, type];
         }
         if (stringify(newOwn) === stringify(oldOwn)) {
             return false;
         }
 
-	function find(list, pair) {
-	    for (var i = 0; i < list.length; i++) {
-		if (list[i][0] === pair[0] && list[i][1] === pair[1]) {
-		    return i;
-		}
-	    }
-	    return -1;
-	}
+        function find(list, pair) {
+            for (var i = 0; i < list.length; i++) {
+                if (list[i][0] === pair[0] && list[i][1] === pair[1]) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
         // other case: get things into toBeDeleted and toBeCreated, and toBeMoved
         for (var k in oldOwn) {
@@ -978,7 +978,7 @@ uniform vec2 u_half;
         }
         for (var i = 0; i < fields.length; i++) {
             var k = fields[i][2];
-	    var type = fields[i][3];
+            var type = fields[i][3];
             if (!oldOwn[k]) {
                 toBeCreated.push([k, type]);
             }
@@ -1029,14 +1029,14 @@ uniform vec2 u_half;
             }
                 var object = objects["this"];
 
-		var targetTypes = [];
-		var targets = [];
+                var targetTypes = [];
+                var targets = [];
                 outs.forEach(
-		    (triple) => {
-			targets.push(objects[triple[0]][N + triple[1]]);
-			targetTypes.push(triple[2]);
-		    }
-		);
+                    (triple) => {
+                        targets.push(objects[triple[0]][N + triple[1]]);
+                        targetTypes.push(triple[2]);
+                    }
+                );
 
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
@@ -1061,23 +1061,23 @@ uniform vec2 u_half;
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
-		    //object.hasPos
-		    if (true) {
-			state.activeTexture(gl.TEXTURE0);
-			state.bindTexture(gl.TEXTURE_2D, object.pos);
-			gl.uniform1i(uniLocations["u_that_xy"], 0);
-			offset = 1;
-		    } else {
-			state.activeTexture(gl.TEXTURE0);
-			state.bindTexture(gl.TEXTURE_2D, object.x);
-			gl.uniform1i(uniLocations["u_that_x"], 0);
-			
-			state.activeTexture(gl.TEXTURE1);
-			state.bindTexture(gl.TEXTURE_2D, object.y);
-			gl.uniform1i(uniLocations["u_that_y"], 1);
-			offset = 2;
+                    //object.hasPos
+                    if (true) {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.pos);
+                        gl.uniform1i(uniLocations["u_that_xy"], 0);
+                        offset = 1;
+                    } else {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.x);
+                        gl.uniform1i(uniLocations["u_that_x"], 0);
+                        
+                        state.activeTexture(gl.TEXTURE1);
+                        state.bindTexture(gl.TEXTURE_2D, object.y);
+                        gl.uniform1i(uniLocations["u_that_y"], 1);
+                        offset = 2;
                     }
-		}
+                }
 
                 for (var ind = 0; ind < ins.length; ind++) {
                     var triple = ins[ind];
@@ -1288,7 +1288,7 @@ uniform vec2 u_half;
         this.triggers = {};
         var newData = [];
         this.cleanUpEditorState();
-	try {
+        try {
             var result = translate(source, "TopLevel", this.reportError.bind(this));
         } catch (e) {
             this.reportError(e);
@@ -1447,7 +1447,7 @@ uniform vec2 u_half;
         gl.bindVertexArray(prog.vao);
 
         var tex = object[name];
-	var type = object.own[name][1];
+        var type = object.own[name][1];
 
         state.activeTexture(gl.TEXTURE0);
         state.bindTexture(gl.TEXTURE_2D, tex);
@@ -1472,28 +1472,28 @@ uniform vec2 u_half;
         gl.flush();
 
         debugArray = new Float32Array(width * height * 4);
-	var scale;
-	switch(type) {
-	    case "float":
-	    scale = 1;	    break;
-	    case "vec2":
-	    scale = 2;	    break;
-	    case "vec3":
-	    scale = 3;	    break;
-	    case "vec4":
-	    scale = 4;	    break;
-	}
+        var scale;
+        switch(type) {
+            case "float":
+            scale = 1;      break;
+            case "vec2":
+            scale = 2;      break;
+            case "vec3":
+            scale = 3;      break;
+            case "vec4":
+            scale = 4;      break;
+        }
 
         debugArray1 = new Float32Array(width * height * scale);
         debugArray2 = new Uint8ClampedArray(width * height * 4);
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray, 0);
 
         for (var i = 0; i < width * height; i++) {
-	    var ind = i * scale;
-	    for (var j = 0; j < scale; j++) {
-		debugArray1[ind + j] = debugArray[i * 4 + j];
-	    }
-	}
+            var ind = i * scale;
+            for (var j = 0; j < scale; j++) {
+                debugArray1[ind + j] = debugArray[i * 4 + j];
+            }
+        }
 
         for (var i = 0; i < width * height; i++) {
             debugArray2[i * 4 + 0] = debugArray[i * 4 + 0] * 255;
@@ -2214,56 +2214,56 @@ uniform vec2 u_half;
         }
 
         fillSpace(a1, a2, a3, a4) {
-	    //xName, yName, xDim, yDim
-	    var xName, yName, xDim, yDim;
-	    var type;
-	    if (typeof a1 == "string" && 
-		typeof a2 == "string") {
-		xName = a1;
-		yName = a2;
-		type = "float";
-		if (typeof a3 == "object" && typeof a4 != "object") {
-		    xDim = a3.x;
-		    yDim = a3.y;
-		} else if (typeof a3 == "float" && typeof a4 == "float") {
-		    xDim = a3;
-		    yDim = a4;
-		} else if (typeof a3 == "object" && typeof a4 == "object") {
-		    xDim = a3.x;
-		    yDim = a4.x;
-		}
-	    } else if (typeof a1 == "string" && typeof a2 == "object") {
-		xName = a1;
-		xDim = a2.x;
-		yDim = a2.y;
-		type = "vec2";
-	    }
+            //xName, yName, xDim, yDim
+            var xName, yName, xDim, yDim;
+            var type;
+            if (typeof a1 == "string" && 
+                typeof a2 == "string") {
+                xName = a1;
+                yName = a2;
+                type = "float";
+                if (typeof a3 == "object" && typeof a4 != "object") {
+                    xDim = a3.x;
+                    yDim = a3.y;
+                } else if (typeof a3 == "float" && typeof a4 == "float") {
+                    xDim = a3;
+                    yDim = a4;
+                } else if (typeof a3 == "object" && typeof a4 == "object") {
+                    xDim = a3.x;
+                    yDim = a4.x;
+                }
+            } else if (typeof a1 == "string" && typeof a2 == "object") {
+                xName = a1;
+                xDim = a2.x;
+                yDim = a2.y;
+                type = "vec2";
+            }
 
             this.setCount(xDim * yDim);
-	    if (type == "float") {
-		var x = new Float32Array(T * T);
-		var y = new Float32Array(T * T);
+            if (type == "float") {
+                var x = new Float32Array(T * T);
+                var y = new Float32Array(T * T);
 
-		for (var j = 0; j < yDim; j++) {
+                for (var j = 0; j < yDim; j++) {
                     for (var i = 0; i < xDim; i++) {
-			var ind = xDim * j + i;
-			x[ind] = i;
-			y[ind] = j;
+                        var ind = xDim * j + i;
+                        x[ind] = i;
+                        y[ind] = j;
                     }
-		}
-		updateOwnVariable(this, xName, "float", x);
-		updateOwnVariable(this, yName, "float", y);
-	    } else {
-		var xy = new Float32Array(T * T * 2);
-		for (var j = 0; j < yDim; j++) {
+                }
+                updateOwnVariable(this, xName, "float", x);
+                updateOwnVariable(this, yName, "float", y);
+            } else {
+                var xy = new Float32Array(T * T * 2);
+                for (var j = 0; j < yDim; j++) {
                     for (var i = 0; i < xDim; i++) {
-			var ind = (xDim * j + i) * 2;
-			xy[ind] = i;
-			xy[ind+1] = j;
+                        var ind = (xDim * j + i) * 2;
+                        xy[ind] = i;
+                        xy[ind+1] = j;
                     }
-		}
-		updateOwnVariable(this, xName, "vec2", xy);
-	    }
+                }
+                updateOwnVariable(this, xName, "vec2", xy);
+            }
         }
 
         fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
@@ -2604,9 +2604,9 @@ uniform vec2 u_half;
 
         setCount(n) {
             var oldCount = this.count;
-	    if (typeof n != "number") { //vec
-		n = n.x;
-	    }
+            if (typeof n != "number") { //vec
+                n = n.x;
+            }
             if (n < 0 || !n) {
                 n = 0;
             }
@@ -3198,7 +3198,7 @@ Shadama {
             ["patch", "draw", []],
             ["breed", "render", []],
             ["patch", "render", []],
-	    ["breed", "setCount", [["count", "float"]]],
+            ["breed", "setCount", [["count", "float"]]],
             ["breed", "fillRandom", [["name", "string"], ["min", "float"], ["max", "float"]]],
             ["breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
             ["breed", "fillRandomDir", [["xyDir", "string"]]],
@@ -3241,22 +3241,22 @@ Shadama {
             ["static", "stop", []],
             ["static", "step", []]];
 
-	primitives = {};
+        primitives = {};
 
         for (var k in data) {
-	    var ary = data[k];
-	    var obj = ary[0];
-	    var sel = ary[1];
-	    var args = ary[2];
+            var ary = data[k];
+            var obj = ary[0];
+            var sel = ary[1];
+            var args = ary[2];
 
-	    if (!primitives[obj]) {
-		primitives[obj] = {};
-	    }
-	    if (!primitives[obj][sel]) {
-		primitives[obj][sel] = [];
-	    }
-	    primitives[obj][sel].push(args);
-	}
+            if (!primitives[obj]) {
+                primitives[obj] = {};
+            }
+            if (!primitives[obj][sel]) {
+                primitives[obj][sel] = [];
+            }
+            primitives[obj][sel].push(args);
+        }
     }
 
     function initCompiler() {
@@ -3461,7 +3461,7 @@ Shadama {
 
                 VariableDeclaration(n, optType, optI) {
                     var entry = this.args.entry;
-		    var type = null;
+                    var type = null;
                     if (optType.children.length > 0) {
                         type = optType.children[0].symbols(entry);
                     }
@@ -3559,11 +3559,11 @@ Shadama {
             });
 
         function checkBinOp(l, op, r, args) {
-	    var entry = args.entry;
-	    check(l.type(entry) == r.type(entry),
-		  op.source.endIdx,
-		  "operand type mismatch");
-	    return l.type(entry);
+            var entry = args.entry;
+            check(l.type(entry) == r.type(entry),
+                  op.source.endIdx,
+                  "operand type mismatch");
+            return l.type(entry);
         };
 
         s.addOperation(
@@ -3574,7 +3574,7 @@ Shadama {
                     for (var i = 0; i< ds.children.length; i++) {
                         ds.children[i].type(table[ds.children[i].topLevelName]);
                     }
-		    return null;
+                    return null;
                 },
 
 
@@ -3584,7 +3584,7 @@ Shadama {
                     b.type(entry);
                     ns.type(entry);
                     entry.process();
-		    return null;
+                    return null;
                 },
 
                 Helper(_d, n, _o, ns, _c, b) {
@@ -3592,36 +3592,36 @@ Shadama {
                     ns.type(entry);
                     b.type(entry);
                     entry.process();
-		    return null;
+                    return null;
                 },
 
                 Static(_s, n, _o, ns, _c, b) {
-		    return null;
+                    return null;
                 },
 
                 Formals_list(h, _c, r) {
                     var entry = this.args.entry;
                     var sym = h.symbols(entry);
-		    return null;
+                    return null;
                 },
 
                 VariableDeclaration(n, optType, optI) {
                     var entry = this.args.entry;
-		    var nType = null;
-		    if (optType.children.length > 0) {
-			nType = optType.symbols(entry);
-		    }
-		    if (optI.children.length > 0) {
-			var type = optI.children[0].type(entry);
-			check(type !== null,
-			      optI.source.endIdx,
-			      "incomplete type");
+                    var nType = null;
+                    if (optType.children.length > 0) {
+                        nType = optType.symbols(entry);
+                    }
+                    if (optI.children.length > 0) {
+                        var type = optI.children[0].type(entry);
+                        check(type !== null,
+                              optI.source.endIdx,
+                              "incomplete type");
 
-			check(nType === type,
-			      n.source.endIdx,
-			      "type mismatch");
-		    }
-		    return nType;
+                        check(nType === type,
+                              n.source.endIdx,
+                              "type mismatch");
+                    }
+                    return nType;
                 },
 
                 AssignmentStatement(l, _e, e, _c) {
@@ -3629,39 +3629,39 @@ Shadama {
                     var left = l.type(entry);
                     var type = e.type(entry);
                     check (type, 
-			   e.source.endIdx,
-			   "incomplete type");
+                           e.source.endIdx,
+                           "incomplete type");
 
-		    check(!left || left == type,
+                    check(!left || left == type,
                           l.source.endIdx,
-			  "type mismatch");
+                          "type mismatch");
 
-		    var isVar = l.children[0].ctorName == "LeftHandSideExpression_ident";
-		    if (isVar) {
-			if (!left) {
-			    entry.setType("var", left[1], left[2], type);
-			}
-		    } else { // field
-			if (!left) {
-			    var field = l.children[0];
-			    var n = l.children[0].children[0].sourceString;
-			    var f = l.children[0].children[2].sourceString;
-			    entry.setType("propOut", n, f, type);
-			}
-		    }
+                    var isVar = l.children[0].ctorName == "LeftHandSideExpression_ident";
+                    if (isVar) {
+                        if (!left) {
+                            entry.setType("var", left[1], left[2], type);
+                        }
+                    } else { // field
+                        if (!left) {
+                            var field = l.children[0];
+                            var n = l.children[0].children[0].sourceString;
+                            var f = l.children[0].children[2].sourceString;
+                            entry.setType("propOut", n, f, type);
+                        }
+                    }
                 },
 
                 LeftHandSideExpression_field(n, _a, f) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
-		    var type = entry.add("propOut", name, f.sourceString, null);
-		    return null;
+                    var type = entry.add("propOut", name, f.sourceString, null);
+                    return null;
                 },
 
                 LeftHandSideExpression_ident(n) {
                     var entry = this.args.entry;
-		    var type = entry.add("var", null, n.sourceString, null);
-		    return null;
+                    var type = entry.add("var", null, n.sourceString, null);
+                    return null;
                 },
 
                 _nonterminal(children) {
@@ -3677,77 +3677,77 @@ Shadama {
                 },
 
                 LogicalExpression_and(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 LogicalExpression_or(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 RelationalExpression_le(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 RelationalExpression_ge(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 RelationalExpression_lt(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 RelationalExpression_gt(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 RelationalExpression_equal(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 RelationalExpression_notEqual(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 AddExpression_plus(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 AddExpression_minus(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 MulExpression_times(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 MulExpression_divide(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 MulExpression_mod(l, op, r) {
-		    return checkBinOp(l, op, r, this.args);
+                    return checkBinOp(l, op, r, this.args);
                 },
 
                 UnaryExpression_plus(_p, e) {
-		    return e.type(this.args.entry);
+                    return e.type(this.args.entry);
                 },
 
                 UnaryExpression_minus(_p, e) {
-		    return e.type(this.args.entry);
+                    return e.type(this.args.entry);
                 },
 
                 UnaryExpression_not(_p, e) {
-		    return e.type(this.args.entry);
+                    return e.type(this.args.entry);
                 },
 
                 PrimExpression_field(n, _p, f, optType) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
                     var type = entry.getType("propIn", name, f.sourceString);
-		    if (!type) {debugger;}
+                    if (!type) {debugger;}
                     check(type,
-			  f.source.endIdx,
-			  "type not specified");
+                          f.source.endIdx,
+                          "type not specified");
                     return type;
                 },
 
@@ -3755,10 +3755,10 @@ Shadama {
                     var entry = this.args.entry;
                     var name = n.sourceString;
                     var type = entry.getType("var", null, name);
-		    if (!type) {debugger;}
+                    if (!type) {debugger;}
                     check(type,
-			  n.source.endIdx,
-			  "type not specified");
+                          n.source.endIdx,
+                          "type not specified");
                     return type;
                 },
 
@@ -4268,8 +4268,8 @@ Shadama {
         function staticTransBinOp(l, r, op, args) {
             var entry = args.entry;
             var js = args.js;
-	    
-	    var ops = {"+": "add"};
+            
+            var ops = {"+": "add"};
 
             js.push("vec." + ops[op] + "(");
             l.static(entry, js);
@@ -4294,7 +4294,7 @@ Shadama {
                     js.push(""); //fs.static(table, null, null, null));
                     js.push(") ");
                     b.static(entry, js);
-		    js.push(")");
+                    js.push(")");
                     return [entry, js.contents(), this.sourceString];
                 },
 
@@ -4544,11 +4544,11 @@ Shadama {
                         js.push("(");
                         js.push(str);
                         js.push(")");
-			return;
+                        return;
                     }
-		    var vec = ["vec2", "vec3", "vec4"];
-		    var ind = vec.indexOf(prim);
-		    if (ind >= 0) {
+                    var vec = ["vec2", "vec3", "vec4"];
+                    var ind = vec.indexOf(prim);
+                    if (ind >= 0) {
                         var actuals = as.static(entry, null);
                         var str = actuals.join(", ");
                         js.push("new vec(");
@@ -4556,7 +4556,7 @@ Shadama {
                         js.push(", ");
                         js.push(str);
                         js.push(")");
-		    }
+                    }
                 },
 
                 MethodCall(r, _p, n, _o, as, _c) {
@@ -4622,8 +4622,8 @@ Shadama {
 })()`;
                             js.push(callProgram);
                             return;
-			}
-		    }
+                        }
+                    }
 
                     var primArgsList;
                     if (rcvr === "Display") {
@@ -4637,11 +4637,11 @@ Shadama {
                           as.source.endIdx,
                           `primitive ${selector} for ${rcvr} is not known`);
 
-		    var match = false;
-		    for (var pi = 0; pi < primArgsList.length; pi++) {
-			var primArgs = primArgsList[pi];
-			match |= actuals.length === primArgs.length
-		    }
+                    var match = false;
+                    for (var pi = 0; pi < primArgsList.length; pi++) {
+                        var primArgs = primArgsList[pi];
+                        match |= actuals.length === primArgs.length
+                    }
 
 
                     check(match,
@@ -4695,70 +4695,70 @@ Shadama {
     }
 
     class vec {
-	constructor(arity, x, y, z, w) {
-	    this.arity = arity; // arity, has to be 1, 2, 3 or 4
-	    if (typeof x === "object") {
-		x = x.x;
-	    }
-	    if (typeof y === "object") {
-		y = y.x;
-	    }
-	    if (typeof z === "object") {
-		z = z.x;
-	    }
-	    if (typeof w === "object") {
-		w = w.x;
-	    }
+        constructor(arity, x, y, z, w) {
+            this.arity = arity; // arity, has to be 1, 2, 3 or 4
+            if (typeof x === "object") {
+                x = x.x;
+            }
+            if (typeof y === "object") {
+                y = y.x;
+            }
+            if (typeof z === "object") {
+                z = z.x;
+            }
+            if (typeof w === "object") {
+                w = w.x;
+            }
 
-	    this.x = x | 0;
-	    this.y = y | 0;
-	    this.z = z | 0;
-	    this.w = w | 0;
-	}
+            this.x = x | 0;
+            this.y = y | 0;
+            this.z = z | 0;
+            this.w = w | 0;
+        }
 
-	get r() {return this.x;}
-	get g() {return this.y;}
-	get b() {return this.z;}
-	get a() {return this.w;}
+        get r() {return this.x;}
+        get g() {return this.y;}
+        get b() {return this.z;}
+        get a() {return this.w;}
 
-	get rg() {return new vec(2, this.x, this.y)}
-	get rb() {return new vec(2, this.x, this.z)}
-	get ra() {return new vec(2, this.x, this.w)}
+        get rg() {return new vec(2, this.x, this.y)}
+        get rb() {return new vec(2, this.x, this.z)}
+        get ra() {return new vec(2, this.x, this.w)}
 
-	get gb() {return new vec(2, this.y, this.z)}
-	get ga() {return new vec(2, this.y, this.w)}
+        get gb() {return new vec(2, this.y, this.z)}
+        get ga() {return new vec(2, this.y, this.w)}
 
-	get ba() {return new vec(2, this.z, this.w)}
+        get ba() {return new vec(2, this.z, this.w)}
 
-	get ba() {return new vec(2, this.z, this.w)}
+        get ba() {return new vec(2, this.z, this.w)}
 
 
-	get rgb() {return new vec(3, this.x, this.y, this.z)}
-	get rga() {return new vec(3, this.x, this.y, this.w)}
-	get rba() {return new vec(3, this.x, this.z, this.w)}
-	get gba() {return new vec(3, this.y, this.z, this.w)}
+        get rgb() {return new vec(3, this.x, this.y, this.z)}
+        get rga() {return new vec(3, this.x, this.y, this.w)}
+        get rba() {return new vec(3, this.x, this.z, this.w)}
+        get gba() {return new vec(3, this.y, this.z, this.w)}
 
-	get xy() {return new vec(2, this.x, this.y)}
-	get xz() {return new vec(2, this.x, this.z)}
-	get xw() {return new vec(2, this.x, this.w)}
+        get xy() {return new vec(2, this.x, this.y)}
+        get xz() {return new vec(2, this.x, this.z)}
+        get xw() {return new vec(2, this.x, this.w)}
 
-	get yz() {return new vec(2, this.y, this.z)}
-	get yw() {return new vec(2, this.y, this.w)}
+        get yz() {return new vec(2, this.y, this.z)}
+        get yw() {return new vec(2, this.y, this.w)}
 
-	get zw() {return new vec(2, this.z, this.w)}
+        get zw() {return new vec(2, this.z, this.w)}
 
-	get xyz() {return new vec(3, this.x, this.y, this.z)}
-	get xyw() {return new vec(3, this.x, this.y, this.w)}
-	get xzw() {return new vec(3, this.x, this.z, this.w)}
-	get yzw() {return new vec(3, this.y, this.z, this.w)}
+        get xyz() {return new vec(3, this.x, this.y, this.z)}
+        get xyw() {return new vec(3, this.x, this.y, this.w)}
+        get xzw() {return new vec(3, this.x, this.z, this.w)}
+        get yzw() {return new vec(3, this.y, this.z, this.w)}
 
     }
 
     vec.add = function(a, b, pos) {
-	check (a.arity != b.arity,
-	       pos,
-	       "wrong arity");
-	return new vec(this.arity, a.x + b.x, a.y + b.y, a.z = b.z, a.w + b.w);
+        check (a.arity != b.arity,
+               pos,
+               "wrong arity");
+        return new vec(this.arity, a.x + b.x, a.y + b.y, a.z = b.z, a.w + b.w);
     }
 
     class ShadamaTexture {
@@ -5463,7 +5463,7 @@ highp float random(float seed) {
             symbolsUnitTests();
             typeUnitTests();
             translateUnitTests();
-	    return;
+            return;
         }
 
         if (degaussdemo) {
