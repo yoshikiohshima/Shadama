@@ -115,8 +115,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
   gl_PointSize = 1.0;
 `,
 
-
-
         patchPrologue: {
             float2: `
 uniform sampler2D u_that_x;
@@ -152,9 +150,6 @@ uniform vec3 u_resolution;
 uniform vec2 u_half;
 `};
         
-
-    
-
     var shaders = {
         "drawBreed.vert":
         `#version 300 es
@@ -1282,6 +1277,8 @@ uniform vec2 u_half;
         this.programName = null;
 
         this.readPixelArray = null;
+	this.vec = vec;
+	createSwizzlers(vec, "xyzw");
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -4822,42 +4819,17 @@ Shadama {
             this.w = arity >= 4 ? w | 0 : 0;
         }
 
-        get r() {return this.x;}
-        get g() {return this.y;}
-        get b() {return this.z;}
-        get a() {return this.w;}
-
-        get rg() {return new vec(2, this.x, this.y)}
-        get rb() {return new vec(2, this.x, this.z)}
-        get ra() {return new vec(2, this.x, this.w)}
-
-        get gb() {return new vec(2, this.y, this.z)}
-        get ga() {return new vec(2, this.y, this.w)}
-
-        get ba() {return new vec(2, this.z, this.w)}
-
-        get ba() {return new vec(2, this.z, this.w)}
-
-
-        get rgb() {return new vec(3, this.x, this.y, this.z)}
-        get rga() {return new vec(3, this.x, this.y, this.w)}
-        get rba() {return new vec(3, this.x, this.z, this.w)}
-        get gba() {return new vec(3, this.y, this.z, this.w)}
-
-        get xy() {return new vec(2, this.x, this.y)}
-        get xz() {return new vec(2, this.x, this.z)}
-        get xw() {return new vec(2, this.x, this.w)}
-
-        get yz() {return new vec(2, this.y, this.z)}
-        get yw() {return new vec(2, this.y, this.w)}
-
-        get zw() {return new vec(2, this.z, this.w)}
-
-        get xyz() {return new vec(3, this.x, this.y, this.z)}
-        get xyw() {return new vec(3, this.x, this.y, this.w)}
-        get xzw() {return new vec(3, this.x, this.z, this.w)}
-        get yzw() {return new vec(3, this.y, this.z, this.w)}
-
+	toString() {
+	    var result = "vec" + this.arity + "(";
+	    result += this.x;
+	    if (this.arity == 1) {return result + ")"};
+	    result += ", " + this.y;
+	    if (this.arity == 2) {return result + ")"};
+	    result += ", " + this.z;
+	    if (this.arity == 3) {return result + ")"};
+	    result += ", " + this.w;
+	    if (this.arity == 4) {return result + ")"};
+	}
     }
 
     function arityCheck(a, b, pos) {
@@ -4918,6 +4890,51 @@ Shadama {
     vec.notEqual = function(a, b, pos) {
         arityCheck(a, b, pos);
         return new vec(a.arity, a.x != b.x ? 1 : 0, a.y != b.y ? 1 : 0, a.z != b.z ? 1 : 0, a.w != b.w ? 1 : 0);
+    }
+
+    function createSwizzlers(vec, str4) {
+	var a0;
+	var a1;
+	var a3;
+	var a4;
+
+	function doIt(getter) {
+	    if (getter.length == 1) {
+		var str = `(function ${getter}() {return new vec(1, this.${getter[0]})})`;
+	    } else  if (getter.length == 2) {
+		var str = `(function ${getter}() {return new vec(2, this.${getter[0]}, this.${getter[1]})})`;
+	    } else if (getter.length == 3) {
+		var str = `(function ${getter}() {return new vec(3, this.${getter[0]}, this.${getter[1]}, this.${getter[2]})})`;
+	    } else if (getter.length == 4) {
+		var str = `(function ${getter}() {return new vec(4, this.${getter[0]}, this.${getter[1]}, this.${getter[2]}, this.${getter[3]})})`;
+	    }
+	    var func = eval(str);
+	    Object.defineProperty(vec.prototype, getter, {get: func});
+	};
+	    
+	for (var len = 2; len <= 4; len++) {
+	    for (var i = 0; i < 4; i++) {
+		a1 = str4[i];
+		for (var j = 0; j < 4; j++) {
+		    a2 = str4[j];
+		    if (len == 2) {
+			doIt(a1 + a2);
+			continue;
+		    }
+		    for (var k = 0; k < 4; k++) {
+			a3 = str4[k];
+			if (len == 3) {
+			    doIt(a1 + a2 + a3);
+			    continue;
+			}
+			for (var l = 0; l < 4; l++) {
+			    a4 = str4[l];
+			    doIt(a1 + a2 + a3 + a4);
+			}
+		    }
+		}
+	    }
+	}
     }
 
     class ShadamaTexture {
