@@ -1132,7 +1132,6 @@ uniform vec2 u_half;
                         gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
                         ind++;
                     } else if (val.constructor == vec) {
-                        debugger;
                         switch(val.arity) {
                             case 1:
                             gl.uniform1f(uniLocations["u_scalar_" + k], val.x);
@@ -1316,7 +1315,7 @@ uniform vec2 u_half;
         this.programName = null;
 
         this.readPixelArray = null;
-	this.vec = vec;
+        this.vec = vec;
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -1346,10 +1345,11 @@ uniform vec2 u_half;
         this.compilation = result;
 
         if (!result) {return "";}
-        if (oldProgramName != result["_programName"]) {
+        var newProgramName = result["_programName"];
+        if (oldProgramName != newProgramName) {
             this.resetSystem();
         }
-        this.programName = result["_programName"];
+        this.programName = newProgramName;
         delete result["_programName"];
 
         for (var k in result) {
@@ -3346,7 +3346,7 @@ Shadama {
             "topLevelName",
             {
                 ProgramDecl(_p, s) {
-                    return s.sourceString.slice(1, s.sourceString.length - 1);
+                    return "_programName";
                 },
 
                 Breed(_b, n, _o, fs, _c) {
@@ -3380,7 +3380,16 @@ Shadama {
 
                 Static(_s, n, _o, ns, _c, b) {
                     return n.sourceString;
-                }});
+                }
+            });
+
+        s.addAttribute(
+            "programName",
+            {
+                ProgramDecl(_p, s) {
+                    return s.children[1].sourceString;
+                }
+            });
 
 
         s.addOperation(
@@ -3394,7 +3403,8 @@ Shadama {
                         // program name
                         entry = new Entry();
                         entry.setGlobal(table);
-                        table[p.children[0].symbols(entry)] = entry;
+                        var name = p.children[0].symbols(entry);
+                        table[name] = entry;
                     }
                     for (var i = 0; i< ds.children.length; i++) {
                         entry = new Entry();
@@ -3409,6 +3419,7 @@ Shadama {
                 ProgramDecl(_p, s) {
                     var entry = this.args.entry;
                     entry.setEntryType("_programName");
+                    entry.setInfo(this.programName);
                     return this.topLevelName;
                 },
 
@@ -3816,7 +3827,6 @@ Shadama {
                             // this is when they are accessed as texture
                             if (name === "this" || isOther) {
                                 var type = entry.getType("propIn", name, f.sourceString);
-                                if (!type) {debugger;}
                                 check(type,
                                       f.source.endIdx,
                                       "type not specified");
@@ -3878,7 +3888,7 @@ Shadama {
                         return "vec2";
                     } else if (name == "vec4") {
                         return "vec4";
-		    }
+                    }
                 },
 
                 Actuals_list(h, _c, r) {
@@ -3902,11 +3912,21 @@ Shadama {
                 TopLevel(p, ds) {
                     var table = this.args.table;
                     var result = {};
+
+                    var child = p;
+                    result[p.topLevelName] = p.compile(table)[0];
+
                     for (var i = 0; i < ds.children.length; i++) {
                         var child = ds.children[i];
                         result[child.topLevelName] = child.compile(table);
                     }
                     return result;
+                },
+
+                ProgramDecl(_p, s) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return entry.info;
                 },
 
                 Breed(_b, n, _o, fs, _c) {
@@ -4776,10 +4796,10 @@ Shadama {
 
                     var str = actuals.join(", ");
                     js.push(`env.at('${rcvr}').${selector}(${str})`);
-		},
+                },
 
-    		_terminal() {return []},
-    		empty() {return []}
+                _terminal() {return []},
+                empty() {return []}
         });
     }
 
@@ -4844,17 +4864,17 @@ Shadama {
             this.w = arity >= 4 ? w | 0 : 0;
         }
 
-	toString() {
-	    var result = "vec" + this.arity + "(";
-	    result += this.x;
-	    if (this.arity == 1) {return result + ")"};
-	    result += ", " + this.y;
-	    if (this.arity == 2) {return result + ")"};
-	    result += ", " + this.z;
-	    if (this.arity == 3) {return result + ")"};
-	    result += ", " + this.w;
-	    if (this.arity == 4) {return result + ")"};
-	}
+        toString() {
+            var result = "vec" + this.arity + "(";
+            result += this.x;
+            if (this.arity == 1) {return result + ")"};
+            result += ", " + this.y;
+            if (this.arity == 2) {return result + ")"};
+            result += ", " + this.z;
+            if (this.arity == 3) {return result + ")"};
+            result += ", " + this.w;
+            if (this.arity == 4) {return result + ")"};
+        }
     }
 
     function arityCheck(a, b, pos) {
@@ -4918,26 +4938,26 @@ Shadama {
     }
 
     function createSwizzlers(vec, str4) {
-	function doIt(getter) {
-	    var result = "";
-	    for (var i = 0; i < getter.length; i++) {
-		result += ", this." + getter[i];
-	    }
-	    var str = `(function ${getter}() {return new vec(${getter.length}${result})})`;
-	    var func = eval(str);
-	    Object.defineProperty(vec.prototype, getter, {get: func});
-	};
+        function doIt(getter) {
+            var result = "";
+            for (var i = 0; i < getter.length; i++) {
+                result += ", this." + getter[i];
+            }
+            var str = `(function ${getter}() {return new vec(${getter.length}${result})})`;
+            var func = eval(str);
+            Object.defineProperty(vec.prototype, getter, {get: func});
+        };
 
-	var limit = Math.pow(5, 4);
-	var i = 5;
-	while (i < limit) {
-	    var s = i.toString(5).split("");
-	    if (s.indexOf("0") < 0) {
-		s = s.map((c) => str4[parseInt(c, 10)-1]).join("");
-		doIt(s);
-	    }
-	    i++;
-	}
+        var limit = Math.pow(5, 4);
+        var i = 5;
+        while (i < limit) {
+            var s = i.toString(5).split("");
+            if (s.indexOf("0") < 0) {
+                s = s.map((c) => str4[parseInt(c, 10)-1]).join("");
+                doIt(s);
+            }
+            i++;
+        }
     }
 
     class ShadamaTexture {
@@ -5635,8 +5655,8 @@ highp float random(float seed) {
 
         initCompiler();
 
-	createSwizzlers(vec, "xyzw");
-	createSwizzlers(vec, "rgba");
+        createSwizzlers(vec, "xyzw");
+        createSwizzlers(vec, "rgba");
 
         if (runTests) {
             document.getElementById("bigTitle").innerHTML = "Shadama Tests";
