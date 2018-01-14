@@ -1278,7 +1278,6 @@ uniform vec2 u_half;
 
         this.readPixelArray = null;
 	this.vec = vec;
-	createSwizzlers(vec, "xyzw");
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -4893,47 +4892,25 @@ Shadama {
     }
 
     function createSwizzlers(vec, str4) {
-	var a0;
-	var a1;
-	var a3;
-	var a4;
-
 	function doIt(getter) {
-	    if (getter.length == 1) {
-		var str = `(function ${getter}() {return new vec(1, this.${getter[0]})})`;
-	    } else  if (getter.length == 2) {
-		var str = `(function ${getter}() {return new vec(2, this.${getter[0]}, this.${getter[1]})})`;
-	    } else if (getter.length == 3) {
-		var str = `(function ${getter}() {return new vec(3, this.${getter[0]}, this.${getter[1]}, this.${getter[2]})})`;
-	    } else if (getter.length == 4) {
-		var str = `(function ${getter}() {return new vec(4, this.${getter[0]}, this.${getter[1]}, this.${getter[2]}, this.${getter[3]})})`;
+	    var result = "";
+	    for (var i = 0; i < getter.length; i++) {
+		result += ", this." + getter[i];
 	    }
+	    var str = `(function ${getter}() {return new vec(${getter.length}${result})})`;
 	    var func = eval(str);
 	    Object.defineProperty(vec.prototype, getter, {get: func});
 	};
-	    
-	for (var len = 2; len <= 4; len++) {
-	    for (var i = 0; i < 4; i++) {
-		a1 = str4[i];
-		for (var j = 0; j < 4; j++) {
-		    a2 = str4[j];
-		    if (len == 2) {
-			doIt(a1 + a2);
-			continue;
-		    }
-		    for (var k = 0; k < 4; k++) {
-			a3 = str4[k];
-			if (len == 3) {
-			    doIt(a1 + a2 + a3);
-			    continue;
-			}
-			for (var l = 0; l < 4; l++) {
-			    a4 = str4[l];
-			    doIt(a1 + a2 + a3 + a4);
-			}
-		    }
-		}
+
+	var limit = Math.pow(5, 4);
+	var i = 5;
+	while (i < limit) {
+	    var s = i.toString(5).split("");
+	    if (s.indexOf("0") < 0) {
+		s = s.map((c) => str4[parseInt(c, 10)-1]).join("");
+		doIt(s);
 	    }
+	    i++;
 	}
     }
 
@@ -5631,6 +5608,9 @@ highp float random(float seed) {
         shadama.initFileList();
 
         initCompiler();
+
+	createSwizzlers(vec, "xyzw");
+	createSwizzlers(vec, "rgba");
 
         if (runTests) {
             document.getElementById("bigTitle").innerHTML = "Shadama Tests";
