@@ -197,6 +197,41 @@ uniform vec2 u_half;
             fragColor = v_color;
         }`,
 
+        "drawBreedVec.vert":
+        `#version 300 es
+        layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
+
+        uniform vec2 u_resolution;
+        uniform vec2 u_half;
+
+        uniform sampler2D u_xy;
+        uniform sampler2D u_c;
+
+        out vec4 v_color;
+
+        void main(void) {
+            ivec2 fc = ivec2(a_index);
+            vec2 dPos = texelFetch(u_xy, fc, 0).rg; // (0-resolution, 0-resolution)
+            vec2 normPos = dPos / u_resolution;  // (0-1.0, 0-1.0)
+            vec2 clipPos = (normPos + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            gl_Position = vec4(clipPos, 0, 1.0);
+
+            v_color = texelFetch(u_c, fc, 0);
+            gl_PointSize = 1.0;
+        }`,
+
+        "drawBreedVec.frag":
+        `#version 300 es
+        precision highp float;
+
+        in vec4 v_color;
+        out vec4 fragColor;
+
+        void main(void) {
+            fragColor = v_color;
+        }`,
+
         "drawPatch.vert":
         `#version 300 es
         layout (location = 0) in vec2 a_index;
@@ -618,6 +653,10 @@ uniform vec2 u_half;
 
     function drawBreedProgram() {
         return makePrimitive("drawBreed", ["u_resolution", "u_half", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+    }
+
+    function drawBreedVecProgram() {
+        return makePrimitive("drawBreedVec", ["u_resolution", "u_half", "u_xy", "u_c"], breedVAO);
     }
 
     function drawPatchProgram() {
@@ -2366,7 +2405,7 @@ uniform vec2 u_half;
         }
 
         draw() {
-            var prog = programs["drawBreed"];
+            var prog = programs["drawBreedVec"];
             var t = webglTexture();
 
             if (t) {
@@ -2381,28 +2420,12 @@ uniform vec2 u_half;
             normalBlend();
 
             state.activeTexture(gl.TEXTURE0);
-            state.bindTexture(gl.TEXTURE_2D, this.x);
-            gl.uniform1i(prog.uniLocations["u_x"], 0);
+            state.bindTexture(gl.TEXTURE_2D, this.pos);
+            gl.uniform1i(prog.uniLocations["u_xy"], 0);
 
             state.activeTexture(gl.TEXTURE1);
-            state.bindTexture(gl.TEXTURE_2D, this.y);
-            gl.uniform1i(prog.uniLocations["u_y"], 1);
-
-            state.activeTexture(gl.TEXTURE2);
-            state.bindTexture(gl.TEXTURE_2D, this.r);
-            gl.uniform1i(prog.uniLocations["u_r"], 2);
-
-            state.activeTexture(gl.TEXTURE3);
-            state.bindTexture(gl.TEXTURE_2D, this.g);
-            gl.uniform1i(prog.uniLocations["u_g"], 3);
-
-            state.activeTexture(gl.TEXTURE4);
-            state.bindTexture(gl.TEXTURE_2D, this.b);
-            gl.uniform1i(prog.uniLocations["u_b"], 4);
-
-            state.activeTexture(gl.TEXTURE5);
-            state.bindTexture(gl.TEXTURE_2D, this.a);
-            gl.uniform1i(prog.uniLocations["u_a"], 5);
+            state.bindTexture(gl.TEXTURE_2D, this.color);
+            gl.uniform1i(prog.uniLocations["u_c"], 1);
 
             if (!withThreeJS) {
                 gl.viewport(0, 0, FW, FH);
@@ -3669,7 +3692,7 @@ Shadama {
                     var entry = this.args.entry;
                     var left = l.type(entry);
                     var type = e.type(entry);
-                    check (type, 
+                    check (type,
                            e.source.endIdx,
                            "incomplete type");
 
@@ -3847,14 +3870,15 @@ Shadama {
                     if (name == "sqrt") {
                         check(types.length === 1 && types[0] == "float", n.source.endIdx, "type error");
                         return "float";
-                    }
-                    else if (name == "vec2") {
+                    } else if (name == "vec2") {
                         check((types.length === 1 && types[0] == "vec2") ||
                               (types.length === 2 && types[0] == "float" &&  types[1] == "float"),
                               n.source.endIdx,
                               "type error");
                         return "vec2";
-                    }
+                    } else if (name == "vec4") {
+                        return "vec4";
+		    }
                 },
 
                 Actuals_list(h, _c, r) {
@@ -4752,8 +4776,10 @@ Shadama {
 
                     var str = actuals.join(", ");
                     js.push(`env.at('${rcvr}').${selector}(${str})`);
-            }
+		},
 
+    		_terminal() {return []},
+    		empty() {return []}
         });
     }
 
@@ -5689,6 +5715,7 @@ highp float random(float seed) {
     initFramebuffers();
 
     programs["drawBreed"] = drawBreedProgram();
+    programs["drawBreedVec"] = drawBreedVecProgram();
     programs["drawPatch"] = drawPatchProgram();
     programs["debugPatch"] = debugPatchProgram();
     programs["debugBreed"] = debugBreedProgram();

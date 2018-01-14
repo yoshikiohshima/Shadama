@@ -1,26 +1,11 @@
-breed Turtle (pos:vec2, new:float)
-patch Patch (pos:vec2)
+breed Turtle (pos:vec2, color:vec4)
 
-def foo(patch:object, vec:vec2) {
-    if (vec.x > 0) {
-        patch.pos = this.pos:vec2 + vec;
-    }
-}
-
-def bar(patch:object) {
-  this.pos = patch.pos:vec2
-  var v = patch.pos;
-  this.new = v.x;
+def baz() {
+  this.color = vec4(1, 0, 1, 1);
 }
 
 static x() {
   Turtle.fillSpace("pos", vec2(100, 100))
-}
-
-static y() {
-  Turtle.foo(Patch, vec2(100, 100) + vec2(50, 50))
-}
-
-static z() {
-  Turtle.bar(Patch)
+  Turtle.baz();
+  Turtle.draw();
 }
