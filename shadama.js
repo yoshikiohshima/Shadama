@@ -1097,8 +1097,22 @@ uniform vec2 u_half;
                         state.bindTexture(gl.TEXTURE_2D, val);
                         gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
                         ind++;
-                    } else {
-                        gl.uniform1f(uniLocations["u_scalar_" + k], val);
+                    } else if (val.constructor == vec) {
+                        debugger;
+                        switch(val.arity) {
+                            case 1:
+                            gl.uniform1f(uniLocations["u_scalar_" + k], val.x);
+                            break;
+                            case 2:
+                            gl.uniform2f(uniLocations["u_scalar_" + k], val.x, val.y);
+                            break;
+                            case 3:
+                            gl.uniform3f(uniLocations["u_scalar_" + k], val.x, val.y, val.z);
+                            break;
+                            case 4:
+                            gl.uniform4f(uniLocations["u_scalar_" + k], val.x, val.y, val.z, val.w);
+                            break;
+                        }
                     }
                 }
 
@@ -3496,22 +3510,31 @@ Shadama {
 
                 PrimExpression_field(n, _p, f, optType) {
                     var entry = this.args.entry;
-                    check(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"),
-                          n.source.endIdx,
-                          "you can only use 'this' or incoming patch name");
-                    var name = n.sourceString;
-                    check((entry.type == "method" && (name === "this" || entry.hasVariable(name))) ||
-                          (entry.type == "helper" && entry.hasVariable(name)),
-                          n.source.endIdx,
-                          `variable ${name} is not declared`);
-
-                    var type = null;
-                    if (optType.children.length > 0) {
-                        type = optType.children[0].symbols(entry);
+                    if (entry.type == "method") {
+                        if (n.ctorName === "PrimExpression" &&
+                            (n.children[0].ctorName === "PrimExpression_variable")) {
+                            var name = n.sourceString;
+                            // this is the case when it is left most.
+                            var isOther = entry.param.has(name) &&
+                                entry.getType("param", null, name) == "object";
+                            // this is when they are accessed as texture
+                            if (name === "this" || isOther) {
+                                var type = null;
+                                if (optType.children.length > 0) {
+                                    type = optType.children[0].symbols(entry);
+                                }
+                                entry.add("propIn", n.sourceString, f.sourceString, type);
+                                return;
+                            } else {
+                                check(entry.hasVariable(name),
+                                      n.source.endIdx,
+                                      `unknown variable ${name}`);
+                            }
+                        }
+                    } else if (entry.type == "static") {
                     }
-                    entry.add("propIn", n.sourceString, f.sourceString, type);
                 },
-
+                                
                 PrimExpression_variable(n) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
@@ -3557,6 +3580,26 @@ Shadama {
                     }
                 },
             });
+
+        function isSwizzle(str) {
+            if (!(1 <= str.length && str.length <= 4)) {
+                return false;
+            }
+
+            var arrays = [["x", "y", "z", "w"], ["r", "g", "b", "a"]];
+            for (var j = 0; j < arrays.length; j++) {
+                var ary = arrays[j];
+                if (ary.includes(str[0])) {
+                    for (var i = 1; i < str.length; i++) {
+                        if (!(ary.includes(str[i]))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
 
         function checkBinOp(l, op, r, args) {
             var entry = args.entry;
@@ -3616,13 +3659,12 @@ Shadama {
                         check(type !== null,
                               optI.source.endIdx,
                               "incomplete type");
-			debugger;
                         check(!nType || (nType === type),
                               n.source.endIdx,
                               "type mismatch");
-			if (!nType && type) {
-			    entry.setType("var", null, n.sourceString, type);
-			}
+                        if (!nType && type) {
+                            entry.setType("var", null, n.sourceString, type);
+                        }
                     }
                     return nType;
                 },
@@ -3745,20 +3787,53 @@ Shadama {
 
                 PrimExpression_field(n, _p, f, optType) {
                     var entry = this.args.entry;
-                    var name = n.sourceString;
-                    var type = entry.getType("propIn", name, f.sourceString);
-                    if (!type) {debugger;}
-                    check(type,
-                          f.source.endIdx,
-                          "type not specified");
-                    return type;
+                    
+                    if (entry.type == "method") {
+                        if (n.ctorName === "PrimExpression" &&
+                            (n.children[0].ctorName === "PrimExpression_variable")) {
+                            var name = n.sourceString;
+                            var isOther = entry.param.has(name) &&
+                                entry.getType("param", null, name) == "object";
+                            // this is when they are accessed as texture
+                            if (name === "this" || isOther) {
+                                var type = entry.getType("propIn", name, f.sourceString);
+                                if (!type) {debugger;}
+                                check(type,
+                                      f.source.endIdx,
+                                      "type not specified");
+                                return type;
+                            }
+                        }
+                        var nType = n.type(entry);
+                        check (nType !== "object",
+                               n.source.endIdx,
+                               "compound field access is only possible for vector types");
+                        check(isSwizzle(f.sourceString),
+                              f.source.endIdx,
+                              "field accessor has to be a swizzle accessor");
+                        var type;
+                        switch(f.sourceString.length) {
+                        case 1:
+                            return "float";
+                        case 2:
+                            return "vec2";
+                        case 3:
+                            return "vec3";
+                        case 4:
+                            return "vec4";
+                        }
+                    }
                 },
-
+                                
                 PrimExpression_variable(n) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
+
+                    // hmm. prob'ly better to have a single API
                     var type = entry.getType("var", null, name);
-                    if (!type) {debugger;}
+                    if (!type) {
+                        type = entry.getType("param", null, name);
+                    }
                     check(type,
                           n.source.endIdx,
                           "type not specified");
@@ -4081,12 +4156,12 @@ Shadama {
                     vert.pushWithSpace(n.sourceString);
                     if (i.children.length !== 0) {
                         vert.push(" = ");
-                        i.glsl(entry, vert, frag);
+                        i.glsl_inner(entry, vert, frag);
                     }
                 },
 
                 Initialiser(_a, e) {
-                    e.glsl(this.args.entry, this.args.entry, this.args.entry);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 LeftHandSideExpression_field(n, _p, f) {
@@ -4220,23 +4295,38 @@ Shadama {
                     var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-		    
-		    // need to fix
+
+
+                    // need to fix
                     if (entry.isBuiltin(n.sourceString)) {
                         vert.push(n.sourceString + "." + f.sourceString);
-			return;
-		    }
-                    
-		    var type = entry.getType("propIn", n.sourceString, f.sourceString);
-                    var suffix = entry.swizzle(type);
-                    if (n.sourceString === "this") {
-                        vert.push("texelFetch(" +
-                                  entry.uniform(n.sourceString, f.sourceString) +
-                                  ", ivec2(a_index), 0)." + suffix);
-                    } else {
-                        vert.push("texelFetch(" +
-                                  entry.uniform(n.sourceString, f.sourceString) +
-                                  ", ivec2(_pos), 0)." + suffix);
+                        return;
+                    }
+
+                    if (n.ctorName === "PrimExpression" &&
+                        (n.children[0].ctorName === "PrimExpression_variable")) {
+                        var name = n.sourceString;
+                        var isOther = entry.param.has(name) &&
+                            entry.getType("param", null, name) == "object";
+                        // this is when they are accessed as texture
+                        if (name === "this" || isOther) {
+                            var type = entry.getType("propIn", n.sourceString, f.sourceString);
+                            var suffix = entry.swizzle(type);
+
+                            if (n.sourceString === "this") {
+                                vert.push("texelFetch(" +
+                                          entry.uniform(n.sourceString, f.sourceString) +
+                                          ", ivec2(a_index), 0)." + suffix);
+                            } else {
+                                var v = entry.uniform(n.sourceString, f.sourceString);
+                                vert.push("texelFetch(" +
+                                          v + ", ivec2(_pos), 0)." + suffix);
+                            }
+                        } else {
+                            n.glsl_inner(entry, vert, frag);
+                            vert.push(".");
+                            vert.push(f.sourceString);
+                        }
                     }
                 },
 
@@ -4274,8 +4364,19 @@ Shadama {
             var entry = args.entry;
             var js = args.js;
             
-            var ops = {"+": "add"};
-
+            var ops = {
+                "+": "add",
+                "-": "sub",
+                "*": "mul",
+                "/": "div",
+                "%": "mod",
+                "<": "lt",
+                "<=": "le",
+                ">": "gt",
+                ">=": "ge",
+                "==": "equal",
+                "!=": "notEqual"
+            };
             js.push("vec." + ops[op] + "(");
             l.static(entry, js);
             js.push(", ");
@@ -4357,9 +4458,9 @@ Shadama {
                     var entry = this.args.entry;
                     var js = this.args.js;
                     js.push("if");
-                    js.pushWithSpace("(");
+                    js.pushWithSpace("((");
                     c.static(entry, js);
-                    js.push(")");
+                    js.push(").x)");
                     t.static(entry, js);
                     if (optF.children.length === 0) {return;}
                     js.pushWithSpace("else");
@@ -4416,11 +4517,11 @@ Shadama {
                 },
 
                 LogicalExpression_and(l, _, r) {
-                    staticTransBinOp(l, r, " && ", this.args);
+                    staticTransBinOp(l, r, "&&", this.args);
                 },
 
                 LogicalExpression_or(l, _, r) {
-                    staticTransBinOp(l, r, " || ", this.args);
+                    staticTransBinOp(l, r, "||", this.args);
                 },
 
                 RelationalExpression(e) {
@@ -4428,27 +4529,27 @@ Shadama {
                 },
 
                 RelationalExpression_le(l, _, r) {
-                    staticTransBinOp(l, r, " <= ", this.args);
+                    staticTransBinOp(l, r, "<=", this.args);
                 },
 
                 RelationalExpression_ge(l, _, r) {
-                    staticTransBinOp(l, r, " >= ", this.args);
+                    staticTransBinOp(l, r, ">=", this.args);
                 },
 
                 RelationalExpression_lt(l, _, r) {
-                    staticTransBinOp(l, r, " < ", this.args);
+                    staticTransBinOp(l, r, "<", this.args);
                 },
 
                 RelationalExpression_gt(l, _, r) {
-                    staticTransBinOp(l, r, " > ", this.args);
+                    staticTransBinOp(l, r, ">", this.args);
                 },
 
                 RelationalExpression_equal(l, _, r) {
-                    staticTransBinOp(l, r, " == ", this.args);
+                    staticTransBinOp(l, r, "==", this.args);
                 },
 
                 RelationalExpression_notEqual(l, _, r) {
-                    staticTransBinOp(l, r, " != ", this.args);
+                    staticTransBinOp(l, r, "!=", this.args);
                 },
 
                 AddExpression(e) {
@@ -4456,11 +4557,11 @@ Shadama {
                 },
 
                 AddExpression_plus(l, _, r) {
-                    staticTransBinOp(l, r, " + ", this.args);
+                    staticTransBinOp(l, r, "+", this.args);
                 },
 
                 AddExpression_minus(l, _, r) {
-                    staticTransBinOp(l, r, " - ", this.args);
+                    staticTransBinOp(l, r, "-", this.args);
                 },
 
                 MulExpression(e) {
@@ -4468,15 +4569,15 @@ Shadama {
                 },
 
                 MulExpression_times(l, _, r) {
-                    staticTransBinOp(l, r, " * ", this.args);
+                    staticTransBinOp(l, r, "*", this.args);
                 },
 
                 MulExpression_divide(l, _, r) {
-                    staticTransBinOp(l, r, " / ", this.args);
+                    staticTransBinOp(l, r, "/", this.args);
                 },
 
                 MulExpression_mod(l, _, r) {
-                    staticTransBinOp(l, r, " % ", this.args);
+                    staticTransBinOp(l, r, "%", this.args);
                 },
 
                 UnaryExpression(e) {
@@ -4715,10 +4816,10 @@ Shadama {
                 w = w.x;
             }
 
-            this.x = x | 0;
-            this.y = y | 0;
-            this.z = z | 0;
-            this.w = w | 0;
+            this.x = arity >= 1 ? x | 0 : 0;
+            this.y = arity >= 2 ? y | 0 : 0;
+            this.z = arity >= 3 ? z | 0 : 0;
+            this.w = arity >= 4 ? w | 0 : 0;
         }
 
         get r() {return this.x;}
@@ -4759,11 +4860,64 @@ Shadama {
 
     }
 
-    vec.add = function(a, b, pos) {
-        check (a.arity != b.arity,
+    function arityCheck(a, b, pos) {
+        check(a.arity == b.arity,
                pos,
-               "wrong arity");
-        return new vec(this.arity, a.x + b.x, a.y + b.y, a.z = b.z, a.w + b.w);
+               "arity mismatch");
+    }
+
+    vec.add = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+    }
+
+    vec.sub = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+    }
+
+    vec.mul = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
+    }
+
+    vec.div = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        var x = b.x !== 0 ? a.x / b.x : (a.x >= 0 ? Infinity : -Infinity);
+        var y = b.y !== 0 ? a.y / b.y : (a.y >= 0 ? Infinity : -Infinity);
+        var z = b.z !== 0 ? a.z / b.z : (a.z >= 0 ? Infinity : -Infinity);
+        var w = b.w !== 0 ? a.w / b.w : (a.w >= 0 ? Infinity : -Infinity);
+        return new vec(a.arity, x, y, z, w);
+    }
+
+    vec.lt = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x < b.x ? 1 : 0, a.y < b.y ? 1 : 0, a.z < b.z ? 1 : 0, a.w < b.w ? 1 : 0);
+    }
+
+    vec.le = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x <= b.x ? 1 : 0, a.y <= b.y ? 1 : 0, a.z <= b.z ? 1 : 0, a.w <= b.w ? 1 : 0);
+    }
+
+    vec.gt = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x > b.x ? 1 : 0, a.y > b.y ? 1 : 0, a.z > b.z ? 1 : 0, a.w > b.w ? 1 : 0);
+    }
+
+    vec.ge = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x >= b.x ? 1 : 0, a.y >= b.y ? 1 : 0, a.z >= b.z ? 1 : 0, a.w >= b.w ? 1 : 0);
+    }
+
+    vec.equal = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x == b.x ? 1 : 0, a.y == b.y ? 1 : 0, a.z == b.z ? 1 : 0, a.w == b.w ? 1 : 0);
+    }
+
+    vec.notEqual = function(a, b, pos) {
+        arityCheck(a, b, pos);
+        return new vec(a.arity, a.x != b.x ? 1 : 0, a.y != b.y ? 1 : 0, a.z != b.z ? 1 : 0, a.w != b.w ? 1 : 0);
     }
 
     class ShadamaTexture {

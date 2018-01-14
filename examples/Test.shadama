@@ -2,7 +2,7 @@ breed Turtle (pos:vec2, new:float)
 patch Patch (pos:vec2)
 
 def foo(patch:object, vec:vec2) {
-    patch.pos = this.pos:vec2
+    patch.pos = this.pos:vec2 + vec;
 }
 
 def bar(patch:object) {
