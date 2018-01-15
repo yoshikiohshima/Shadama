@@ -2,12 +2,15 @@ program "X!!"
 
 breed Turtle (pos:vec2, color:vec4)
 
+data Ahiru ("ahiru.png", "image")
+
+on Ahiru => x 
+
 def baz() {
   this.color = vec4(1, 0, 1, 1);
 }
 
 static x() {
-  Turtle.fillSpace("pos", vec2(100, 100))
-  Turtle.baz();
+  Turtle.fillImage("pos", "color", Ahiru);
   Turtle.draw();
 }

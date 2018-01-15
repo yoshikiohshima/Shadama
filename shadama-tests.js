@@ -401,36 +401,36 @@ function grammarUnitTests() {
 function symbolsUnitTests() {
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest("this.x = 3;", "Statement", s,
 		{"propOut.this.x": ["propOut", "this","x", null],
-		 "param.null.other": ["param", null, "other", null]},
+		 "param.null.other": ["param", null, "other", "object"]},
 		entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest("{this.x = 3; other.y = 4;}", "Statement", s,
 		{"propOut.this.x": ["propOut", "this", "x", null],
 		 "propOut.other.y": ["propOut", "other", "y", null],
-		 "param.null.other": ["param", null, "other", null]},
+		 "param.null.other": ["param", null, "other", "object"]},
 		entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest("{this.x = 3; this.x = 4;}", "Statement", s,
 		{"propOut.this.x": ["propOut", "this", "x", null],
-		 "param.null.other": ["param", null, "other", null]},
+		 "param.null.other": ["param", null, "other", "object"]},
 		entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest("{var x = 3; x = x + 3;}", "Block", s,
 		{"var.null.x": ["var", null, "x", null],
-		 "param.null.other": ["param", null, "other", null]},
+		 "param.null.other": ["param", null, "other", "object"]},
 		entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest(`
        if (other.x > 0) {
          this.x = 3;
@@ -439,11 +439,11 @@ function symbolsUnitTests() {
        `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x", null],
 			   "propOut.other.a": ["propOut", "other", "a", null],
 			   "propIn.other.x": ["propIn", "other", "x", null],
-			   "param.null.other": ["param", null, "other", null]},
+			   "param.null.other": ["param", null, "other", "object"]},
 		entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest(`
        if (other.x > 0) {
          this.x = 3;
@@ -456,24 +456,24 @@ function symbolsUnitTests() {
 			   "propOut.other.a": ["propOut", "other", "a", null],
 			   "propOut.this.y": ["propOut", "this", "y", null],
 			   "propIn.other.x": ["propIn", "other", "x", null],
-			   "param.null.other": ["param", null, "other", null]}, entry);
+			   "param.null.other": ["param", null, "other", "object"]}, entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
         "propIn.this.y": ["propIn", "this", "y", null],
         "propOut.this.x": ["propOut" ,"this", "x", null],
         "propOut.other.z": ["propOut" ,"other", "z", null],
         "propIn.this.x": ["propIn" ,"this", "x", null],
-	"param.null.other": ["param", null, "other", null]}, entry);
+	"param.null.other": ["param", null, "other", "object"]}, entry);
 
     var entry = new Entry("method");
-    entry.add("param", null, "other", null);
+    entry.add("param", null, "other", "object");
     symbolsTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
         "propOut.this.x": ["propOut" ,"this", "x", null],
         "propOut.this.y": ["propOut" ,"this", "y", null],
         "propIn.other.x": ["propIn", "other", "x", null],
-	"param.null.other": ["param", null, "other", null]}, entry);
+	"param.null.other": ["param", null, "other", "object"]}, entry);
 
     symbolsTest("def foo(other:object, b:float, c:float) {this.x = 3; this.y = other.x;}", "Method", s, {
         "propIn.other.x": ["propIn", "other", "x", null],
