@@ -2378,40 +2378,103 @@ uniform vec2 u_half;
         }
 
         fillRandom(name, min, max) {
-            var ary = new Float32Array(T * T);
+            var pair = this.own[name];
+            if (pair) {
+                var type = pair[1];
+            }
+
+            if (type == "float") {
+                var ary = new Float32Array(T * T);
+            } else if (type == "vec2") {
+                var ary = new Float32Array(T * T * 2);
+            } else if (type == "vec3") {
+                var ary = new Float32Array(T * T * 3);
+            } else if (type == "vec4") {
+                var ary = new Float32Array(T * T * 4);
+            }
+
             var range = max - min;
             for (var i = 0; i < ary.length; i++) {
                 ary[i] = Math.random() * range + min;
             }
-            updateOwnVariable(this, name, ary);
+            updateOwnVariable(this, name, type, ary);
         }
 
-        fillRandomDir(xName, yName) {
-            var x = new Float32Array(T * T);
-            var y = new Float32Array(T * T);
-            for (var i = 0; i < x.length; i++) {
-                var dir = Math.random() * Math.PI * 2.0;
-                x[i] = Math.cos(dir);
-                y[i] = Math.sin(dir);
+        fillRandomDir(a1, a2) {
+            var xName, yName, xyName;
+            var type;
+            if (typeof a1 == "string" && 
+                typeof a2 == "string") {
+                xName = a1;
+                yName = a2;
+                type = "float";
+            } else if (typeof a1 == "string" && typeof a2 == "undefined") {
+                xyName = a1;
+                type = "vec2";
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
+            if (type == "float") {
+                var x = new Float32Array(T * T);
+                var y = new Float32Array(T * T);
+                for (var i = 0; i < x.length; i++) {
+                    var dir = Math.random() * Math.PI * 2.0;
+                    x[i] = Math.cos(dir);
+                    y[i] = Math.sin(dir);
+                }
+                updateOwnVariable(this, xName, "float", x);
+                updateOwnVariable(this, yName, "float", y);
+            } else {
+                var xy = new Float32Array(T * T * 2);
+                for (var i = 0; i < x.length / 2; i++) {
+                    var dir = Math.random() * Math.PI * 2.0;
+                    var ind = i * 2;
+                    xy[ind + 0] = Math.cos(dir);
+                    xy[ind + 1] = Math.sin(dir);
+                }
+                updateOwnVariable(this, xyName, "vec2", xy);
+            }
         }
 
-        fillRandomDir3(xName, yName, zName) {
-            var x = new Float32Array(T * T);
-            var y = new Float32Array(T * T);
-            var z = new Float32Array(T * T);
-            for (var i = 0; i < x.length; i++) {
-                var angleY = Math.random() * Math.PI * 2.0;
-                var angleX = Math.asin(Math.random() * 2.0 - 1.0);
-                x[i] = Math.sin(angleX);
-                y[i] = Math.cos(angleX) * Math.cos(angleY);
-                z[i] = Math.cos(angleX) * Math.sin(angleY);
+        fillRandomDir3(a1, a2, a3) {
+            var xName, yName, zName, xyzName;
+            var type;
+            if (typeof a1 == "string" && 
+                typeof a2 == "string" &&
+                typeof a3 == "string") {
+                xName = a1;
+                yName = a2;
+                zName = a3;
+                type = "float";
+            } else if (typeof a1 == "string" && typeof a2 == "undefined" && typeof a3 == "undefined") {
+                xyzName = a1;
+                type = "vec3";
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
-            updateOwnVariable(this, zName, z);
+
+            if (type == "float") {
+                var x = new Float32Array(T * T);
+                var y = new Float32Array(T * T);
+                var z = new Float32Array(T * T);
+                for (var i = 0; i < x.length; i++) {
+                    var angleY = Math.random() * Math.PI * 2.0;
+                    var angleX = Math.asin(Math.random() * 2.0 - 1.0);
+                    x[i] = Math.sin(angleX);
+                    y[i] = Math.cos(angleX) * Math.cos(angleY);
+                    z[i] = Math.cos(angleX) * Math.sin(angleY);
+                }
+                updateOwnVariable(this, xName, "float", x);
+                updateOwnVariable(this, yName, "float", y);
+                updateOwnVariable(this, zName, "float", z);
+            } else {
+                var xyz = new Float32Array(T * T * 3);
+                for (var i = 0; i < xyz.length / 3; i++) {
+                    var angleY = Math.random() * Math.PI * 2.0;
+                    var angleX = Math.asin(Math.random() * 2.0 - 1.0);
+                    var ind = i * 3;
+                    xyz[ind+0] = Math.sin(angleX);
+                    xyz[ind+1] = Math.cos(angleX) * Math.cos(angleY);
+                    xyz[ind+2] = Math.cos(angleX) * Math.sin(angleY);
+                }
+                updateOwnVariable(this, xName, "float", xyz);
+            }
         }
 
         fillSpace(a1, a2, a3, a4) {
