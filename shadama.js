@@ -1146,7 +1146,7 @@ uniform vec2 u_half;
 
         function find(list, pair) {
             for (var i = 0; i < list.length; i++) {
-                if (list[i][0] === pair[0] && list[i][1] === pair[1]) {
+                if (list[i][2] === pair[0] && list[i][3] === pair[1]) {
                     return i;
                 }
             }
@@ -1182,7 +1182,6 @@ uniform vec2 u_half;
             var vao = breedVAO;
             var uniLocations = {};
 
-
             var forBreed = entry.forBreed;
             var viewportW = forBreed ? T : FW;
             var viewportH = forBreed ? T : FH;
@@ -1197,8 +1196,8 @@ uniform vec2 u_half;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
-            entry.scalarParamTable.keysAndValuesDo((key, entry) => {
-                var varName = entry[2];
+            entry.scalarParamTable.keysAndValuesDo((key, info) => {
+                var varName = info[2];
                 var uni = "u_scalar_" + varName;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
@@ -1208,26 +1207,34 @@ uniform vec2 u_half;
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-            if (debugName === "x") {
+            if (debugName === "move") {
             }
                 var object = objects["this"];
 
-                var targetTypes = [];
                 var targets = [];
                 outs.forEach(
                     (triple) => {
-                        targets.push(objects[triple[0]][N + triple[1]]);
-                        targetTypes.push(triple[2]);
+			var o = objects[triple[0]];
+			var v = o ? o[N + triple[1]] : null;
+			check(v,
+			      objects._callPosition,
+			      `${triple[1]} does not exist in object ${triple[0]}`);
+                        targets.push(v);
+			var codeType = triple[2];
+			var actualType = objects[triple[0]].fieldType(triple[1]);
+			check(codeType == actualType,
+			      objects._callPosition,
+			      `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
                     }
                 );
 
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
-                    outs.forEach((pair) => {
-                        textureCopy(objects[pair[0]],
-                                    objects[pair[0]][pair[1]],
-                                    objects[pair[0]][N + pair[1]])});
+                    outs.forEach((triple) => {
+                        textureCopy(objects[triple[0]],
+                                    objects[triple[0]][triple[1]],
+                                    objects[triple[0]][N + triple[1]])});
                     setTargetBuffers(framebufferPatch, targets);
                 }
 
@@ -1267,6 +1274,12 @@ uniform vec2 u_half;
                     var glIndex = gl.TEXTURE0 + ind + offset;
                     var k = triple[1];
                     var val = objects[triple[0]][k];
+		    var actualType = objects[triple[0]].fieldType(triple[1]);
+
+		    check(triple[2] == actualType,
+			  objects._callPosition,
+			  `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+
                     state.activeTexture(glIndex);
                     state.bindTexture(gl.TEXTURE_2D, val);
                     gl.uniform1i(uniLocations["u" + "_" + triple[0] + "_" + k], ind + offset);
@@ -1274,27 +1287,39 @@ uniform vec2 u_half;
 
                 for (var k in params) {
                     var val = params[k];
-                    if (val.constructor == WebGLTexture) {
-                        var glIndex = gl.TEXTURE0 + ind + offset;
-                        state.activeTexture(glIndex);
-                        state.bindTexture(gl.TEXTURE_2D, val);
-                        gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
-                        ind++;
-                    } else if (val.constructor == vec) {
+		    var codeType = entry.getType("param", null, k);
+                    if (val.constructor == vec) {
                         switch(val.arity) {
                             case 1:
+			    check(codeType == "float",
+				  objects._callPosition,
+				  `Code expects ${codeType} but got float`);
                             gl.uniform1f(uniLocations["u_scalar_" + k], val.x);
                             break;
                             case 2:
+			    check(codeType == "vec2",
+				  objects._callPosition,
+				  `code expects ${codeType} but got vec2`);
                             gl.uniform2f(uniLocations["u_scalar_" + k], val.x, val.y);
                             break;
                             case 3:
+			    check(codeType == "vec3",
+				  objects._callPosition,
+				  `code expects ${codeType} but got vec2`);
                             gl.uniform3f(uniLocations["u_scalar_" + k], val.x, val.y, val.z);
                             break;
                             case 4:
+			    check(codeType == "vec4",
+				  objects._callPosition,
+				  `code expects ${codeType} but got vec2`);
                             gl.uniform4f(uniLocations["u_scalar_" + k], val.x, val.y, val.z, val.w);
                             break;
                         }
+                    } else if (typeof val == "number") {
+			check(codeType == "float",
+			      objects._callPosition,
+			      `code expects ${codeType} but got float`);
+                        gl.uniform1f(uniLocations["u_scalar_" + k], val);
                     }
                 }
 
@@ -1529,12 +1554,12 @@ uniform vec2 u_half;
                                        entry.insAndParamsAndOuts()];
             }
             if (type === "trigger") {
-                debugger;
                 var info = entry.info;
                 this.triggers[k] = new ShadamaTrigger(info[0], info[1]);
             }
             if (type === "event") {
                 var info = entry.info;
+
 
                 if (info[2] == "image") {
                     this.env.atPut(k, this.loadImage(info[1]));
@@ -1543,7 +1568,7 @@ uniform vec2 u_half;
                 } else if (info[2] == "csv") {
                     this.env.atPut(k, this.loadCSV(info[1]));
                 } else if (info[2] == "") {
-                    this.env.atPut(k, new ShadamaEvent());
+                    this.env.atPut(k, 0);
                 }
                 if (info[2] !== "") {
                     if (newData.length === 0) {
@@ -1855,7 +1880,7 @@ uniform vec2 u_half;
             var y = FH - (e.clientY + diffY - top) / fullScreenScale;
             //  console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
             //  console.log("x " + x + " y: " + y);
-            that.env.atPut(symbol, {x: x,  y: y, time: that.env["time"]});
+            that.env.atPut(symbol, {x: x,  y: y, time: that.env.at("time")});
         }
 
         aCanvas.addEventListener("mousemove", function(e) {
@@ -2237,7 +2262,7 @@ uniform vec2 u_half;
                 .map((k)=>`${k}:${printNum(obj[k])}`);
             return `{${props.join(' ')}}`;
         }
-        var list = Object.getOwnPropertyNames(that.env.keys())
+        var list = that.env.keys()
             .sort()
 //            .filter(filter)
             .map((k)=>`${k}: ${print(that.env.at(k))}`);
@@ -2393,6 +2418,13 @@ uniform vec2 u_half;
                 var ary = new Float32Array(T * T * 4);
             }
 
+            if (typeof max !== "number") {
+                max = max.x;
+            }
+            if (typeof min !== "number") {
+                min = min.x;
+            }
+
             var range = max - min;
             for (var i = 0; i < ary.length; i++) {
                 ary[i] = Math.random() * range + min;
@@ -2424,7 +2456,7 @@ uniform vec2 u_half;
                 updateOwnVariable(this, yName, "float", y);
             } else {
                 var xy = new Float32Array(T * T * 2);
-                for (var i = 0; i < x.length / 2; i++) {
+                for (var i = 0; i < xy.length / 2; i++) {
                     var dir = Math.random() * Math.PI * 2.0;
                     var ind = i * 2;
                     xy[ind + 0] = Math.cos(dir);
@@ -2889,6 +2921,14 @@ uniform vec2 u_half;
             return new ShadamaEvent().setValue(val);
         }
 
+	fieldType(name) {
+	    var pair = this.own[name];
+	    if (pair) {
+		return pair[1];
+	    }
+	    return null;
+	}
+
         setCount(n) {
             var oldCount = this.count;
             if (typeof n != "number") { //vec
@@ -3029,6 +3069,14 @@ uniform vec2 u_half;
             var val = shadama.readValues(this, n, x, y, w, h);
             return new ShadamaEvent().setValue(val);
         }
+
+	fieldType(name) {
+	    var pair = this.own[name];
+	    if (pair) {
+		return pair[1];
+	    }
+	    return null;
+	}
     }
 
     Shadama.prototype.cleanUpEditorState = function() {
@@ -3161,10 +3209,10 @@ uniform vec2 u_half;
 
     Shadama.prototype.step = function() {
         this.env.atPut("time", (window.performance.now() / 1000) - this.loadTime);
-        for (var k in this.triggers) {
-            this.triggers[k].maybeFire(this);
-        }
         try {
+            for (var k in this.triggers) {
+		this.triggers[k].maybeFire(this);
+            }
             for (var k in this.steppers) {
                 var func = this.statics[k];
                 if (func) {
@@ -3361,9 +3409,9 @@ Shadama {
     | MulExpression
 
   MulExpression
-    = MulExpression "*" PrimExpression  -- times
-    | MulExpression "/" PrimExpression  -- divide
-    | MulExpression "%" PrimExpression  -- mod
+    = MulExpression "*" UnaryExpression  -- times
+    | MulExpression "/" UnaryExpression  -- divide
+    | MulExpression "%" UnaryExpression  -- mod
     | UnaryExpression
 
   UnaryExpression
@@ -3451,12 +3499,10 @@ Shadama {
     var g;
     var s;
 
-    var globalTable; // This is a bad idea but then I don't know how to keep the reference to global.
     var primitives; // {Receiver: {selector: [[[name, type], ...]]}}
 
     function initPrimitiveTable() {
         var data = [
-            ["Display", "clear", []],
             ["breed", "draw", []],
             ["patch", "draw", []],
             ["breed", "render", []],
@@ -3495,7 +3541,8 @@ Shadama {
             ["breed", "fillImage", [["xyName", "string"],
                                     ["colorName", "string"],
                                     ["imageData", "object"]]],
-            ["display", "playSound", ["name", "object"]],
+            ["display", "clear", []],
+            ["display", "playSound", [["name", "object"]]],
             ["display", "loadProgram", [["name", "string"]]],
             ["breed", "loadData", ["data", "object"]],
             ["breed", "readValues", [["name", "string"],
@@ -3710,6 +3757,7 @@ Shadama {
                 Method(_d, n, _o, ns, _c, b) {
                     var entry = this.args.entry;
                     entry.setEntryType("method");
+                    entry.setMethodPos(n.source.endIdx);
                     entry.setPositionType("vec2");
                     ns.symbols(entry);
                     b.symbols(entry);
@@ -3885,7 +3933,9 @@ Shadama {
 
         function checkBinOp(l, op, r, args) {
             var entry = args.entry;
-            check(l.type(entry) == r.type(entry),
+            check(l.type(entry) == r.type(entry)
+		  || l.type(entry) == "float"
+		  || r.type(entry) == "float",
                   op.source.endIdx,
                   "operand type mismatch for operator ${op.sourceString}");
             return l.type(entry);
@@ -3933,7 +3983,8 @@ Shadama {
                     var entry = this.args.entry;
                     var nType = null;
                     if (optType.children.length > 0) {
-                        nType = optType.symbols(entry);
+                        nType = optType.children[0].symbols(entry);
+                        entry.setType("var", null, n.sourceString, nType);
                     }
                     if (optI.children.length > 0) {
                         var type = optI.children[0].type(entry);
@@ -3965,7 +4016,7 @@ Shadama {
                     var isVar = l.children[0].ctorName == "LeftHandSideExpression_ident";
                     if (isVar) {
                         if (!left) {
-                            entry.setType("var", left[1], left[2], type);
+                            entry.setType("var", null, l.sourceString, type);
                         }
                     } else { // field
                         if (!left) {
@@ -4075,7 +4126,13 @@ Shadama {
                             var name = n.sourceString;
                             var isOther = entry.param.has(name) &&
                                 entry.getType("param", null, name) == "object";
+			    var type;
                             // this is when they are accessed as texture
+			    
+			    if (optType.children.length > 0) {
+				type = optType.children[0].type(entry);
+				entry.setType("propIn", name, f.sourceString, type);
+			    }
                             if (name === "this" || isOther) {
                                 var type = entry.getType("propIn", name, f.sourceString);
                                 check(type,
@@ -4141,10 +4198,40 @@ Shadama {
                     if (as.children[0].ctorName === "Actuals_list") {
                         types = as.children[0].type(entry);
                     }
-                    if (name == "sqrt") {
-                        check(types.length === 1 && types[0] == "float", n.source.endIdx, "type error");
-                        return "float";
-                    } else if (name == "vec2" || name == "vec3" || name == "vec4") {
+
+		    var oneArgs = ["sqrt", "floor", "length", "exp", "log", "cos", "sin"];
+		    for (var i = 0; i < oneArgs.length; i++) {
+			var maybe = oneArgs[i];
+			if (name == maybe) {
+                            check(types.length === 1,
+				  n.source.endIdx, "type error");
+                            return types[0];
+			}
+		    }
+
+                    if (name == "mod") {
+                        check(types.length === 2 &&
+			      (types[0] == types[1] || types[1] == "float"),
+			      n.source.endIdx, "type error");
+                        return types[0];
+		    }
+
+		    var twoToFloat = ["dot", "distance"];
+		    for (var i = 0; i < twoToFloat.length; i++) {
+			var maybe = twoToFloat[i];
+			if (name == maybe) {
+                            check(types.length === 2 && types[0] == types[1],
+				  n.source.endIdx, "type error");
+                            return types[0];
+			}
+		    }
+
+		    if (name == "random") {
+                        check(types.length === 1 && types[0] == "float",
+			      n.source.endIdx, "type error");
+                        return types[0];
+                    }
+		    if (name == "vec2" || name == "vec3" || name == "vec4") {
                         check(sumArity(types) == arity(name),
                               n.source.endIdx,
                               `arguments should total in arity ${arity(name)}`);
@@ -4160,6 +4247,10 @@ Shadama {
                         result.push(r.children[i].type(entry));
                     }
                     return result;
+                },
+
+                ColonType(_c, t) {
+                    return t.sourceString;;
                 },
 
                 ident(_h, _r) {return null},
@@ -4306,9 +4397,9 @@ Shadama {
 
                     vert.crIfNeeded();
 
-//                    entry.primitivesAndHelpers().forEach((n) => {
-//                        vert.push(n);
-//                    });
+                    entry.primitivesAndHelpers().forEach((n) => {
+                        vert.push(n);
+                    });
 
                     vert.push("void main()");
 
@@ -4644,12 +4735,12 @@ Shadama {
                                 vert.push("texelFetch(" +
                                           v + ", ivec2(_pos), 0)." + suffix);
                             }
-                        } else {
-                            n.glsl_inner(entry, vert, frag);
-                            vert.push(".");
-                            vert.push(f.sourceString);
+			    return;
                         }
-                    }
+		    }
+                    n.glsl_inner(entry, vert, frag);
+                    vert.push(".");
+                    vert.push(f.sourceString);
                 },
 
                 PrimExpression_variable(n) {
@@ -4697,7 +4788,9 @@ Shadama {
                 ">": "gt",
                 ">=": "ge",
                 "==": "equal",
-                "!=": "notEqual"
+                "!=": "notEqual",
+                "&&": "and",
+                "||": "or",
             };
             js.push("vec." + ops[op] + "(");
             l.static(entry, js);
@@ -4798,13 +4891,18 @@ Shadama {
                 VariableDeclaration(n, optT, i) {
                     var entry = this.args.entry;
                     var js = this.args.js;
-                    var value;
-                    if (i.children.length !== 0) {
-                        value = i.static(entry, js);
-                    } else {
-                        value = 'null';
-                    }
-                    js.push(`env.atPut(${n.sourceString}, (${value}));`);
+
+                    js.push("env.atPut('");
+		    js.push(n.sourceString);
+		    js.push("', ");
+	            js.push("(");
+		    if (i.children.length > 0) {
+			i.static(entry, js);
+		    } else {
+			js.push("null");
+		    }
+	            js.push(")");
+	            js.push(")");
                 },
 
                 AssignmentStatement(l, _a, e, _) {
@@ -4814,8 +4912,13 @@ Shadama {
                     check(left && (left.type == "event"),
                           l.source.endIdx,
                           `assignment into undeclared static variable or event ${l.sourceString}`);
-                    var val = e.static(entry, js);
-                    js.push(`env.setValue(${l.sourceString}, (${val}));`);
+                    js.push("env.atPut('");
+		    js.push(l.sourceString);
+		    js.push("', ");
+	            js.push("(");
+	            e.static(entry, js);
+	            js.push(")");
+	            js.push(")");
                 },
 
                 Initialiser(_a, e) {
@@ -4908,8 +5011,11 @@ Shadama {
 
                 UnaryExpression_minus(_p, e) {
                     var js = this.args.js;
-                    js.pushWithSpace("-");
+                    js.pushWithSpace("vec.uminus(");
                     e.static(this.args.entry, this.args.js);
+                    js.pushWithSpace(", ");
+		    js.push("" + e.source.endIdx);
+                    js.pushWithSpace(")");
                 },
 
                 UnaryExpression_not(_p, e) {
@@ -5002,11 +5108,11 @@ Shadama {
                     var obj = global[rcvr];
                     var selector = n.sourceString;
 
-                    check(obj, 
+                    check(obj || rcvr == "Display", 
                         r.source.endIdx,
                         `${rcvr} is not known`);
 
-                    var type = obj.type;
+                    var type = obj ? obj.type : "display";
 
                     var actuals = as.static(entry, null);
 
@@ -5047,6 +5153,7 @@ Shadama {
     var formals = data[1][1];
     var outs = data[1][2]; //[[object, <fieldName>]]
     var objects = {};
+    objects._callPosition = ${n.source.endIdx};
     objects.this = env.at('${rcvr}');
     ${objectsString.contents()}
     var params = {};
@@ -5060,11 +5167,10 @@ Shadama {
 
                     var primArgsList;
                     if (rcvr === "Display") {
-                        primArgsList = primitives["Display"][selector];
+                        primArgsList = primitives["display"][selector];
                     } else if (type == "breed" || type == "patch" || type == "static") {
                         primArgsList = primitives[type][selector];
                     }
-
 
                     check(primArgsList,
                           as.source.endIdx,
@@ -5102,7 +5208,7 @@ Shadama {
 
     function shouldFire(trigger, env) {
         if (typeof trigger == "string") {
-            var evt = env[trigger];
+            var evt = env.at(trigger);
             return evt && evt.ready;
         } else {
             var key = trigger[0];
@@ -5118,7 +5224,7 @@ Shadama {
 
     function resetTrigger(trigger, env) {
         if (typeof trigger == "string") {
-            var evt = env[trigger];
+            var evt = env.at(trigger);
             if (evt) {
                 evt.ready = false;
             }
@@ -5150,6 +5256,11 @@ Shadama {
             this.z = arity >= 3 ? values[2] | 0 : 0;
             this.w = arity >= 4 ? values[3] | 0 : 0;
         }
+
+	r() {return this.x}
+	g() {return this.y}
+	b() {return this.z}
+	a() {return this.w}
 
         valuesInto(val, ary) {
             if (typeof val === "number") {
@@ -5190,58 +5301,87 @@ Shadama {
                "arity mismatch");
     }
 
+    function arityCheckAndDo(a, b, pos, func) {
+	if (typeof a == "number") {
+	    a = new vec(1, a);
+	}
+	if (typeof b == "number") {
+	    b = new vec(1, b);
+	}
+        check(a.arity == b.arity,
+               pos,
+               "arity mismatch");
+	return func(a, b);
+    }
+
     vec.add = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+        return arityCheckAndDo(a, b, pos, (x, y) => 
+			  new vec(x.arity, x.x + y.x, x.y + y.y, x.z + y.z, x.w + y.w));
     }
 
     vec.sub = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+        return arityCheckAndDo(a, b, pos, (x, y) => 
+			       new vec(x.arity, x.x - y.x, x.y - y.y, x.z - y.z, x.w - y.w));
     }
 
     vec.mul = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x * y.x, x.y * y.y, x.z * y.z, x.w * y.w));
     }
 
     vec.div = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        var x = b.x !== 0 ? a.x / b.x : (a.x >= 0 ? Infinity : -Infinity);
-        var y = b.y !== 0 ? a.y / b.y : (a.y >= 0 ? Infinity : -Infinity);
-        var z = b.z !== 0 ? a.z / b.z : (a.z >= 0 ? Infinity : -Infinity);
-        var w = b.w !== 0 ? a.w / b.w : (a.w >= 0 ? Infinity : -Infinity);
-        return new vec(a.arity, x, y, z, w);
+        return arityCheckAndDo(a, b, pos, (l, r) => {
+            var x = r.x !== 0 ? l.x / r.x : (l.x >= 0 ? Infinity : -Infinity);
+            var y = r.y !== 0 ? l.y / r.y : (l.y >= 0 ? Infinity : -Infinity);
+            var z = r.z !== 0 ? l.z / r.z : (l.z >= 0 ? Infinity : -Infinity);
+            var w = r.w !== 0 ? l.w / r.w : (l.w >= 0 ? Infinity : -Infinity);
+            return new vec(l.arity, x, y, z, w);
+	});
+    }
+
+    vec.uminus = function(a, pos) {
+	if (typeof a == "number") {return new vec(1, -a)}
+        return new vec(a.arity, -a.x, -a.y, -a.z, -a.w);
     }
 
     vec.lt = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x < b.x ? 1 : 0, a.y < b.y ? 1 : 0, a.z < b.z ? 1 : 0, a.w < b.w ? 1 : 0);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x < y.x ? 1 : 0, x.y < y.y ? 1 : 0, x.z < y.z ? 1 : 0, x.w < y.w ? 1 : 0));
     }
 
     vec.le = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x <= b.x ? 1 : 0, a.y <= b.y ? 1 : 0, a.z <= b.z ? 1 : 0, a.w <= b.w ? 1 : 0);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x <= y.x ? 1 : 0, x.y <= y.y ? 1 : 0, x.z <= y.z ? 1 : 0, x.w <= y.w ? 1 : 0));
     }
 
     vec.gt = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x > b.x ? 1 : 0, a.y > b.y ? 1 : 0, a.z > b.z ? 1 : 0, a.w > b.w ? 1 : 0);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			new vec(x.arity, x.x > y.x ? 1 : 0, x.y > y.y ? 1 : 0, x.z > y.z ? 1 : 0, x.w > y.w ? 1 : 0));
     }
 
     vec.ge = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x >= b.x ? 1 : 0, a.y >= b.y ? 1 : 0, a.z >= b.z ? 1 : 0, a.w >= b.w ? 1 : 0);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x >= y.x ? 1 : 0, x.y >= y.y ? 1 : 0, x.z >= y.z ? 1 : 0, x.w >= y.w ? 1 : 0));
     }
 
     vec.equal = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x == b.x ? 1 : 0, a.y == b.y ? 1 : 0, a.z == b.z ? 1 : 0, a.w == b.w ? 1 : 0);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x == y.x ? 1 : 0, x.y == y.y ? 1 : 0, x.z == y.z ? 1 : 0, x.w == y.w ? 1 : 0));
     }
 
     vec.notEqual = function(a, b, pos) {
-        arityCheck(a, b, pos);
-        return new vec(a.arity, a.x != b.x ? 1 : 0, a.y != b.y ? 1 : 0, a.z != b.z ? 1 : 0, a.w != b.w ? 1 : 0);
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x != y.x ? 1 : 0, x.y != y.y ? 1 : 0, x.z != y.z ? 1 : 0, x.w != y.w ? 1 : 0));
+    }
+
+    vec.or = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x || y.x ? 1 : 0, x.y || y.y ? 1 : 0, x.z || y.z ? 1 : 0, x.w || y.w ? 1 : 0));
+    }
+
+    vec.and = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+			       new vec(x.arity, x.x && y.x ? 1 : 0, x.y && y.y ? 1 : 0, x.z && y.z ? 1 : 0, x.w && y.w ? 1 : 0));
     }
 
     function createSwizzlers(vec, str4) {
@@ -5500,6 +5640,10 @@ Shadama {
             // case event: url and datatype
 
         }
+
+	setMethodPos(pos) {
+	    this.methodPos = pos;
+	}
 
         setPositionType(type) {
             this.positionType = type;
@@ -5768,7 +5912,7 @@ Shadama {
         }
 
         primitivesAndHelpers() {
-            return this.allUsedHelpersAndPrimitives.keysAndValuesCollect((n, v) => {
+            return this.usedHelpersAndPrimitives.keysAndValuesCollect((n, v) => {
                 if (n === "random") {
                     return `
 highp float random(float seed) {
@@ -5780,8 +5924,6 @@ highp float random(float seed) {
    return fract(sin(sn) * c);
 }
 `
-                } else if (globalTable[n] && globalTable[n].type == "helper") {
-                    return globalTable[n].helperCode;
                 } else {
                     return "";
                 }

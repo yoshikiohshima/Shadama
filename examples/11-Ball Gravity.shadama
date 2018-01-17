@@ -1,89 +1,68 @@
 program "Ball Gravity"
 
-breed Turtle (x, y, dx, dy, r, g, b, a)
-breed Filler (x, y)
-patch Field (nx, ny, r, g, b, a)
+breed Turtle (pos:vec2, d:vec2, color:vec4)
+breed Filler (pos:vec2)
+patch Field (n:vec2, color:vec4)
 
 def setColor() {
-  this.r = this.x / 512.0;
-  this.g = this.y / 512.0;
-  this.b = 0.0;
-  this.a = 1.0;
+  this.color = vec4(this.pos:vec2 / 512, 0, 1)
 }
 
-def clear(field) {
-  field.r = 0.0;
-  field.g = 0.0;
-  field.b = 0.0;
-  field.a = 0.0;
-  field.nx = 0.0;
-  field.ny = 0.0;
+def clear(field:object) {
+  field.color = vec4(0, 0, 0, 0)
+  field.n = vec2(0, 0)
 }
 
 def d() {
-  this.dx = 0;
-  this.dy = 0;
+  this.d = vec2(0, 0)
 }
 
-def fillCircle(cx, cy, r, field) {
-  var dx = this.x - cx;
-  var dy = this.y - cy;
-  var dr = sqrt(dx * dx + dy * dy);
+def fillCircle(c:vec2, r:float, field:object) {
+  var d = this.pos:vec2 - c
+  var dr = length(d)
   if (dr < r) {
-    field.r = 0.2;
-    field.g = 0.2;
-    field.b = 0.8;
-    field.a = 1.0;
-    field.nx = dx / r;
-    field.ny = dy / r;
+    field.color = vec4(0.2, 0.2, 0.8, 1)
+    field.n = d / r;
   }
 }
 
-def bounce(field, mousex, mousey) {
-  var nx = field.nx;
-  var ny = field.ny;
-  var dx = this.dx;
-  var dy = this.dy;
-  var dot = dx * nx + dy * ny;
-  var rx = dx;
-  var ry = dy;
-  var origV = sqrt(dx * dx + dy * dy);
+def bounce(field:object, mouse:vec2) {
+  var n = field.n:vec2
+  var d = this.d:vec2
+  var dot = dot(d, n)
+  var r = d
+  var origV = length(d)
 
-  var newX = this.x + dx;
-  var newY = this.y + dy;
+  var new = this.pos:vec2 + d
+  var newX = new.x
+  var newY = new.y
 
-  this.x = newX;
-  this.y = newY;
+  this.pos = new
   
-  var offX = newX - mousex;
-  var offY = newY - mousey;
+  var off = new - mouse;
   
-  var dist2 = sqrt(offX * offX + offY * offY);
-  var gx;
-  var gy;
+  var dist2 = length(off)
+  var g:vec2;
   if (dist2 > 1.0) {
-    gx = -(offX/dist2) * 0.1;
-    gy = -(offY/dist2) * 0.1;
+    g = -(off/dist2) * 0.1
   } else {
-    gx = 0;
-    gy = 0;
+    g = vec2(0, 0)
   }
-  this.dx = rx + gx;
-  this.dy = ry + gy;
+  this.d = r + g
 }
 
 static setup() {
-  Filler.fillSpace("x", "y", 512, 512);
-  Turtle.fillSpace("x", "y", 512, 512);
-  Turtle.d();
-  Turtle.setColor();
+  Filler.fillSpace("pos", vec2(512, 512))
+  Turtle.fillSpace("pos", vec2(512, 512))
+  Turtle.d()
+  Turtle.setColor()
 }
 
 static loop() {
   Filler.clear(Field);
-  Filler.fillCircle(mousemove.x, mousemove.y, 20, Field);
-  Turtle.bounce(Field, mousemove.x, mousemove.y);
-  Display.clear();
-  Field.draw();
-  Turtle.draw();
+  Filler.fillCircle(vec2(mousemove.x, mousemove.y), 20, Field);
+  Turtle.bounce(Field, vec2(mousemove.x, mousemove.y))
+  Display.clear()
+  Field.draw()
+  Turtle.draw()
 }

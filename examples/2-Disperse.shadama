@@ -1,38 +1,28 @@
 program "Disperse"
-breed Turtle (x, y, dx, dy, r, g, b, a)
+breed Turtle (pos:vec2, d:vec2, color:vec4)
 
 def setColor() {
-  this.r = this.x / 512.0;
-  this.g = this.y / 512.0;
-  this.b = 0.0;
-  this.a = 1.0;
+  this.color = vec4(this.pos:vec2 / 512, 0, 1)
 }
 
 def move() {
-  var dx = this.dx;
-  var dy = this.dy;
-  this.x = this.x + dx;
-  this.y = this.y + dy;
-  // uncomment this to simulate constant acceleration
-//  this.dy = dy - 0.01;
+  var d = this.d:vec2
+  this.pos = this.pos:vec2 + d
+  this.d = d - vec2(0, 0.01)
 }
 
 static setup() {
-  Turtle.setCount(300000);
-  Turtle.fillRandom("x", 0, 512);
-  Turtle.fillRandom("y", 0, 512);
+  Turtle.setCount(300000)
+  Turtle.fillRandom("pos", 0, 512)
 
-//  If you want to start them nicely aligned, use the following line instead of above three.
-//  Turtle.fillSpace("x", "y", 512, 512);
-
-  Turtle.fillRandomDir("dx", "dy");
-  Turtle.setColor();
-  Turtle.draw();
+  Turtle.fillRandomDir("d")
+  Turtle.setColor()
+  Turtle.draw()
 }
 
 static step() {
   // Click on the clock by the label "step" on the right to tick this static function
-  Display.clear();
-  Turtle.move();
-  Turtle.draw();
+  Display.clear()
+  Turtle.move()
+  Turtle.draw()
 }
