@@ -96,15 +96,47 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 `,
             vec2: `
   vec2 _pos = texelFetch(u_that_xy, ivec2(a_index), 0).rg;
-`,},
+`,
+
+            float3: `
+  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
+  float _z = texelFetch(u_that_z, ivec2(a_index), 0).r;
+  _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
+  _y = floor(_y / v_step); // 8
+  _z = floor(_z / v_step); // 8
+
+  int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
+  vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
+`,
+
+            vec3: `
+  vec3 _xyz = texelFetch(u_that_xyz, ivec2(a_index), 0).xyz;
+  float _x = _xyz.x;
+  float _y = _xyz.y;
+  float _z = _xyz.z;
+  _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
+  _y = floor(_y / v_step); // 8
+  _z = floor(_z / v_step); // 8
+
+  int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
+  vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
+`
+},
 
         noPatchInput:`
   vec2 _pos = a_index;
 `,
 
-        blockPatchPrologue: `
+        blockPatchPrologue: {
+	    vec2: `
   vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
 `,
+
+	    vec3: `
+  vec2 oneToOne = ((_pos / u_resolution.xy) + u_half) * 2.0 - 1.0;
+`
+},
 
         blockBreedPrologue: `
   vec2 oneToOne = (b_index + u_half) * 2.0 - 1.0;
@@ -2069,7 +2101,7 @@ uniform vec3 v_resolution;
                 dir = name;
             } else {
                 if (location.startsWith("http")) {
-                    if (frame) {
+                    if (frame && frame.dataPath) {
                         var dir = frame.dataPath + name;
                     } else {
                         var slash = location.lastIndexOf("/");
@@ -2796,10 +2828,10 @@ uniform vec3 v_resolution;
                     for (var i = 1; i < data.length; i++) {
                         ary[i - 1] = data[i][ind];
                     }
-                    updateOwnVariable(this, k, ary);
+                    updateOwnVariable(this, k, "float", ary);
                 }
-                this.setCount(data.length - 1);
             }
+            this.setCount(data.length - 1);
         }
 
         draw() {
@@ -3631,7 +3663,7 @@ Shadama {
             ["display", "clear", []],
             ["display", "playSound", [["name", "object"]]],
             ["display", "loadProgram", [["name", "string"]]],
-            ["breed", "loadData", ["data", "object"]],
+            ["breed", "loadData", [["data", "object"]]],
             ["breed", "readValues", [["name", "string"],
                                      ["x", "float"],
                                      ["y", "float"],
@@ -4020,12 +4052,16 @@ Shadama {
 
         function checkBinOp(l, op, r, args) {
             var entry = args.entry;
+	    var lType = l.type(entry);
+	    var rType = r.type(entry);
             check(l.type(entry) == r.type(entry)
-                  || l.type(entry) == "float"
-                  || r.type(entry) == "float",
+                  || lType == "float"
+                  || rType == "float",
                   op.source.endIdx,
                   "operand type mismatch for operator ${op.sourceString}");
-            return l.type(entry);
+            return (lType != "float")
+		? lType
+                : rType
         };
 
         s.addOperation(
@@ -4286,7 +4322,7 @@ Shadama {
                         types = as.children[0].type(entry);
                     }
 
-                    var oneArgs = ["sqrt", "floor", "length", "exp", "log", "cos", "sin"];
+                    var oneArgs = ["sqrt", "floor", "length", "exp", "log", "cos", "sin", "acos", "asin"];
                     for (var i = 0; i < oneArgs.length; i++) {
                         var maybe = oneArgs[i];
                         if (name == maybe) {
@@ -4309,7 +4345,7 @@ Shadama {
                         if (name == maybe) {
                             check(types.length === 2 && types[0] == types[1],
                                   n.source.endIdx, "type error");
-                            return types[0];
+                            return "float";
                         }
                     }
 
@@ -4538,7 +4574,7 @@ Shadama {
                     vert.addTab();
 
                     if (entry.hasPatchInput) {
-                        vert.push(fragments.patchInput.vec2);
+                        vert.push(fragments.patchInput[dimension == 2 ? "vec2" : "vec3"]);
                     } else {
                         vert.push(fragments.noPatchInput);
                     }
@@ -4546,7 +4582,7 @@ Shadama {
                     if (entry.forBreed) {
                         vert.push(fragments.blockBreedPrologue);
                     } else {
-                        vert.push(fragments.blockPatchPrologue);
+                        vert.push(fragments.blockPatchPrologue[dimension == 2 ? "vec2" : "vec3"]);
                     }
 
                     entry.scalarParamTable.keysAndValuesDo((key, value) => {
@@ -5755,7 +5791,7 @@ Shadama {
                     if (this.positionType == "float") {
                         addition = [["u_that_x", "float"], ["u_that_y", "float"], ["u_that_z", "float"], ["v_step", "float"], ["v_resolution", "vec3"]];
                     } else if (this.positionType == "vec3") {
-                        addition = [["u_that_xyz", "vec3"], ["v_step", "flaot"], ["v_resolution", "vec3"]];
+                        addition = [["u_that_xyz", "vec3"], ["v_step", "float"], ["v_resolution", "vec3"]];
                     }
                 } else if (dimension == 2) {
                     if (this.positionType == "float") {
@@ -6210,7 +6246,7 @@ highp float random(float seed) {
         document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
     }
 
-    if (!editor) {
+    if (!editor && domTools) {
         function words(str) { let o = {}; str.split(" ").forEach((s) => o[s] = true); return o; }
         CodeMirror.defineMIME("text/shadama", {
             name: "clike",
@@ -6227,9 +6263,6 @@ highp float random(float seed) {
         });
         shadama.setEditor(cm, "CodeMirror");
     }
-
-    shadama = new Shadama();
-    shadama.initDisplay();
 
     if (!withThreeJS) {
         shadama.initEnv(function() {

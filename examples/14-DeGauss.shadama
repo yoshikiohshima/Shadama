@@ -52,7 +52,7 @@ def degauss(step:float, begin:float) {
     var arg = -2.4 - timeOff;
 
 
-    x = x + dot(off / 100, vec2(sin(step * 3, 1)))
+    x = x + dot(off / 100, vec2(sin(step * 3), 1))
     var c:float = cos(x) * exp(arg);
     var s:float = sin(x) * exp(arg);
   
