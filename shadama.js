@@ -129,11 +129,11 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 `,
 
         blockPatchPrologue: {
-	    vec2: `
+            vec2: `
   vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
 `,
 
-	    vec3: `
+            vec3: `
   vec2 oneToOne = ((_pos / u_resolution.xy) + u_half) * 2.0 - 1.0;
 `
 },
@@ -4052,15 +4052,15 @@ Shadama {
 
         function checkBinOp(l, op, r, args) {
             var entry = args.entry;
-	    var lType = l.type(entry);
-	    var rType = r.type(entry);
+            var lType = l.type(entry);
+            var rType = r.type(entry);
             check(l.type(entry) == r.type(entry)
                   || lType == "float"
                   || rType == "float",
                   op.source.endIdx,
                   "operand type mismatch for operator ${op.sourceString}");
             return (lType != "float")
-		? lType
+                ? lType
                 : rType
         };
 
