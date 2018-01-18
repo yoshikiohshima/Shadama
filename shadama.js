@@ -140,7 +140,7 @@ layout (location = 0) in vec2 a_index;
 layout (location = 1) in vec2 b_index;
 uniform vec2 u_resolution;
 uniform vec2 u_half;
-`},
+`,
         
             "3": `#version 300 es
 precision highp float;
@@ -148,7 +148,10 @@ layout (location = 0) in vec2 a_index;
 layout (location = 1) in vec2 b_index;
 uniform vec3 u_resolution;
 uniform vec2 u_half;
-`};
+uniform float v_step;
+uniform vec3 v_resolution;
+`}
+};
         
     var shaders = {
         "drawBreed.vert":
@@ -206,7 +209,7 @@ uniform vec2 u_half;
         uniform vec2 u_half;
 
         uniform sampler2D u_xy;
-        uniform sampler2D u_c;
+        uniform sampler2D u_color;
 
         out vec4 v_color;
 
@@ -217,7 +220,7 @@ uniform vec2 u_half;
             vec2 clipPos = (normPos + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0, 1.0);
 
-            v_color = texelFetch(u_c, fc, 0);
+            v_color = texelFetch(u_color, fc, 0);
             gl_PointSize = 1.0;
         }`,
 
@@ -280,7 +283,7 @@ uniform vec2 u_half;
         uniform vec2 u_resolution;
         uniform vec2 u_half;
 
-        uniform sampler2D u_c;
+        uniform sampler2D u_color;
 
         out vec4 v_color;
 
@@ -291,7 +294,7 @@ uniform vec2 u_half;
 
             ivec2 fc = ivec2(a_index);
 
-            v_color = texelFetch(u_c, fc, 0);
+            v_color = texelFetch(u_color, fc, 0);
         }`,
 
         "drawPatchVec.frag":
@@ -406,17 +409,17 @@ uniform vec2 u_half;
 
         uniform sampler2D u_xyz;
 
-        uniform sampler2D u_c;
+        uniform sampler2D u_color;
 
-        uniform sampler2D u_d;
-        uniform float u_dotSize;
-        uniform bool u_use_vector_d;
+        uniform sampler2D u_dotSize;
+        uniform float u_f_dotSize;
+        uniform bool u_use_vector_dotSize;
 
         out vec4 v_color;
 
         void main(void) {
             ivec2 fc = ivec2(a_index);
-            vec3 dPos = texelFetch(u_xyz, fc, 0);
+            vec3 dPos = texelFetch(u_xyz, fc, 0).xyz;
             vec3 normPos = dPos / u_resolution;
             vec3 clipPos = ((normPos + u_half) * 2.0 - 1.0) * (u_resolution.x / 2.0);
 
@@ -424,8 +427,8 @@ uniform vec2 u_half;
 
             gl_Position = pMatrix * mvPos;
 
-            v_color = texelFetch(u_c, fc, 0);
-            gl_PointSize = ((u_use_vector ? texelFetch(u_d, fc, 0).r : u_dotSize) / -mvPos.z);
+            v_color = texelFetch(u_color, fc, 0);
+            gl_PointSize = ((u_use_vector_dotSize ? texelFetch(u_dotSize, fc, 0).r : u_f_dotSize) / -mvPos.z);
         }`,
 
         "renderBreedVec.frag":
@@ -520,7 +523,7 @@ uniform vec2 u_half;
         uniform int v_step;
         uniform vec3 u_half;
 
-        uniform sampler2D u_c;
+        uniform sampler2D u_color;
 
         out vec4 v_color;
 
@@ -550,7 +553,7 @@ uniform vec2 u_half;
             gl_Position = pMatrix * mvPos;
             gl_PointSize = 24.0 * ( 24.0 / -mvPos.z );
 
-            v_color = texelFetch(u_c, fc, 0);
+            v_color = texelFetch(u_color, fc, 0);
         }`,
 
         "renderPatchVec.frag":
@@ -793,7 +796,7 @@ uniform vec2 u_half;
     }
 
     function drawBreedVecProgram() {
-        return makePrimitive("drawBreedVec", ["u_resolution", "u_half", "u_xy", "u_c"], breedVAO);
+        return makePrimitive("drawBreedVec", ["u_resolution", "u_half", "u_xy", "u_color"], breedVAO);
     }
 
     function drawPatchProgram() {
@@ -801,7 +804,7 @@ uniform vec2 u_half;
     }
 
     function drawPatchVecProgram() {
-        return makePrimitive("drawPatchVec", ["u_resolution", "u_half", "u_c"], patchVAO);
+        return makePrimitive("drawPatchVec", ["u_resolution", "u_half", "u_color"], patchVAO);
     }
 
     function debugBreedProgram() {
@@ -817,7 +820,7 @@ uniform vec2 u_half;
     }
 
     function renderBreedVecProgram() {
-        return makePrimitive("renderBreed", ["mvMatrix", "pMatrix", "u_resolution", "u_half", "u_xyz", "u_c", "u_d", "u_dotSize", "u_use_vector"], breedVAO);
+        return makePrimitive("renderBreedVec", ["mvMatrix", "pMatrix", "u_resolution", "u_half", "u_xyz", "u_color", "u_f_dotSize", "u_dotSize", "u_use_vector_dotSize"], breedVAO);
     }
 
     function renderPatchProgram() {
@@ -825,7 +828,7 @@ uniform vec2 u_half;
     }
 
     function renderPatchVecProgram() {
-        return makePrimitive("renderPatch", ["mvMatrix", "pMatrix", "u_resolution", "u_half", "v_resolution", "v_step", "u_c"], patchVAO);
+        return makePrimitive("renderPatchVec", ["mvMatrix", "pMatrix", "u_resolution", "u_half", "v_resolution", "v_step", "u_color"], patchVAO);
     }
 
     function diffusePatchProgram() {
@@ -1175,6 +1178,7 @@ uniform vec2 u_half;
     function programFromEntry(entry, vert, frag, name) {
         return (function () {
             var debugName = name;
+            var positionType = entry.positionType;
             if (debugName === "set") {
             }
             var prog = createProgram(createShader(name + ".vert", vert),
@@ -1252,7 +1256,7 @@ uniform vec2 u_half;
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
                     //object.hasPos
-                    if (true) {
+                    if (positionType == "vec2") {
                         state.activeTexture(gl.TEXTURE0);
                         state.bindTexture(gl.TEXTURE_2D, object.pos);
                         gl.uniform1i(uniLocations["u_that_xy"], 0);
@@ -1339,33 +1343,34 @@ uniform vec2 u_half;
         })();
     }
 
-    function programFromTable3(table, vert, frag, name) {
+    function programFromEntry3(entry, vert, frag, name) {
         return (function () {
             var debugName = name;
-            if (debugName === "setCoreColor") {
+            var positionType = entry.positionType;
+            if (debugName === "move") {
             }
             var prog = createProgram(createShader(name + ".vert", vert),
                                      createShader(name + ".frag", frag));
             var vao = breedVAO;
             var uniLocations = {};
 
-            var forBreed = table.forBreed;
+            var forBreed = entry.forBreed;
             var viewportW = forBreed ? T : VTW;
             var viewportH = forBreed ? T : VTH;
-            var hasPatchInput = table.hasPatchInput;
+            var hasPatchInput = entry.hasPatchInput;
 
-            table.defaultUniforms.forEach(function(quad) {
+            entry.defaultUniforms.keysAndValuesDo(function(k, quad) {
                 uniLocations[quad[2]] = gl.getUniformLocation(prog, quad[2]);
             });
 
-            table.uniformTable.keysAndValuesDo((key, entry) => {
-                var uni = table.uniform(entry[1], entry[2]);
+            entry.uniformTable.keysAndValuesDo((key, info) => {
+                var uni = entry.uniform(info[1], info[2]);
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
-            table.scalarParamTable.keysAndValuesDo((key, entry) => {
-                var name = entry[2];
-                var uni = "u_scalar_" + name;
+            entry.scalarParamTable.keysAndValuesDo((key, info) => {
+                var varName = info[2];
+                var uni = "u_scalar_" + varName;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
@@ -1374,24 +1379,42 @@ uniform vec2 u_half;
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-                if (debugName === "setCoreColor") {
-                }
                 var object = objects["this"];
 
-                var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
+                var targets = [];
+                outs.forEach(
+                    (triple) => {
+                        var o = objects[triple[0]];
+                        var v = o ? o[N + triple[1]] : null;
+                        check(v,
+                              objects._callPosition,
+                              `${triple[1]} does not exist in object ${triple[0]}`);
+                        targets.push(v);
+                        var codeType = triple[2];
+                        var actualType = objects[triple[0]].fieldType(triple[1]);
+                        check(codeType == actualType,
+                              objects._callPosition,
+                              `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+                    }
+                );
+
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
-                    outs.forEach((pair) => {
-                        textureCopy(objects[pair[0]],
-                                    objects[pair[0]][pair[1]],
-                                    objects[pair[0]][N + pair[1]])});
+                    outs.forEach((triple) => {
+                        textureCopy(objects[triple[0]],
+                                    objects[triple[0]][triple[1]],
+                                    objects[triple[0]][N + triple[1]])});
                     setTargetBuffers(framebufferPatch, targets);
                 }
 
                 state.useProgram(prog);
                 gl.bindVertexArray(vao);
                 noBlend();
+
+                if (!withThreeJS) {
+                    gl.viewport(0, 0, viewportW, viewportH);
+                }
 
                 gl.uniform3f(uniLocations["u_resolution"], VW, VH, VD);
                 gl.uniform3f(uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
@@ -1400,40 +1423,78 @@ uniform vec2 u_half;
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
-                    state.activeTexture(gl.TEXTURE0);
-                    state.bindTexture(gl.TEXTURE_2D, object.x);
-                    gl.uniform1i(uniLocations["u_that_x"], 0);
+                    if (positionType == "vec3") {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.pos);
+                        gl.uniform1i(uniLocations["u_that_xyz"], 0);
+                        offset = 1;
+                    } else {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.x);
+                        gl.uniform1i(uniLocations["u_that_x"], 0);
+                        
+                        state.activeTexture(gl.TEXTURE1);
+                        state.bindTexture(gl.TEXTURE_2D, object.y);
+                        gl.uniform1i(uniLocations["u_that_y"], 1);
 
-                    state.activeTexture(gl.TEXTURE1);
-                    state.bindTexture(gl.TEXTURE_2D, object.y);
-                    gl.uniform1i(uniLocations["u_that_y"], 1);
+                        state.activeTexture(gl.TEXTURE2);
+                        state.bindTexture(gl.TEXTURE_2D, object.z);
+                        gl.uniform1i(uniLocations["u_that_z"], 2);
 
-                    state.activeTexture(gl.TEXTURE2);
-                    state.bindTexture(gl.TEXTURE_2D, object.z);
-                    gl.uniform1i(uniLocations["u_that_z"], 2);
-
-                    offset = 3;
+                        offset = 3;
+                    }
                 }
 
                 for (var ind = 0; ind < ins.length; ind++) {
-                    var pair = ins[ind];
+                    var triple = ins[ind];
                     var glIndex = gl.TEXTURE0 + ind + offset;
-                    var k = pair[1]
-                    var val = objects[pair[0]][k];
+                    var k = triple[1];
+                    var val = objects[triple[0]][k];
+                    var actualType = objects[triple[0]].fieldType(triple[1]);
+
+                    check(triple[2] == actualType,
+                          objects._callPosition,
+                          `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+
                     state.activeTexture(glIndex);
                     state.bindTexture(gl.TEXTURE_2D, val);
-                    gl.uniform1i(uniLocations["u" + "_" + pair[0] + "_" + k], ind + offset);
+                    gl.uniform1i(uniLocations["u" + "_" + triple[0] + "_" + k], ind + offset);
                 }
 
                 for (var k in params) {
                     var val = params[k];
-                    if (val.constructor == WebGLTexture) {
-                        var glIndex = gl.TEXTURE0 + ind + offset;
-                        state.activeTexture(glIndex);
-                        state.bindTexture(gl.TEXTURE_2D, val);
-                        gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
-                        ind++;
-                    } else {
+                    var codeType = entry.getType("param", null, k);
+                    if (val.constructor == vec) {
+                        switch(val.arity) {
+                            case 1:
+                            check(codeType == "float",
+                                  objects._callPosition,
+                                  `Code expects ${codeType} but got float`);
+                            gl.uniform1f(uniLocations["u_scalar_" + k], val.x);
+                            break;
+                            case 2:
+                            check(codeType == "vec2",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform2f(uniLocations["u_scalar_" + k], val.x, val.y);
+                            break;
+                            case 3:
+                            check(codeType == "vec3",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform3f(uniLocations["u_scalar_" + k], val.x, val.y, val.z);
+                            break;
+                            case 4:
+                            check(codeType == "vec4",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform4f(uniLocations["u_scalar_" + k], val.x, val.y, val.z, val.w);
+                            break;
+                        }
+                    } else if (typeof val == "number") {
+                        check(codeType == "float",
+                              objects._callPosition,
+                              `code expects ${codeType} but got float`);
                         gl.uniform1f(uniLocations["u_scalar_" + k], val);
                     }
                 }
@@ -1442,9 +1503,9 @@ uniform vec2 u_half;
                 gl.flush();
                 setTargetBuffers(null, null);
                 for (var i = 0; i < outs.length; i++) {
-                    var pair = outs[i];
-                    var o = objects[pair[0]];
-                    var name = pair[1];
+                    var triple = outs[i];
+                    var o = objects[triple[0]];
+                    var name = triple[1];
                     var tmp = o[name];
                     o[name] = o[N + name];
                     o[N + name] = tmp;
@@ -1549,7 +1610,7 @@ uniform vec2 u_half;
                 schemaChange = update(Patch, k, entry.param.toArray(), this.env) || schemaChange;
             }
             if (type == "method") {
-                var func = dimension == 2 ? programFromEntry : programFromTable3;
+                var func = dimension == 2 ? programFromEntry : programFromEntry3;
                 this.scripts[info] = [ func(entry, item[1], item[2], info),
                                        entry.insAndParamsAndOuts()];
             }
@@ -2478,7 +2539,7 @@ uniform vec2 u_half;
                 type = "float";
             } else if (typeof a1 == "string" && typeof a2 == "undefined" && typeof a3 == "undefined") {
                 xyzName = a1;
-                type = "vec3";
+                type = "vec4";
             }
 
             if (type == "float") {
@@ -2496,16 +2557,17 @@ uniform vec2 u_half;
                 updateOwnVariable(this, yName, "float", y);
                 updateOwnVariable(this, zName, "float", z);
             } else {
-                var xyz = new Float32Array(T * T * 3);
-                for (var i = 0; i < xyz.length / 3; i++) {
+                var xyz = new Float32Array(T * T * 4);
+                for (var i = 0; i < xyz.length / 4; i++) {
                     var angleY = Math.random() * Math.PI * 2.0;
                     var angleX = Math.asin(Math.random() * 2.0 - 1.0);
-                    var ind = i * 3;
+                    var ind = i * 4;
                     xyz[ind+0] = Math.sin(angleX);
                     xyz[ind+1] = Math.cos(angleX) * Math.cos(angleY);
                     xyz[ind+2] = Math.cos(angleX) * Math.sin(angleY);
+                    xyz[ind+3] = 0;
                 }
-                updateOwnVariable(this, xName, "float", xyz);
+                updateOwnVariable(this, xyzName, "vec4", xyz);
             }
         }
 
@@ -2562,27 +2624,77 @@ uniform vec2 u_half;
             }
         }
 
-        fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
-            this.setCount(xDim * yDim);
-            var x = new Float32Array(T * T);
-            var y = new Float32Array(T * T);
-            var z = new Float32Array(T * T);
+        fillCuboid(a1, a2, a3, a4, a5, a6, a7) {
+            //xName, yName, zName, xDim, yDim, zDim, step
+            var xName, yName, zName, xDim, yDim, zDim, step;
+            var xyzName;
+            var type;
+            if (typeof a1 == "string" && 
+                typeof a2 == "string" &&
+                typeof a3 == "string") {
+                xName = a1;
+                yName = a2;
+                zName = a3;
+                type = "float";
+                if (typeof a4 == "object" && a4.arity >= 3) {
+                    xDim = a4.x;
+                    yDim = a4.y;
+                    zDim = a4.z;
+                    step = (typeof a5 == "number") ? a5 : a5.x;
+                } else {
+                    xDim = (typeof a4 == "number") ? a4 : a4.x;
+                    yDim = (typeof a5 == "number") ? a5 : a5.x;
+                    zDim = (typeof a6 == "number") ? a6 : a6.x;
+                    step = (typeof a7 == "number") ? a7 : a7.x;
+                }
+            } else if (typeof a1 == "string" && 
+                       typeof a2 == "object") {
+                xyzName = a1;
+                type = "vec3";
+                xDim = a2.x;
+                yDim = a2.y;
+                zDim = a2.z;
+                step = (typeof a3 == "number") ? a3 : a3.x;
+            }
 
-            var ind = 0;
+            this.setCount(xDim /step * yDim / step * zDim / step );
 
-            for (var l = 0; l < zDim; l += step) {
-                for (var j = 0; j < yDim; j += step) {
-                    for (var i = 0; i < xDim; i += step) {
-                        x[ind] = i;
-                        y[ind] = j;
-                        z[ind] = l;
-                        ind++;
+            if (type == "float") {
+                var x = new Float32Array(T * T);
+                var y = new Float32Array(T * T);
+                var z = new Float32Array(T * T);
+                
+                var ind = 0;
+                
+                for (var l = 0; l < zDim; l += step) {
+                    for (var j = 0; j < yDim; j += step) {
+                        for (var i = 0; i < xDim; i += step) {
+                            x[ind] = i;
+                            y[ind] = j;
+                            z[ind] = l;
+                            ind++;
+                        }
                     }
                 }
+                updateOwnVariable(this, xName, "float", x);
+                updateOwnVariable(this, yName, "float", y);
+                updateOwnVariable(this, zName, "float", z);
+            } else {
+                var xyz = new Float32Array(T * T * 4);
+                var ind = 0;
+                for (var l = 0; l < zDim; l += step) {
+                    for (var j = 0; j < yDim; j += step) {
+                        for (var i = 0; i < xDim; i += step) {
+                            xyz[ind + 0] = i;
+                            xyz[ind + 1] = j;
+                            xyz[ind + 2] = l;
+                            xyz[ind + 2] = 0;
+                            ind += 4;
+                        }
+                    }
+                }
+                updateOwnVariable(this, xyzName, "vec4", xyz);
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
-            updateOwnVariable(this, zName, z);
         }
 
         fill(name, value) {
@@ -2711,7 +2823,7 @@ uniform vec2 u_half;
 
             state.activeTexture(gl.TEXTURE1);
             state.bindTexture(gl.TEXTURE_2D, this.color);
-            gl.uniform1i(prog.uniLocations["u_c"], 1);
+            gl.uniform1i(prog.uniLocations["u_color"], 1);
 
             if (!withThreeJS) {
                 gl.viewport(0, 0, FW, FH);
@@ -2735,7 +2847,7 @@ uniform vec2 u_half;
         }
 
         realRender(mvMatrix, pMatrix) {
-            var prog = programs["renderBreed"];
+            var prog = programs["renderBreedVec"];
             var breed = this;
             var uniLocations = prog.uniLocations;
 
@@ -2745,51 +2857,24 @@ uniform vec2 u_half;
             normalBlend();
 
             state.activeTexture(gl.TEXTURE0);
-            state.bindTexture(gl.TEXTURE_2D, breed.x);
-            gl.uniform1i(prog.uniLocations["u_x"], 0);
+            state.bindTexture(gl.TEXTURE_2D, breed.pos);
+            gl.uniform1i(prog.uniLocations["u_xyz"], 0);
 
             state.activeTexture(gl.TEXTURE1);
-            state.bindTexture(gl.TEXTURE_2D, breed.y);
-            gl.uniform1i(prog.uniLocations["u_y"], 1);
+            state.bindTexture(gl.TEXTURE_2D, breed.color);
+            gl.uniform1i(prog.uniLocations["u_color"], 1);
 
-            state.activeTexture(gl.TEXTURE2);
-            state.bindTexture(gl.TEXTURE_2D, breed.z);
-            gl.uniform1i(prog.uniLocations["u_z"], 2);
-
-            state.activeTexture(gl.TEXTURE3);
-            state.bindTexture(gl.TEXTURE_2D, breed.r);
-            gl.uniform1i(prog.uniLocations["u_r"], 3);
-
-            state.activeTexture(gl.TEXTURE4);
-            state.bindTexture(gl.TEXTURE_2D, breed.g);
-            gl.uniform1i(prog.uniLocations["u_g"], 4);
-
-            state.activeTexture(gl.TEXTURE5);
-            state.bindTexture(gl.TEXTURE_2D, breed.b);
-            gl.uniform1i(prog.uniLocations["u_b"], 5);
-
-            state.activeTexture(gl.TEXTURE6);
-            state.bindTexture(gl.TEXTURE_2D, breed.a);
-            gl.uniform1i(prog.uniLocations["u_a"], 6);
-
-            var maybeD = breed["d"];
-            if (maybeD !== undefined) {
-                if (typeof maybeD == "float") {
-                    gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
-                    gl.uniform1f(prog.uniLocations["u_dotSize"], maybeD);
-                    gl.uniform1i(prog.uniLocations["u_d"], 0);
-                } else {
-                    state.activeTexture(gl.TEXTURE7);
-                    state.bindTexture(gl.TEXTURE_2D, maybeD);
-                    gl.uniform1i(prog.uniLocations["u_d"], 7);
-
-                    gl.uniform1i(prog.uniLocations["u_use_vector"], 1);
-                    gl.uniform1f(prog.uniLocations["u_dotSize"], 0);
-                }
+            var maybeD = breed["dotSize"] || 16;
+            if (typeof maybeD == "number") {
+                gl.uniform1i(prog.uniLocations["u_use_vector_dotSize"], 0);
+                gl.uniform1f(prog.uniLocations["u_f_dotSize"], maybeD);
+                gl.uniform1i(prog.uniLocations["u_dotSize"], 0);
             } else {
-                gl.uniform1i(prog.uniLocations["u_use_vector"], 0);
-                gl.uniform1f(prog.uniLocations["u_dotSize"], 16);
-                gl.uniform1i(prog.uniLocations["u_d"], 0);
+                state.activeTexture(gl.TEXTURE2);
+                state.bindTexture(gl.TEXTURE_2D, maybeD);
+                gl.uniform1i(prog.uniLocations["u_use_vector_dotSize"], 1);
+                gl.uniform1f(prog.uniLocations["u_f_dotSize"], 0);
+                gl.uniform1i(prog.uniLocations["u_dotSize"], 2);
             }
 
             gl.uniformMatrix4fv(uniLocations["mvMatrix"], false, mvMatrix.elements);
@@ -2963,7 +3048,7 @@ uniform vec2 u_half;
 
             state.activeTexture(gl.TEXTURE0);
             state.bindTexture(gl.TEXTURE_2D, this.color);
-            gl.uniform1i(prog.uniLocations["u_c"], 0);
+            gl.uniform1i(prog.uniLocations["u_color"], 0);
 
             if (!withThreeJS) {
                 gl.viewport(0, 0, FW, FH);
@@ -3006,7 +3091,7 @@ uniform vec2 u_half;
 
             state.activeTexture(gl.TEXTURE0);
             state.bindTexture(gl.TEXTURE_2D, this.color);
-            gl.uniform1i(prog.uniLocations["u_c"], 0);
+            gl.uniform1i(prog.uniLocations["u_color"], 0);
 
             gl.uniformMatrix4fv(uniLocations["mvMatrix"], false, mvMatrix.elements);
             gl.uniformMatrix4fv(uniLocations["pMatrix"], false, pMatrix.elements);
@@ -3527,9 +3612,11 @@ Shadama {
                                      ["zName", "string"],
                                      ["x", "float"],
                                      ["y", "float"],
-                                     ["z", "float"]]],
+                                     ["z", "float"],
+                                     ["step", "float"]]],
             ["breed", "fillCuboid", [["xyzName", "string"],
-                                     "xyz", "vec3"]],
+                                     ["xyz", "vec3"],
+                                     ["step", "float"]]],
 
             ["breed", "fillImage", [["xName", "string"],
                                     ["yName", "string"],
@@ -3758,7 +3845,7 @@ Shadama {
                     var entry = this.args.entry;
                     entry.setEntryType("method");
                     entry.setMethodPos(n.source.endIdx);
-                    entry.setPositionType("vec2");
+                    entry.setPositionType(dimension == 2 ? "vec2" : "vec3");
                     ns.symbols(entry);
                     b.symbols(entry);
                     return this.topLevelName;
@@ -3776,7 +3863,7 @@ Shadama {
                 Static(_s, n, _o, ns, _c, b) {
                     var entry = this.args.entry;
                     entry.setEntryType("static");
-                    entry.setPositionType("vec2");
+                    entry.setPositionType(dimension == 2 ? "vec2" : "vec3");
                     ns.symbols(entry);
                     b.symbols(entry);
                     return this.topLevelName;
@@ -4373,10 +4460,10 @@ Shadama {
                     var vert = this.args.vert;
                     var frag = this.args.frag;
 
-                    var prologue = fragments.breedPrologue["2"];
+                    var prologue = fragments.breedPrologue[dimension.toString()]; /* "2" or "3"*/
 
                     if (!entry.forBreed || entry.hasPatchInput) {
-                        prologue = prologue + fragments.patchPrologue.vec2;
+                        prologue = prologue + fragments.patchPrologue["vec" + dimension];
                     }
                     vert.push(prologue);
 
@@ -5651,6 +5738,12 @@ Shadama {
             this.add("defaultA", null, "a_index", "vec2");
             this.add("defaultA", null, "b_index", "vec2");
             this.add("defaultU", null, "u_resolution", type);
+            this.add("defaultU", null, "u_half", "float");
+
+            if (type == "vec3" || type == "vec4") {
+                this.add("defaultU", null, "v_resolution", "vec3");
+                this.add("defaultU", null, "v_step", "float");
+            }
         }
 
         process() {
@@ -6065,82 +6158,80 @@ highp float random(float seed) {
         readout = document.getElementById("readout");
         watcherList = document.getElementById("watcherList");
         envList = document.getElementById("envList");
+    }
 
-        if (!withThreeJS) {
-            shadamaCanvas = document.getElementById("shadamaCanvas");
-            if (!shadamaCanvas) {
-                shadamaCanvas = document.createElement("canvas");
-            }
-            shadamaCanvas.id = "shadamaCanvas";
-            shadamaCanvas.width = FW;
-            shadamaCanvas.height = FH;
-            shadamaCanvas.style.width = FW + "px";
-            shadamaCanvas.style.height = FH + "px";
-            gl = shadamaCanvas.getContext("webgl2");
-            var ext = gl.getExtension("EXT_color_buffer_float");
-            state = gl;
-        } else {
-            gl = renderer.context;
-            if (!renderer.state) {
-                throw "a WebGLState has to be passed in";
-            }
-            state = renderer.state;
-            var ext = gl.getExtension("EXT_color_buffer_float");
-            shadamaCanvas = gl.canvas;
-            shadamaCanvas.id = "shadamaCanvas";
-            shadamaCanvas.width = FW;
-            shadamaCanvas.height = FH;
-            shadamaCanvas.style.width = FW + "px";
-            shadamaCanvas.style.height = FH + "px";
-
+    if (!withThreeJS) {
+        shadamaCanvas = document.getElementById("shadamaCanvas");
+        if (!shadamaCanvas) {
+            shadamaCanvas = document.createElement("canvas");
         }
-
-        shadama = new Shadama();
-        shadama.initDisplay();
-        if (!withThreeJS) {
-            shadama.addListeners(shadamaCanvas);
+        shadamaCanvas.id = "shadamaCanvas";
+        shadamaCanvas.width = FW;
+        shadamaCanvas.height = FH;
+        shadamaCanvas.style.width = FW + "px";
+        shadamaCanvas.style.height = FH + "px";
+        gl = shadamaCanvas.getContext("webgl2");
+        var ext = gl.getExtension("EXT_color_buffer_float");
+        state = gl;
+    } else {
+        gl = renderer.context;
+        if (!renderer.state) {
+            throw "a WebGLState has to be passed in";
         }
+        state = renderer.state;
+        var ext = gl.getExtension("EXT_color_buffer_float");
+    }
+    
+    shadama = new Shadama();
+    shadama.initDisplay();
+    if (!withThreeJS) {
+        shadama.addListeners(shadamaCanvas);
         shadama.initServerFiles();
         shadama.initFileList();
+    }
 
-        initCompiler();
+    initCompiler();
 
-        createSwizzlers(vec, "xyzw");
-        createSwizzlers(vec, "rgba");
+    createSwizzlers(vec, "xyzw");
+    createSwizzlers(vec, "rgba");
 
-        if (runTests) {
-            document.getElementById("bigTitle").innerHTML = "Shadama Tests";
-            setTestParams(shadama.tester());
-            grammarUnitTests();
-            symbolsUnitTests();
-            typeUnitTests();
-            translateUnitTests();
-            return;
-        }
+    if (runTests) {
+        document.getElementById("bigTitle").innerHTML = "Shadama Tests";
+        setTestParams(shadama.tester());
+        grammarUnitTests();
+        symbolsUnitTests();
+        typeUnitTests();
+        translateUnitTests();
+        return;
+    }
 
-        if (degaussdemo) {
-            document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
-            document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
-        }
+    if (degaussdemo) {
+        document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
+        document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
+    }
 
-        if (!editor) {
-            function words(str) { let o = {}; str.split(" ").forEach((s) => o[s] = true); return o; }
-            CodeMirror.defineMIME("text/shadama", {
-                name: "clike",
-                keywords: words("program breed patch def static var if else"),
-                atoms: words("true false this self width height image mousedown mousemove mouseup time"),
-            });
+    if (!editor) {
+        function words(str) { let o = {}; str.split(" ").forEach((s) => o[s] = true); return o; }
+        CodeMirror.defineMIME("text/shadama", {
+            name: "clike",
+            keywords: words("program breed patch def static var if else"),
+            atoms: words("true false this self width height image mousedown mousemove mouseup time"),
+        });
 
-            var cm = CodeMirror.fromTextArea(document.getElementById("code"), {
-                mode: "text/shadama",
-                matchBrackets: true,
-                "extraKeys": {
-                    "Cmd-S": function(cm) {shadama.updateCode()},
-                },
-            });
-            shadama.setEditor(cm, "CodeMirror");
-        }
+        var cm = CodeMirror.fromTextArea(document.getElementById("code"), {
+            mode: "text/shadama",
+            matchBrackets: true,
+            "extraKeys": {
+                "Cmd-S": function(cm) {shadama.updateCode()},
+            },
+        });
+        shadama.setEditor(cm, "CodeMirror");
+    }
 
+    shadama = new Shadama();
+    shadama.initDisplay();
+
+    if (!withThreeJS) {
         shadama.initEnv(function() {
             var func = function (source) {
                 shadama.loadShadama(source);
@@ -6159,22 +6250,9 @@ highp float random(float seed) {
             shadama.env.at("Display").loadProgram(defaultProgName, func);
         });
     } else {
-        if (!renderer.context ||
-            renderer.context.constructor != WebGL2RenderingContext) {
-            throw "needs a WebGL2 context";
-            return;
-        }
-        gl = renderer.context;
-        if (!renderer.state) {
-            throw "a WebGLState has to be passed in";
-        }
-        state = renderer.state;
-        var ext = gl.getExtension("EXT_color_buffer_float");
-        shadama = new Shadama();
-        shadama.initDisplay();
         shadama.initEnv(function() {
             if (parent) {
-                shadama.env("Display").loadProgram(defaultProgName);
+                shadama.env.at("Display").loadProgram(defaultProgName);
                 parent.onAfterRender = shadama.makeOnAfterRender();
             }
         });
