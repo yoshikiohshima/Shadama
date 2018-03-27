@@ -1,23 +1,16 @@
 program "Two Circles"
-breed Filler (x, y)
-patch Field (r, g, b, a)
+breed Filler (pos:vec2)
+patch Field (color:vec4)
 
-def clear(field) {
-    field.r = 0.0;
-    field.g = 0.0;
-    field.b = 0.0;
-    field.a = 0.0;
+def clear(field:object) {
+    field.color = vec4(0, 0, 0, 0);
 }
 
-def fillCircle(cx, cy, r, field) {
-  var dx = this.x - cx;
-  var dy = this.y - cy;
-  var dr = sqrt(dx * dx + dy * dy);
+def fillCircle(c:vec2, r:float, field:object) {
+  var d = this.pos:vec2 - c
+  var dr = sqrt(d.x * d.x + d.y * d.y);
   if (dr < r) {
-    field.r = 0.2;
-    field.g = 0.2;
-    field.b = 0.8;
-    field.a = 1.0;
+    field.color = vec4(0.2, 0.2, 0.8, 1);
   }
 }
 
@@ -25,10 +18,10 @@ static setup() {
   // The turtles of the Filler breed go all integral points
   //  between (0, 0) and (width, height).
   // This is a common way to have a breed whose job is to manipulate the patch
-  Filler.fillSpace("x", "y", width, height);
+  Filler.fillSpace("pos", vec2(512, 512));
   Filler.clear(Field);
-  Filler.fillCircle(75, 75, 20, Field);
-  Filler.fillCircle(300, 95, 25, Field);
+  Filler.fillCircle(vec2(75, 75), 20, Field);
+  Filler.fillCircle(vec2(300, 95), 25, Field);
   Display.clear();
   Field.draw();
 }

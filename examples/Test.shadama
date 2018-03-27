@@ -1,0 +1,16 @@
+program "X!!"
+
+breed Turtle (pos:vec2, color:vec4)
+
+data Ahiru ("ahiru.png", "image")
+
+on Ahiru => x 
+
+def baz() {
+  this.color = vec4(1, 0, 1, 1);
+}
+
+static x() {
+  Turtle.fillImage("pos", "color", Ahiru);
+  Turtle.draw();
+}

@@ -1,22 +1,21 @@
 program "Picture"
-breed Turtle (x, y, dx, dy, r, g, b, a)
+breed Turtle (pos:vec2, d:vec2, color:vec4)
 
 data Ahiru("ahiru.png", "image")
 
 def move() {
-  this.x = this.x + this.dx;
-  this.y = this.y + this.dy;
+  this.pos = this.pos:vec2 + this.d:vec2
 }
 
 static step() {
-  Turtle.move();
-  Turtle.draw();
+  Turtle.move()
+  Turtle.draw()
 }
 
 static setup() {
-  Turtle.fillImage("x", "y", "r", "g", "b", "a", Ahiru);
-  Turtle.fillRandomDir("dx", "dy");
-  Display.clear();
-  Turtle.draw();
-// step.start();
+  Turtle.fillImage("pos", "color", Ahiru)
+  Turtle.fillRandomDir("d")
+  Display.clear()
+  Turtle.draw()
+ step.start();
 }

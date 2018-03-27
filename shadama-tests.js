@@ -28,7 +28,17 @@ function assert(result, expected, str) {
     return a != b;
 }
 
-function setTestParams() {
+var parse;
+var Entry;
+
+var update;
+var translate;
+var s;
+var Breed;
+var Patch;
+
+
+function setTestParams(tester) {
 //    TEXTURE_SIZE = 16;
 //    FIELD_WIDTH = 32;
 //    FIELD_HEIGHT = 32;
@@ -36,6 +46,15 @@ function setTestParams() {
 //    T = TEXTURE_SIZE;
 //    FW = FIELD_WIDTH;
 //    FH = FIELD_HEIGHT;
+
+    shadama = tester.shadama;
+    parse = tester.parse;
+    Entry = tester.Entry;
+
+    update = tester.update;
+    s = tester.s;
+    Breed = tester.Breed;
+    Patch = tester.Patch;
 }
 
 function setUp() {
@@ -237,7 +256,8 @@ function grammarTest(aString, rule, ctor) {
     }
 }
 
-function symTableTest(str, prod, sem, expected) {
+function symbolsTest(str, prod, sem, expected, entry) {
+    console.log("str = ", str);
     var stringify = (obj) => {
         var type = Object.prototype.toString.call(obj);
         if (type === "[object Object]") {
@@ -262,21 +282,13 @@ function symTableTest(str, prod, sem, expected) {
         console.log("did not parse: " + str);
     };
 
-    var rawTable = function(table) {
-        var t;
-        if (table.constructor === SymTable) {
-            t = table;
-        } else {
-            t = table[Object.keys(table)[0]];
-        }
-        return t.rawTable();
+    if (!entry) {
+	entry = new Entry("method");
     }
-
     var n = sem(match);
-    var table = new SymTable();
-    var ret = n.symTable(table);
+    n.symbols(entry);
 
-    var result = rawTable(ret);
+    var result = entry.rawTable();
     var a = stringify(result);
     var b = stringify(expected);
     if (a != b) {
@@ -284,6 +296,52 @@ function symTableTest(str, prod, sem, expected) {
         console.log("Expected: " + b + " got: " + a);
     }
 }
+
+function typeTest(str, prod, sem, expected, entry) {
+    var stringify = (obj) => {
+        var type = Object.prototype.toString.call(obj);
+        if (type === "[object Object]") {
+            var pairs = [];
+            for (var k in obj) {
+                if (!obj.hasOwnProperty(k)) continue;
+                pairs.push([k, stringify(obj[k])]);
+            }
+            pairs.sort((a, b) => a[0] < b[0] ? -1 : 1);
+            pairs = pairs.map(v => '"' + v[0] + '":' + v[1]);
+            return "{" + pairs + "}";
+        }
+        if (type === "[object Array]") {
+            return "[" + obj.map(v => stringify(v)) + "]";
+        }
+        return JSON.stringify(obj);
+    };
+
+    var match = parse(str, prod);
+    if (!match.succeeded()) {
+        console.log(str);
+        console.log("did not parse: " + str);
+    };
+
+    if (!entry) {
+	entry = new Entry("method");
+    }
+    var n = sem(match);
+    n.symbols(entry);
+    var type = n.type(entry);
+
+    var result = entry.rawTable();
+    var a = stringify(result);
+    var b = stringify(expected);
+    if (a != b) {
+        console.log(str);
+        console.log("Expected: " + b + " got: " + a);
+    }
+}
+
+function translateTest(str) {
+    shadama.loadShadama(str);
+}
+
 
 function grammarUnitTests() {
     grammarTest("abc", "ident");
@@ -293,6 +351,11 @@ function grammarUnitTests() {
     grammarTest("else", "else");
     grammarTest("def", "def");
     grammarTest("3.4", "number");
+
+    grammarTest("abc:vec2", "TypedVar");
+
+    grammarTest("abc: vec2", "Formals");
+    grammarTest("abc: vec2, def: mat2", "Formals");
 
     grammarTest("abc", "PrimExpression");
     grammarTest("3.5", "PrimExpression");
@@ -316,7 +379,7 @@ function grammarUnitTests() {
 
     grammarTest("forward(this.x + 3);", "Statement");
 
-    grammarTest("a == b", "EqualityExpression");
+    grammarTest("a == b", "RelationalExpression");
     grammarTest("a > 3", "RelationalExpression");
     grammarTest("a > 3 + 4", "RelationalExpression");
 
@@ -328,26 +391,60 @@ function grammarUnitTests() {
     grammarTest("var x = 3;", "VariableStatement");
     grammarTest("{var x = 3; x = x + 3;}", "Block");
 
-    grammarTest("breed Turtle (x, y)", "Breed");
-    grammarTest("patch Patch (x, y)", "Patch");
-    grammarTest("def foo(x, y) {var x = 3; x = x + 2.1;}", "Script");
+    grammarTest("breed Turtle (x:float, y:float)", "Breed");
+    grammarTest("patch Patch (x:vec2, y:float)", "Patch");
+    grammarTest("def foo(x:float, y:float) {var x = 3; x = x + 2.1;}", "Method");
+    grammarTest("def foo(x: mat3, y:float) {var x = 3; x = x + 2.1;}", "Method");
+    grammarTest("helper foo: vec2 (input: vec2) {var x = 3; x = x + 2.1; return vec2(x, 2)}", "Helper");
 }
 
-function symTableUnitTests() {
-    symTableTest("this.x = 3;", "Statement", s,{"propOut.this.x": ["propOut", "this","x"]});
-    symTableTest("{this.x = 3; other.y = 4;}", "Statement", s,{"propOut.this.x": ["propOut", "this", "x"], "propOut.other.y": ["propOut", "other", "y"]});
-    symTableTest("{this.x = 3; this.x = 4;}", "Statement", s, {"propOut.this.x": ["propOut", "this", "x"]});
+function symbolsUnitTests() {
 
-    symTableTest("{var x = 3; x = x + 3;}", "Block", s, {"var.null.x": ["var", null, "x"]});
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest("this.x = 3;", "Statement", s,
+		{"propOut.this.x": ["propOut", "this","x", null],
+		 "param.null.other": ["param", null, "other", "object"]},
+		entry);
 
-    symTableTest(`
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest("{this.x = 3; other.y = 4;}", "Statement", s,
+		{"propOut.this.x": ["propOut", "this", "x", null],
+		 "propOut.other.y": ["propOut", "other", "y", null],
+		 "param.null.other": ["param", null, "other", "object"]},
+		entry);
+
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest("{this.x = 3; this.x = 4;}", "Statement", s,
+		{"propOut.this.x": ["propOut", "this", "x", null],
+		 "param.null.other": ["param", null, "other", "object"]},
+		entry);
+
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest("{var x = 3; x = x + 3;}", "Block", s,
+		{"var.null.x": ["var", null, "x", null],
+		 "param.null.other": ["param", null, "other", "object"]},
+		entry);
+
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest(`
        if (other.x > 0) {
          this.x = 3;
          other.a = 4;
        }
-       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propIn.other.x": ["propIn", "other", "x"]});
+       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x", null],
+			   "propOut.other.a": ["propOut", "other", "a", null],
+			   "propIn.other.x": ["propIn", "other", "x", null],
+			   "param.null.other": ["param", null, "other", "object"]},
+		entry);
 
-    symTableTest(`
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest(`
        if (other.x > 0) {
          this.x = 3;
          other.a = 4;
@@ -355,35 +452,88 @@ function symTableUnitTests() {
          this.y = 3;
          other.a = 4;
        }
-       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x"], "propOut.other.a": ["propOut", "other", "a"], "propOut.this.y": ["propOut", "this", "y"], "propIn.other.x": ["propIn", "other", "x"]});
+       `, "Statement", s, {"propOut.this.x": ["propOut", "this", "x", null],
+			   "propOut.other.a": ["propOut", "other", "a", null],
+			   "propOut.this.y": ["propOut", "this", "y", null],
+			   "propIn.other.x": ["propIn", "other", "x", null],
+			   "param.null.other": ["param", null, "other", "object"]}, entry);
 
-    symTableTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
-        "propIn.this.y": ["propIn", "this", "y"],
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propOut.other.z": ["propOut" ,"other", "z"],
-        "propIn.this.x": ["propIn" ,"this", "x"]});
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest("{this.x = this.y; other.z = this.x;}", "Statement", s, {
+        "propIn.this.y": ["propIn", "this", "y", null],
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.other.z": ["propOut" ,"other", "z", null],
+        "propIn.this.x": ["propIn" ,"this", "x", null],
+	"param.null.other": ["param", null, "other", "object"]}, entry);
 
-    symTableTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"]});
+    var entry = new Entry("method");
+    entry.add("param", null, "other", "object");
+    symbolsTest("{this.x = 3; this.y = other.x;}", "Statement", s, {
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.this.y": ["propOut" ,"this", "y", null],
+        "propIn.other.x": ["propIn", "other", "x", null],
+	"param.null.other": ["param", null, "other", "object"]}, entry);
 
-    symTableTest("def foo(a, b, c) {this.x = 3; this.y = other.x;}", "Script", s, {
-        "propIn.this.x": ["propIn", "this", "x"],
-        "propIn.this.y": ["propIn", "this", "y"],
-        "propIn.other.x": ["propIn", "other", "x"],
-        "propOut.this.x": ["propOut" ,"this", "x"],
-        "propOut.this.y": ["propOut" ,"this", "y"],
-        "param.null.a": ["param" , null, "a"],
-        "param.null.b": ["param" , null, "b"],
-        "param.null.c": ["param" , null, "c"],
-    });
+    symbolsTest("def foo(other:object, b:float, c:float) {this.x = 3; this.y = other.x;}", "Method", s, {
+        "propIn.other.x": ["propIn", "other", "x", null],
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.this.y": ["propOut" ,"this", "y", null],
+	"param.null.other": ["param", null, "other", "object"], 
+        "param.null.b": ["param" , null, "b", "float"],
+        "param.null.c": ["param" , null, "c", "float"]});
+
+    symbolsTest("def foo(other:object, b:float, c:vec2) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
+        "propIn.other.x": ["propIn", "other", "x", "vec2"],
+        "propOut.this.x": ["propOut" ,"this", "x", null],
+        "propOut.this.y": ["propOut" ,"this", "y", null],
+	"param.null.other": ["param", null, "other", "object"], 
+        "param.null.b": ["param" , null, "b", "float"],
+        "param.null.c": ["param" , null, "c", "vec2"]});
 }
 
-function translateTests() {
-    console.log(translate("static foo() {Turtle.forward();}", "TopLevel"));
 
-    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
-    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
+function typeUnitTests() {
+    typeTest("def foo(other:object) {this.x = 3; this.y = other.x : vec2;}", "Method", s, {
+        "propIn.other.x": ["propIn", "other", "x", "vec2"],
+        "propOut.this.x": ["propOut" ,"this", "x", "float"],
+        "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
+        "propIn.this.x": ["propIn" ,"this", "x", "float"],
+        "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
+	"param.null.other": ["param", null, "other", "object"]});
+
+
+    typeTest("def foo(other:object) {this.x = 3; this.y = other.x:vec2 + vec2(2, 3);}", "Method", s, {
+        "propIn.other.x": ["propIn", "other", "x", "vec2"],
+        "propOut.this.y": ["propOut" ,"this", "y", "vec2"],
+        "propOut.this.x": ["propOut" ,"this", "x", "float"],
+        "propIn.this.x": ["propIn" ,"this", "x", "float"],
+        "propIn.this.y": ["propIn" ,"this", "y", "vec2"],
+	"param.null.other": ["param", null, "other", "object"]});
+
+    typeTest("def foo(other:object) {other.x = this.x:vec2;}", "Method", s, {
+        "propOut.other.x": ["propOut", "other", "x", "vec2"],
+        "propIn.other.x": ["propIn" ,"other", "x", "vec2"],
+        "propIn.this.x": ["propIn" ,"this", "x", "vec2"],
+	"param.null.other": ["param", null, "other", "object"]});
+
+}
+
+function translateUnitTests() {
+//    translateTest("def foo(other) {this.pos = other.pos:vec2}", "TopLevel");
+
+    translateTest(`breed Turtle (pos:vec2)
+patch Patch (pos:vec2)
+
+def foo(other:object) {this.pos = other.pos:vec2}
+static x() {
+  Turtle.foo(Patch);
+}
+
+`, "TopLevel");
+
+
+//    console.log(translate("static bar(x) {if(x){ Turtle.forward();}}", "TopLevel"));
+//    console.log(translate("static bar(x) {if(x){ Turtle.forward();} else {Turtle.turn(x);}}", "TopLevel"));
 }
 

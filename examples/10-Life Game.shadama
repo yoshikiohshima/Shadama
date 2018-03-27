@@ -1,9 +1,9 @@
 program "Life"
-breed Turtle (n, x, y, c)
-patch Field (c, r, g, b, a)
+breed Turtle (n:float, pos:vec2, c:float)
+patch Field (c:float, color:vec4)
 
-def reset(field) {
-  var rand = random(this.x * 1233.1 + this.y * 0.2);
+def reset(field:object, time:float) {
+  var rand = random(dot(this.pos:vec2, vec2(1233.1, 0.2)) + time * 0.14);
   if (rand > 0.3) {
     field.c = 1;
   } else {
@@ -11,31 +11,28 @@ def reset(field) {
   }
 }
 
-def put(field, x, y) {
-  var dx = this.x - x;
-  var dy = this.y - y;
-  if ((dx * dx + dy * dy) < 2) {
+def put(field:object, pos:vec2) {
+  if (length(this.pos:vec2 - pos) < 2) {
     field.c = 1;
   }
 }
 
-def add(field) {
-  this.c = this.c + field.c;
+def add(field:object) {
+  this.c = this.c:float + field.c:float;
 }
 
-def move(x, y) {
-  this.x = this.x + x;
-  this.y = this.y + y;
+def move(x:float, y:float) {
+  this.pos = this.pos:vec2 + vec2(x, y)
 }
 
-def zero(field) {
+def zero(field:object) {
   this.c = 0;
-  this.n = field.c;
+  this.n = field.c:float;
 }
 
-def comp(field) {
-  var c = this.c;
-  var n = this.n;
+def comp(field:object) {
+  var c = this.c:float;
+  var n = this.n:float;
   if (n == 0) {
     if (c == 3) {
       field.c = 1;
@@ -48,59 +45,55 @@ def comp(field) {
     } else {
        field.c = 0;
     }
-  }   
+  }
 }
 
-def color(field) {
-  field.b = 0.0;
-  field.a = 1.0;
-  if (field.c > 0) {
-    field.r = 1.0;
-    field.g = 1.0;
+def color(field:object) {
+  if (field.c:float > 0) {
+    field.color = vec4(1, 1, 0, 1);
   } else {
-    field.r = 0.0;
-    field.g = 0.0;
+    field.color = vec4(0, 0, 0, 1);
   }
 }
 
 static loop() {
-  Turtle.put(Field, mousemove.x, mousemove.y);
-  Turtle.zero(Field);
-  Turtle.move(-1, 1);
-  Turtle.add(Field);
+  Turtle.put(Field, vec2(mousemove.x, mousemove.y))
+  Turtle.zero(Field)
+  Turtle.move(-1, 1)
+  Turtle.add(Field)
 
-  Turtle.move(1, 0);
-  Turtle.add(Field);
-  Turtle.move(1, 0);
-  Turtle.add(Field);
+  Turtle.move(1, 0)
+  Turtle.add(Field)
+  Turtle.move(1, 0)
+  Turtle.add(Field)
 
-  Turtle.move(-2, -1);
-  Turtle.add(Field);
-  Turtle.move(1, 0);
-//  Turtle.add(Field);
+  Turtle.move(-2, -1)
+  Turtle.add(Field)
+  Turtle.move(1, 0)
+//  Turtle.add(Field)
 
-  Turtle.move(1, 0);
-  Turtle.add(Field);
-  Turtle.move(-2, -1);
-  Turtle.add(Field);
-  Turtle.move(1, 0);
-  Turtle.add(Field);
-  Turtle.move(1, 0);
-  Turtle.add(Field);
+  Turtle.move(1, 0)
+  Turtle.add(Field)
+  Turtle.move(-2, -1)
+  Turtle.add(Field)
+  Turtle.move(1, 0)
+  Turtle.add(Field)
+  Turtle.move(1, 0)
+  Turtle.add(Field)
 
-  Turtle.move(-1, 1);
+  Turtle.move(-1, 1)
 
-  Turtle.comp(Field);
-  Turtle.color(Field);
-  Display.clear();
-  Field.draw();
+  Turtle.comp(Field)
+  Turtle.color(Field)
+  Display.clear()
+  Field.draw()
 }
 
 static setup() {
-  Turtle.fillSpace("x", "y", width, height);
-  Turtle.reset(Field);
-  Turtle.color(Field);
-  Field.draw();
-  loop.start();
+  Turtle.fillSpace("pos", vec2(512, 512))
+  Turtle.reset(Field, time)
+  Turtle.color(Field)
+  Field.draw()
+  loop.start()
 }
 

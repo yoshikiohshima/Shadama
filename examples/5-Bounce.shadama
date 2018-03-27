@@ -1,102 +1,84 @@
 program "Bounce"
 
-breed Turtle (x, y, dx, dy, r, g, b, a)
-breed Filler (x, y)
-patch Field (nx, ny, r, g, b, a)
+breed Turtle (pos:vec2, d:vec2, color:vec4)
+breed Filler (pos:vec2)
+patch Field (n:vec2, color:vec4)
 
 def setColor() {
-  this.r = this.x / 512.0;
-  this.g = this.y / 512.0;
-  this.b = 0.0;
-  this.a = 1.0;
+  this.color = vec4(this.pos:vec2 / 512.0, 0, 1)
 }
 
-def clear(field) {
-  field.r = 0.0;
-  field.g = 0.0;
-  field.b = 0.0;
-  field.a = 0.0;
-  field.nx = 0.0;
-  field.ny = 0.0;
+def clear(field:object) {
+  field.color = vec4(0, 0, 0, 0)
+  field.n = vec2(0, 0)
 }
 
-def fillCircle(cx, cy, r, field) {
-  var dx = this.x - cx;
-  var dy = this.y - cy;
-  var dr = sqrt(dx * dx + dy * dy);
+def fillCircle(c:vec2, r:float, field:object) {
+  var d = this.pos:vec2 - c
+  var dr = sqrt(d.x * d.x + d.y * d.y);
   if (dr < r) {
-    field.r = 0.2;
-    field.g = 0.2;
-    field.b = 0.8;
-    field.a = 1.0;
-    field.nx = dx / r;
-    field.ny = dy / r;
+    field.color = vec4(0.2, 0.2, 0.8, 1.0);
+    field.n = d / r;
   }
 }
 
 def zeroDir() {
-  this.dx = 0.0;
-  this.dy = 0.0;
+  this.d = vec2(0, 0);
 }
  
-def bounce(field) {
-  var nx = field.nx;
-  var ny = field.ny;
-  var dx = this.dx;
-  var dy = this.dy - 0.01;
-  var dot = dx * nx + dy * ny;
-  var rx = dx;
-  var ry = dy;
-  var origV = sqrt(dx * dx + dy * dy);
+def bounce(field:object) {
+  var n = field.n:vec2;
+  var d = this.d:vec2;
+  var dot = d.x * n.x + d.y * n.y;
+  var origV = sqrt(d.x * d.x + d.y * d.y);
 
+  var r = d
   if (dot < 0.0) {
-    rx = dx - 2.0 * dot * nx;
-    ry = dy - 2.0 * dot * ny;
-    var norm = sqrt(rx * rx + ry * ry);
-    rx = rx / (norm / origV);
-    ry = ry / (norm / origV);
+    r = d - (2.0 * dot * n);
+    var norm = sqrt(r.x * r.x + r.y * r.y);
+    r = r / (norm / origV);
   }
+  
 
-  var newX = this.x + dx;
-  var newY = this.y + dy;
+  var new = this.pos:vec2 + d;
+  var newX = new.x;
+  var newY = new.y;
 
   if (newX < 0.0) {
-    newX = -newX;
-    rx = -rx * 0.9;
+    newX = -newX
+    r = r * vec2(-0.9, 1)
   }
   if (newX > u_resolution.x) {
-    newX = u_resolution.x - (newX - u_resolution.x);
-    rx = -rx * 0.9;
+    newX = u_resolution.x - (newX - u_resolution.x)
+    r = r * vec2(-0.9, 1)
   }
   if (newY < 0.0) {
     newY = mod(newY, u_resolution.y);
-    ry = -0.1;
+    r = vec2(r.x, -0.1)
   }
   if (newY > u_resolution.y) {
     newY = u_resolution.y - (newY - u_resolution.y);
-    ry = -ry;
+    r = vec2(r.x, -r.y)
   }
 
-  this.x = newX;
-  this.y = newY;
-  this.dx = rx;
-  this.dy = ry;
+  this.pos = vec2(newX, newY)
+  this.d = r + vec2(0, -0.01)
 }
 
 static setup() {
-  Filler.fillSpace("x", "y", 512, 512);
-  Turtle.setCount(300000);
-  Turtle.fillRandom("x", 0, 512);
-  Turtle.fillRandom("y", 256, 512);
-  Turtle.fillRandomDir("dx", "dy");
-  Turtle.setColor();
+  Filler.fillSpace("pos", vec2(512, 512))
+  Turtle.setCount(300000)
+  Turtle.fillRandom("pos", 0, 512)
+  Turtle.fillRandomDir("d")
+  Turtle.setColor()
 }
 
 static loop() {
   Filler.clear(Field);
-  Filler.fillCircle(75, 75, 20, Field);
-  Filler.fillCircle(300, 95, 25, Field);
-  Turtle.bounce(Field);
+  Filler.fillCircle(vec2(75, 75), 20, Field)
+  Filler.fillCircle(vec2(300, 95), 25, Field)
+  Turtle.bounce(Field)
+  Turtle.setColor()
   Display.clear();
   Field.draw();
   Turtle.draw();

@@ -1,64 +1,67 @@
 program "Mandelbrot"
-breed Turtle (x, y, c)
-patch Field (re, im, r, g, b, a)
+breed Turtle (pos:vec2, c:float)
+patch Field (re:float, im:float, color:vec4)
 
 def reset() {
   this.c = 1.0;
 }
 
 def incr() {
-  var c = this.c;
-  c = c - (1.0/32.0);
+  var c = this.c:float - (1.0/32.0)
   if (c < 0.0) {
     c = 1.0;
   }
   this.c = c;
 }
 
-def fill(field) {
+def fill(field:object) {
   field.re = 0.0;
   field.im = 0.0;
+  field.color = vec4(0, 0, 0, 1)
 }
 
-def oneStep(field) {
-  var r = field.re;
-  var i = field.im;
+def oneStep(field:object) {
+  var r = field.re:float;
+  var i = field.im:float;
   var newR;
   var newI;
   newR = r * r - i * i;
   var halfW = u_resolution.x / 2.0;
-  newR = newR + (this.x - halfW * 1.5) / halfW;
+  newR = newR + (this.pos:vec2.x - halfW * 1.5) / halfW;
   newI = r * i * 2.0;
-  newI = newI + (this.y - halfW) / halfW;
+  newI = newI + (this.pos:vec2.y - halfW) / halfW;
 
   field.re = newR;
   field.im = newI;
+
+  var red;
+  var green;
   if (newR * newR + newI * newI < 4.0) {
-    field.r = 1.0;
-    field.g = 1.0;
-    field.b = 1.0;
-    field.a = 1.0;
+    red = 1
   } else {
     if (r * r + i * i < 4.0) {
-      field.r = this.c;
+       red = this.c:float
+       green = 0
+    } else {
+       red = field.color:vec4.r
+       green = field.color.g
     }
-    field.g = 0.0;
-    field.b = 1.0;
-    field.a = 1.0;
   }
+
+  field.color = vec4(red, green, field.color.ba);
 }
 
 static loop() {
-  Turtle.oneStep(Field);
-  Turtle.incr();
-  Display.clear();
-  Field.draw();
+  Turtle.oneStep(Field)
+  Turtle.incr()
+  Display.clear()
+  Field.draw()
 }
 
 static setup() {
-  Turtle.fillSpace("x", "y", width, height);
-  Turtle.fill(Field);
-  Turtle.reset();
-  loop.start();
+  Turtle.fillSpace("pos", vec2(512, 512))
+  Turtle.fill(Field)
+  Turtle.reset()
+  loop.start()
 }
 
