@@ -5241,8 +5241,6 @@ highp float random(float seed) {
         if (!withThreeJS) {
             shadama.addListeners(shadamaCanvas);
         }
-        shadama.initServerFiles();
-        shadama.initFileList();
 
         if (degaussdemo) {
             document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
@@ -5266,6 +5264,9 @@ highp float random(float seed) {
             });
             shadama.setEditor(cm, "CodeMirror");
         }
+
+        shadama.initServerFiles();
+        shadama.initFileList();
 
         shadama.initEnv(function() {
             var func = function (source) {
