@@ -4,8 +4,8 @@
   /* Set height, width, borders, and global font properties here */
   font-family: Monaco, 'Andale Mono', 'Lucida Console', 'Bitstream Vera Sans Mono', 'Courier New', Courier, monospace;
   font-size: 12pt;
-  height: 600px;
-  width: 600px;
+  height: 512px;
+  width: 512;
   color: black;
   border-top: 2px solid #ddd;
   border-left: 2px solid #ddd;
