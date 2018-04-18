@@ -1,24 +1,27 @@
-// An example of turtles with random positions.  Their colors are based on their location.
-
 program "Fill"
 breed Turtle (x, y, r, g, b, a)
 
 def setColor() {
-  // The range for color components is [0..1]: Divide the position,
-  //  which is between [0..512) to get a sensible color component value
-  this.r = this.x / 512.0;
-  this.g = this.y / 512.0;
+  this.r = this.x / 512;
+  this.g = this.y / 512;
   this.b = 0.0;
   this.a = 1.0;
 }
 
 static setup() {
-  // The setup static function.  Set the count, create random x for them between 0 and 512,
-  // create random y between 256 and 512. The origin (0, 0) is bottom left, and y axis
-  // goes upward.
   Turtle.setCount(3000);
   Turtle.fillRandom("x", 0, 512);
-  Turtle.fillRandom("y", 256, 512);
+  Turtle.fillRandom("y", 0, 512);
   Turtle.setColor();
   Turtle.draw();
 }
+
+//def move() {
+//  this.x = this.x + 1;
+//  this.y = this.y + 1;
+//}
+
+//static loop() {
+//  Turtle.move();
+//  Turtle.draw();
+//}

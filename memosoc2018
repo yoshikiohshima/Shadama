@@ -1,0 +1,92 @@
+Hello, this is Yoshiki Ohshima.  I'd like to present a particle
+simulation system, which is originally designed for high school
+students to write physics simulations.  But later, we are trying to
+extend the language for other services.
+
+Like I said, the primary taget of this language was high school
+students who are learning sciences.  I would like students to do some
+real science experiments as well as computer simulation to learn
+science concepts deeply.  To illstrate the idea, we made a vacuum
+cannon.
+
+show youtube.
+
+This is a physics phenomenon that is created by the movement of air
+molecules.
+
+I switch to actual demo.  Here I have a text area, where you write
+your Shadama program.  This area shows the result, and here are some
+controls to run things.  Due to the time constraint, I cannot go into
+the details of the actual concepts of the language, but it follows Logo
+and StarLogo tradition. 　We refer to mobile objects as turtles.
+Here, we declare a breed of turtle such that each turtle will have
+properties "x", "y", "r", "g", "b" and "a".
+
+Here I am allocating 3,000 turtles.
+
+Those dots may be hard to see, but we can increase the number of
+turtles to 30,000, 300,000 or 1 million.
+
+What we want to do next is to move those turtles around. So we
+define a method called "move".
+
+Move increments the x and y of the turtles. We call the move method
+from a static function "step".  When we click the "step" clock, "step"
+is repeatedly executed and the turtles move.  Interestingly, while
+they are moving, we can edit the program on the fly and the changes
+take effect as soon as we hit Cmd-S.  We could even allow each
+individual turtle to have its own velocity. So let's add properties
+"dx" and "dy" to each turtle. Then, we use them in "move". Here we
+increment the "x" and "y" of each turtle according to their "dx" and
+"dy".  We use the primitive "fillRandomDir" to set the "dx" and "dy"
+to be the x and y components of a randomly-chosen direction
+vector. Now, all turtles move in their own individual directions.
+Let's run it again by executing "setup" manually.
+
+What happens if we change the dy at a constant rate?  That is a
+simulation of constant accereration, or graivty.  Let us try it again.
+
+If we add some conditions to specify what happens when a particle hits
+an edge of the area it looks like this.  Thsoe four if statements dictates what happens on the edges.
+
+We are now going to create a simulation with large objects. To do so,
+we use what's called a "patch". A patch is a 2D grid of cells where
+turtles can store values. Here, we create a patch called "Field", and
+add "r", "g", "b", and "a" properties for each cell.  And, we define a
+breed called "Filler" that operates on the Field.  In "setup", we use
+a primitive called "fillSpace", which creates turtles of the Filler
+breed and places them at all integral grid points.  Here we define a method to draw a shape. "fillCircle" works by having each Filler
+turtle check whether it is within the radius of the circle. If it is,
+it writes the value into their corresponding cell.  In the "setup"
+function, we call "fillCircle" and get a circle at (100, 100).
+
+Now let's tie it all together. This code has methods we used
+previously, such as "setColor". "fillCircle" is slightly modified so that
+it sets normal vectors for the circle in the patch.`
+In the "move"
+method, each turtle checks the normal in the patch cell where the turtle is
+located and computes a new direction from the dot product with the normal. When we run
+this, particles bounce off the circle and make a beautiful pattern.
+However, it is a bit hard to see because the colors of the turtles are too
+similar. Here, we change the "setColor" method so that instead of using "x"
+and "y" position, we use the velocity "dx" and "dy" to determine the turtles'
+color.
+
+Then we call "setColor" from "loop", so that the colors are updated continuously.
+Here, horizontal velocity corresponds with reddish color, and vertical
+velocity corresponds with greenish color. The visualization can be quickly adjusted
+to match how you prefer to view the simulation.
+For fun, you can make two circles that move symmetrically.
+Here's an interesting variation of our program. Instead of modeling gravity as pulling downward, gravity follows
+the inverse square law in relation to the mouse pointer location. It looks like
+there are large structures, but it's actually just a
+quarter million particles from regular initial positions, all following the inverse square law.
+
+When I gave a talk on this system for the first time, I tried to open
+my talk in a joke slide.
+
+At the company we are trying to start, we are working on VR/AR system,
+where a company executive can look at various data.  As our idea DNA
+always trace back to a fully constructive end-user systems, we have an
+environment where a user can create interesting objects in the system.  But also, we have a 
+

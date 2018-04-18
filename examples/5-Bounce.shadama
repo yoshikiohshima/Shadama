@@ -90,6 +90,7 @@ static setup() {
   Turtle.fillRandom("y", 256, 512);
   Turtle.fillRandomDir("dx", "dy");
   Turtle.setColor();
+  loop.start();
 }
 
 static loop() {

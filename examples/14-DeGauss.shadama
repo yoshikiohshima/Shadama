@@ -116,7 +116,7 @@ static loop() {
      Right.draw();
   }
   if (mousedown.x > 960 && mousedown.y < 50) {
-    Display.loadProgram("17-Goals.shadama");
+    Display.loadProgram("22-WhoAmI.shadama");
     mousedown.x = 0;
     mousedown.y = 0;
   }

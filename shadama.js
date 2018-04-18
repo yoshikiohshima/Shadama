@@ -1571,14 +1571,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     Shadama.prototype.initServerFiles = function() {
         if (!editor) {return;}
         var examples = [
-            "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama", "16-Diffuse.shadama", "19-Bump.shadama"
+            "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama", "16-Diffuse.shadama", "19-Bump.shadama", "21-ForestFire.shadama", "22-WhoAmI.shadama"
         ];
         examples.forEach((n) => {
             this.env["Display"].loadProgram(n, (serverCode) => {
                 var localCode = localStorage.getItem(n);
-                if (!localCode) {
+                //if (!localCode) {
                     localStorage.setItem(n, serverCode);
-                }
+                //}
                 this.initFileList();
             })
         });

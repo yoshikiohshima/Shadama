@@ -1,8 +1,8 @@
-program "MacCready"
+program "Who Am I"
 breed Slide (x, y, dx, dy, r, g, b, a)
 breed Right (x, y, r, g, b, a)
 
-data MacCready("maccready.png", "image")
+data WhoAmI("whoami.png", "image")
 data RightButton("rightbutton.png", "image")
 
 def move(x, y) {
@@ -16,7 +16,7 @@ def disperse() {
 }
 
 static setup() {
-  Slide.fillImage("x", "y", "r", "g", "b", "a", MacCready);
+  Slide.fillImage("x", "y", "r", "g", "b", "a", WhoAmI);
   Slide.fillRandomDir("dx", "dy");
   Slide.draw();
 
@@ -47,7 +47,7 @@ static loop() {
   }
 
   if (showRight && mousedown.x > 960 && mousedown.y < 50) {
-    Display.loadProgram("14-DeGauss.shadama");
+    Display.loadProgram("17-Goals.shadama");
     mousedown.x = 0;
     mousedown.y = 0;
   }

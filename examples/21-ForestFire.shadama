@@ -1,0 +1,87 @@
+program "Forest Fire"
+
+patch Field(r, g, b, a)
+breed Turtle(x, y, c)
+
+def reset(field, n, t) {
+  var rand = random(this.x * 1.31 + this.y * 0.2 - t);
+  if (rand < (n / 100)) {
+    field.r = 0;
+    field.g = 1;
+    field.b = 0;
+    field.a = 1;
+  } else {
+    field.r = 0;
+    field.g = 0;
+    field.b = 0;
+    field.a = 1;
+  }
+}
+
+def put(field, x, y) {
+  var dx = this.x - x;
+  var dy = this.y - y;
+  if ((dx * dx + dy * dy) < 2) {
+    field.r = 1;
+  }
+}
+
+def zero() {
+  this.c = 0;
+}
+
+def move(x, y) {
+  this.x = this.x + x;
+  this.y = this.y + y;
+}
+
+def add(field) {
+  this.c = this.c + field.r;
+}
+
+def comp(field) {
+  var c = this.c;
+  var t = field.g;
+  var r = field.r;
+
+  if (c > 0 && t == 1) {
+    r = 1;
+    field.g = 0;
+  }
+
+  if (r > 0.1) {
+    r = r * 0.99;
+  } else {
+    r = 0;
+  }
+  field.r = r;
+}
+
+static setup() {
+  Turtle.fillSpace("x", "y", 512, 512);
+  Turtle.reset(Field, 64, time);
+  Turtle.draw();
+}
+
+static loop() {
+  Turtle.put(Field, mousedown.x, mousedown.y);
+  mousedown.x = -20;
+  mousedown.y = -20;
+  Turtle.zero();
+  Turtle.move(-1, 0);
+  Turtle.add(Field);
+
+  Turtle.move(1, 1);
+  Turtle.add(Field);
+  Turtle.move(1, -1);
+  Turtle.add(Field);
+
+  Turtle.move(-1, -1);
+  Turtle.add(Field);
+
+  Turtle.move(0, 1);
+
+  Turtle.comp(Field);
+  Display.clear();
+  Field.draw();
+}
