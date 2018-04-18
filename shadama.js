@@ -5260,6 +5260,8 @@ highp float random(float seed) {
                 matchBrackets: true,
                 "extraKeys": {
                     "Cmd-S": function(cm) {shadama.updateCode()},
+                    "Alt-S": function(cm) {shadama.updateCode()},
+                    "Ctrl-S": function(cm) {shadama.updateCode()},
                 },
             });
             shadama.setEditor(cm, "CodeMirror");
