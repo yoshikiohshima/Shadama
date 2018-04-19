@@ -1,7 +1,16 @@
-Hello, this is Yoshiki Ohshima.  I'd like to present a particle
-simulation system, which is originally designed for high school
-students to write physics simulations.  But later, we are trying to
-extend the language for other services.
+I'd like to present a particle simulation system called Shadama.  I
+made the language for high school students to write physics
+simulations, but later we are using it for different purposes.
+
+A few words on myself. I am a computer software guy, and worked for
+some companies in the past.  I was making some prototypes of theme
+park gadgets at Disney.  I worked for SAP Labs for a while.  CEO
+Vision is a new start up we are trying to get started.  One connection
+to Potsdam is that I worked on an interactive museum exhibition for
+Extavium in Potsdam 12 years ago, and yes, it apparently is still up
+and running.
+
+Now, on to the language for science.
 
 Like I said, the primary taget of this language was high school
 students who are learning sciences.  I would like students to do some
@@ -9,10 +18,9 @@ real science experiments as well as computer simulation to learn
 science concepts deeply.  To illstrate the idea, we made a vacuum
 cannon.
 
-show youtube.
-
 This is a physics phenomenon that is created by the movement of air
-molecules.
+molecules.  Basically with a simple vacuum pump and plastic pipe, you
+can get a pinpon ball to get over 300km per hour.
 
 I switch to actual demo.  Here I have a text area, where you write
 your Shadama program.  This area shows the result, and here are some
@@ -47,46 +55,39 @@ What happens if we change the dy at a constant rate?  That is a
 simulation of constant accereration, or graivty.  Let us try it again.
 
 If we add some conditions to specify what happens when a particle hits
-an edge of the area it looks like this.  Thsoe four if statements dictates what happens on the edges.
+an edge of the area it looks like this.  Thsoe four if statements
+dictates what happens on the edges.
 
-We are now going to create a simulation with large objects. To do so,
-we use what's called a "patch". A patch is a 2D grid of cells where
-turtles can store values. Here, we create a patch called "Field", and
-add "r", "g", "b", and "a" properties for each cell.  And, we define a
-breed called "Filler" that operates on the Field.  In "setup", we use
-a primitive called "fillSpace", which creates turtles of the Filler
-breed and places them at all integral grid points.  Here we define a method to draw a shape. "fillCircle" works by having each Filler
-turtle check whether it is within the radius of the circle. If it is,
-it writes the value into their corresponding cell.  In the "setup"
-function, we call "fillCircle" and get a circle at (100, 100).
+I cannot go into details, but by using a notion of patch variables,
+Here this fillCircle method creates a circle, and called twice from
+here.
 
 Now let's tie it all together. This code has methods we used
-previously, such as "setColor". "fillCircle" is slightly modified so that
-it sets normal vectors for the circle in the patch.`
-In the "move"
-method, each turtle checks the normal in the patch cell where the turtle is
-located and computes a new direction from the dot product with the normal. When we run
-this, particles bounce off the circle and make a beautiful pattern.
-However, it is a bit hard to see because the colors of the turtles are too
-similar. Here, we change the "setColor" method so that instead of using "x"
-and "y" position, we use the velocity "dx" and "dy" to determine the turtles'
-color.
-
-Then we call "setColor" from "loop", so that the colors are updated continuously.
-Here, horizontal velocity corresponds with reddish color, and vertical
-velocity corresponds with greenish color. The visualization can be quickly adjusted
-to match how you prefer to view the simulation.
-For fun, you can make two circles that move symmetrically.
-Here's an interesting variation of our program. Instead of modeling gravity as pulling downward, gravity follows
-the inverse square law in relation to the mouse pointer location. It looks like
-there are large structures, but it's actually just a
-quarter million particles from regular initial positions, all following the inverse square law.
+previously, such as "setColor". "fillCircle" is slightly modified so
+that it sets normal vectors for the circle in the patch.` In the
+"move" method, each turtle checks the normal in the patch cell where
+the turtle is located and computes a new direction from the dot
+product with the normal. When we run this, particles bounce off the
+circle and make a beautiful pattern.  However, it is a bit hard to see
+because the colors of the turtles are too similar. Here, we change the
+"setColor" method so that instead of using "x" and "y" position, we
+use the velocity "dx" and "dy" to determine the turtles' color.
 
 When I gave a talk on this system for the first time, I tried to open
 my talk in a joke slide.
 
-At the company we are trying to start, we are working on VR/AR system,
-where a company executive can look at various data.  As our idea DNA
-always trace back to a fully constructive end-user systems, we have an
-environment where a user can create interesting objects in the system.  But also, we have a 
+At the CEO Vision, we are trying to provide a way to interact with big
+data in a VR/AR environment.  We talked to a company executive, and he
+said that he runs the company with huge spreadsheets.  So we made it
+possible.  Here we use a public dataset, which is the mortality rate
+in the US.  Each row is a year, and columsn are the age.  Here, for
+example, for 5 years old in 1919, n % of them died in the year.
 
+You have to imagine that you are in a VR space.  You can surround
+yourself by data, and you can directly interest with it.
+
+But We want to let the user to make visualization of their own.  So we
+moved the Shadama language in the environment.  
+
+Our goal is to make an environment where people can make simulations
+and other objects collaboratively.
