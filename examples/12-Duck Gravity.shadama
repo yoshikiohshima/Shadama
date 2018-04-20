@@ -4,6 +4,9 @@ breed Turtle (x, y, dx, dy, r, g, b, a)
 breed Filler (x, y)
 patch Field (nx, ny, r, g, b, a)
 
+data Ahiru("ahiru.png", "image")
+
+
 def setColor() {
   this.r = this.x / 512.0;
   this.g = this.y / 512.0;
@@ -82,7 +85,7 @@ def fillD() {
 }
 
 static setup() {
-  Turtle.fillImage("x", "y", "r", "g", "b", "a", image);
+  Turtle.fillImage("x", "y", "r", "g", "b", "a", Ahiru);
   Turtle.fillD();
 }
 

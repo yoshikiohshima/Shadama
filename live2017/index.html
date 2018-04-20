@@ -969,7 +969,7 @@ static loop() {
 }
 </pre>
 <p>
-The above code clears the canvas and then draws <code>MyPatch</code> by calling the <code>draw</code> primitive.
+The above code clears the canvas and then draws <code>MyPatch</code> by calling the <code>draw</code> primitive.  <code>Display</code> has <code>loadProgram</code>, and <code>clear</code>.
 </p>
 
 <h3 id="parallelism-considerations">Parallelism Considerations</h3>
@@ -1012,6 +1012,10 @@ def test() {
   this.b = r;
 }
 </pre>
+</p>
+
+<p>
+A script can be started by calling <code>start</code> on it. Likewise, you can stop it <code>stop</code>, and execute it once with <code>step</code>.
 </p>
 
 <h3 id="control-structures">Control Structures</h3>
