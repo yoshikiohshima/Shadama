@@ -466,6 +466,44 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         void main() {
             fragColor = v_value;
         }`,
+
+        "copyRGBA.vert":
+        `#version 300 es
+        layout (location = 0) in vec2 a_index;
+        layout (location = 1) in vec2 b_index;
+        uniform vec2 u_resolution;
+        uniform vec2 u_half;
+
+        uniform ivec2 u_videoExtent;
+        uniform sampler2D u_videoTexture;
+
+        out vec4 v_value;
+        void main(void) {
+            ivec2 fc = ivec2(a_index);
+            int w = int(u_resolution.x);
+            int i = fc.y * w + fc.x;
+            ivec2 vp = ivec2(i % w, i / u_videoExtent.x);
+
+            vec2 clipPos = (b_index + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
+            gl_Position = vec4(clipPos, 0.0, 1.0);
+            gl_PointSize = 1.0;
+            v_value = texelFetch(u_videoTexture, vp, 0);
+        }`,
+
+        "copyRGBA.frag":
+        `#version 300 es
+        precision highp float;
+        in vec4 v_value;
+        layout (location = 0) out float o_r;
+        layout (location = 1) out float o_g;
+        layout (location = 2) out float o_b;
+        layout (location = 3) out float o_a;
+        void main(void) {
+            o_r = v_value.r;
+            o_g = v_value.g;
+            o_b = v_value.b;
+            o_a = v_value.a;
+        }`,
     }
 
     function initBreedVAO() {
@@ -587,6 +625,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
     function increaseVoxelProgram() {
         return makePrimitive("increaseVoxel", ["u_resolution", "u_half", "v_resolution", "v_step", "u_that_x", "u_that_y", "u_that_z", "u_use_vector", "u_texture", "u_value"], breedVAO);
+    }
+
+    function copyRGBAProgram() {
+        return makePrimitive("copyRGBA", ["u_resolution", "u_half", "u_videoExtent", "u_videoTexture"], breedVAO);
     }
 
     function createShader(id, source) {
@@ -1246,6 +1288,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                         this.env[js[1]] = this.loadAudio(js[2]);
                     } else if (js[3] == "csv") {
                         this.env[js[1]] = this.loadCSV(js[2]);
+                    } else if (js[3] == "video") {
+                        this.env[js[1]] = this.loadVideo(js[2]);
                     }
 
                     if (newData.length == 0) {
@@ -1704,6 +1748,100 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             xobj.send();
             return event;
         })();
+    }
+
+    Shadama.prototype.loadVideo = function(name) {
+        var event = new ShadamaEvent(); //event to trigger that a frame is ready
+
+        var video = document.createElement("video");
+
+        function initTexture() {
+            var texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            // Because video has to be download over the internet
+            // they might take a moment until it's ready so
+            // put a single pixel in the texture so we can
+            // use it immediately.
+            var pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                          1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                          pixel);
+            
+            // Turn off mips and set  wrapping to clamp to edge so it
+            // will work regardless of the dimensions of the video.
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            
+            return texture;
+        }
+
+        var videoTexture = initTexture();
+
+        function updateTexture(gl, texture, video) {
+            state.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                          gl.RGBA, gl.UNSIGNED_BYTE, video);
+        }
+
+        var playing = false;
+        var timeupdate = false;
+
+        function checkReady() {
+            if (playing && timeupdate) {
+                var obj = {updateTexture: updateTexture, video: video, texture: videoTexture};
+                // there is some confusion about how often it should trigger it.
+                // here, the same object is used over and over again.
+                event.setValue(obj);
+            }
+        }
+
+        video.autoplay = true;
+        video.muted = true;
+        video.loop = true;
+
+        video.addEventListener('playing', function() {
+            playing = true;
+        }, true);
+
+        video.addEventListener('timeupdate', function() {
+            timeupdate = true;
+            checkReady();
+        }, true);
+
+        var location = window.location.toString();
+
+        if (location.startsWith("http")) {
+            if (frame) {
+                var dir = frame.imagePath + name;
+            } else {
+                var slash = location.lastIndexOf("/");
+                var dir = location.slice(0, slash) + "/" + name;
+            }
+            video.src = dir;
+        } else {
+            video.crossOrigin = "Anonymous";
+            video.onerror = function() {
+                console.log("no internet");
+            }
+            video.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+        }
+
+        //video.hidden = true;
+        document.body.appendChild(video);
+
+        var p = video.play();
+        
+        if (p !== undefined) {
+            p.then(function() {
+                console.log("Automatic playback started!");
+            }).catch(function(error) {
+                console.log("Automatic playback failed!");
+            });
+        }
+        return event;
     }
 
     Shadama.prototype.initDisplay = function() {
@@ -2214,6 +2352,55 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 }
                 this.setCount(data.length - 1);
             }
+        }
+
+        loadVideoFrame(video) {
+            if (video.constructor === ShadamaEvent) {
+                video = video.value;
+            }
+            var vTex = video.texture; // rgba
+
+            var updateTexture = video.updateTexture;
+            updateTexture(gl, vTex, video.video);
+
+            var prog = programs["copyRGBA"];
+            var that = this;
+
+            var cs = ["r", "g", "b", "a"];
+
+            var targets = cs.map(function(n) {return that[N + n]});
+            setTargetBuffers(framebufferBreed, targets);
+
+            state.useProgram(prog.program);
+            gl.bindVertexArray(prog.vao);
+            noBlend();
+
+            state.activeTexture(gl.TEXTURE1);
+            state.bindTexture(gl.TEXTURE_2D, vTex);
+            gl.uniform1i(prog.uniLocations["u_videoTexture"], 1);
+
+            if (!withThreeJS) {
+                gl.viewport(0, 0, T, T);
+            }
+            gl.uniform2f(prog.uniLocations["u_resolution"], T, T);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5/T, 0.5/T);
+            gl.uniform2i(prog.uniLocations["u_videoExtent"], video.video.videoWidth, video.video.videoHeight);
+
+            this.count = video.video.videoWidth * video.video.videoHeight;
+
+            gl.drawArrays(gl.POINTS, 0, this.count);
+            gl.flush();
+
+            noBlend();
+
+            setTargetBuffer(null, null);
+            for (var i = 0; i < cs.length; i++) {
+                var name = cs[i];
+                var tmp = that[name];
+                this[name] = this[N + name];
+                this[N + name] = tmp;
+            }
+            gl.bindVertexArray(null);
         }
 
         draw() {
@@ -3075,6 +3262,8 @@ Shadama {
                 ["param", null, "bName"],
                 ["param", null, "aName"],
                 ["param", null, "imageData"]], true),
+            "loadVideoFrame": new SymTable([
+                ["param", null, "video"]], true),
             "diffuse": new SymTable([
                 ["param", null, "name"]], true),
             "increasePatch": new SymTable([
@@ -4541,7 +4730,7 @@ uniform sampler2D u_that_y;
 
                     var displayBuiltIns = ["clear", "playSound", "loadProgram"];
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
+                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
                     var myTable = table[n.sourceString];
 
                     var actuals = as.static_method_inner(table, null, method, false);
@@ -5322,6 +5511,7 @@ highp float random(float seed) {
     programs["diffusePatch"] = diffusePatchProgram();
     programs["increasePatch"] = increasePatchProgram();
     programs["increaseVoxel"] = increaseVoxelProgram();
+    programs["copyRGBA"] = copyRGBAProgram();
 
     initCompiler();
 
