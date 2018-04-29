@@ -1,0 +1,25 @@
+program "Video"
+breed Turtle (x, y, r, g, b, a, dx, dy)
+
+//data Video("small.webm", "video")
+data Video("dummy", "camera")
+
+static setup() {
+//  Turtle.fillSpace("x", "y", 560, 320);
+  Turtle.fillSpace("x", "y", 1024, 1024);
+  Turtle.fillRandomDir("dx", "dy");
+}
+
+def move() {
+    this.x = this.x + this.dx;
+    this.y = this.y + this.dy;
+}
+
+static loop() {
+  Turtle.loadVideoFrame(Video);
+  Turtle.draw();
+}
+
+static step() {
+  Turtle.move();
+}
