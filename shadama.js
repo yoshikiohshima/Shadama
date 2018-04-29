@@ -3571,7 +3571,7 @@ Shadama {
     }
 
     function initSemantics() {
-        function addDefaultGlobalss(obj) {
+        function addDefaultGlobals(obj) {
             obj["mousedown"] = new Entry("var");
             obj["mousedown"].setInfo(["mousedown", "obj"]);
 
@@ -3792,13 +3792,9 @@ Shadama {
                     }
                 },
 
-                VariableDeclaration(n, optType, optI) {
+                VariableDeclaration(n, optI) {
                     var entry = this.args.entry;
-                    var type = null;
-                    if (optType.children.length > 0) {
-                        type = optType.children[0].symbols(entry);
-                    }
-
+                    var type = "float";
                     if (optI.children.length > 0) {
                         optI.children[0].symbols(entry);
                     }
@@ -3819,32 +3815,37 @@ Shadama {
                     var entry = this.args.entry;
                     var name = n.sourceString;
 
-                    var isOther = entry.param.has(name) &&
-                        entry.getType("param", null, name) == "object";
+		    var pType = entry.getType("param", null, name);
+
+		    if (entry.param.has(name) && pType == null) {
+			entry.setType("param", null, name, "object");
+		    }
+
+                    var isOther = entry.param.has(name) && entry.getType("param", null, name) == "object";
 
                     check((entry.type == "method" && (name === "this" || isOther)) ||
                           (entry.type == "helper" && isOther),
                           n.source.endIdx,
                           `field ${f.sourceString} of variable ${name} cannot be assigned into`);
 
-                    entry.add("propOut", n.sourceString, f.sourceString, null);;
+                    entry.add("propOut", n.sourceString, f.sourceString, "float");
                 },
 
-                PrimExpression_field(n, _p, f, optType) {
+                PrimExpression_field(n, _p, f) {
                     var entry = this.args.entry;
                     if (entry.type == "method") {
                         if (n.ctorName === "PrimExpression" &&
                             (n.children[0].ctorName === "PrimExpression_variable")) {
                             var name = n.sourceString;
                             // this is the case when it is left most.
+			    if (entry.param.has(name) && entry.getType("param", null, name) == null) {
+				entry.setType("param", null, name, "object");
+			    }
                             var isOther = entry.param.has(name) &&
                                 entry.getType("param", null, name) == "object";
                             // this is when they are accessed as texture
                             if (name === "this" || isOther) {
-                                var type = null;
-                                if (optType.children.length > 0) {
-                                    type = optType.children[0].symbols(entry);
-                                }
+                                var type = "float";
                                 entry.add("propIn", n.sourceString, f.sourceString, type);
                                 return;
                             } else {
@@ -3883,16 +3884,9 @@ Shadama {
                     }
                 },
 
-                TypedVar(i, t) {
-                    var entry = this.args.entry;
-                    return [i.sourceString, t.symbols(entry)];
-                },
-
-                ColonType(_c, t) {
-                    return t.sourceString;;
-                },
-
-                ident(_h, _r) {},
+                ident(_h, _r) {
+		    return [this.sourceString, null]
+		},
                 number(s) {},
                 _terminal() {},
                 _nonterminal(children) {
@@ -3975,13 +3969,9 @@ Shadama {
                     return null;
                 },
 
-                VariableDeclaration(n, optType, optI) {
+                VariableDeclaration(n, optI) {
                     var entry = this.args.entry;
                     var nType = null;
-                    if (optType.children.length > 0) {
-                        nType = optType.children[0].symbols(entry);
-                        entry.setType("var", null, n.sourceString, nType);
-                    }
                     if (optI.children.length > 0) {
                         var type = optI.children[0].type(entry);
                         check(type !== null,
@@ -4027,13 +4017,13 @@ Shadama {
                 LeftHandSideExpression_field(n, _a, f) {
                     var entry = this.args.entry;
                     var name = n.sourceString;
-                    var type = entry.add("propOut", name, f.sourceString, null);
+                    var type = entry.add("propOut", name, f.sourceString, "float");
                     return null;
                 },
 
                 LeftHandSideExpression_ident(n) {
                     var entry = this.args.entry;
-                    var type = entry.add("var", null, n.sourceString, null);
+                    var type = entry.add("var", null, n.sourceString, "float");
                     return null;
                 },
 
@@ -4113,28 +4103,25 @@ Shadama {
                     return e.type(this.args.entry);
                 },
 
-                PrimExpression_field(n, _p, f, optType) {
+                PrimExpression_field(n, _p, f) {
                     var entry = this.args.entry;
                     
                     if (entry.type == "method") {
                         if (n.ctorName === "PrimExpression" &&
                             (n.children[0].ctorName === "PrimExpression_variable")) {
                             var name = n.sourceString;
-                            var isOther = entry.param.has(name) &&
-                                entry.getType("param", null, name) == "object";
-                            var type;
-                            // this is when they are accessed as texture
-                            
-                            if (optType.children.length > 0) {
-                                type = optType.children[0].type(entry);
-                                entry.setType("propIn", name, f.sourceString, type);
+                            if (entry.param.has(name) && entry.getType("param", null, name) == null) {
+                                entry.setType("param", null, name, "object");
                             }
+                            var isOther = entry.param.has(name) && (entry.getType("param", null, name) == "object");
+                            var type;
+                            
                             if (name === "this" || isOther) {
                                 var type = entry.getType("propIn", name, f.sourceString);
-                                check(type,
-                                      f.source.endIdx,
-                                      "type not specified");
-                                return type;
+                                //check(type,
+                                //      f.source.endIdx,
+                                //      "type not specified");
+                                return type || "float";
                             }
                         }
                         var nType = n.type(entry);
@@ -4163,10 +4150,10 @@ Shadama {
                     var name = n.sourceString;
 
                     var type = entry.getVariableType(name);
-                    check(type,
-                          n.source.endIdx,
-                          "type not specified");
-                    return type;
+                    //check(type,
+                    //      n.source.endIdx,
+                    //      "type not specified");
+                    return type || "float";
                 },
 
                 PrimitiveCall(n, _o, as, _c) {
@@ -4245,10 +4232,6 @@ Shadama {
                     return result;
                 },
 
-                ColonType(_c, t) {
-                    return t.sourceString;;
-                },
-
                 ident(_h, _r) {return null},
                 number(s) {return "float"},
                 _terminal() {return null},
@@ -4262,7 +4245,7 @@ Shadama {
                     b.staticType(entry);
                 },
 
-                VariableDeclaration(n, optType, optI) {
+                VariableDeclaration(n, optI) {
                     var entry = this.args.entry;
                     var global = entry.global;
 
@@ -4461,7 +4444,7 @@ Shadama {
                     entry.scalarParamTable.keysAndValuesDo((key, value) => {
                         var name = value[2];
                         vert.tab();
-                        vert.push(`${value[3]} ${name} = u_scalar_${name};`);
+                        vert.push(`${value[3]||"float"} ${name} = u_scalar_${name};`);
                         vert.cr();
                     });
 
@@ -4564,7 +4547,7 @@ Shadama {
                     d.glsl_inner(entry, vert, frag);
                 },
 
-                VariableDeclaration(n, optT, i) {
+                VariableDeclaration(n, i) {
                     var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
@@ -4707,7 +4690,7 @@ Shadama {
                     }
                 },
 
-                PrimExpression_field(n, _p, f, optType) {
+                PrimExpression_field(n, _p, f) {
                     var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
@@ -4715,12 +4698,14 @@ Shadama {
                     if (n.ctorName === "PrimExpression" &&
                         (n.children[0].ctorName === "PrimExpression_variable")) {
                         var name = n.sourceString;
-                        var isOther = entry.param.has(name) &&
-                            entry.getType("param", null, name) == "object";
+			if (entry.param.has(name) && entry.getType("param", null, name) == null) {
+			    entry.setType("param", null, name, "object");
+			}
+                        var isOther = entry.param.has(name) && (entry.getType("param", null, name) == "object");
                         // this is when they are accessed as texture
                         if (name === "this" || isOther) {
                             var type = entry.getType("propIn", n.sourceString, f.sourceString);
-                            var suffix = entry.swizzle(type);
+                            var suffix = "r"; // entry.swizzle(type);
 
                             if (n.sourceString === "this") {
                                 vert.push("texelFetch(" +
@@ -4884,7 +4869,7 @@ Shadama {
                     d.static(entry, js);
                 },
 
-                VariableDeclaration(n, optT, i) {
+                VariableDeclaration(n, i) {
                     var entry = this.args.entry;
                     var js = this.args.js;
 
@@ -5038,7 +5023,7 @@ Shadama {
                     js.push("new vec(1, " + e.sourceString + ")");
                 },
 
-                PrimExpression_field(n, _p, f, optT) {
+                PrimExpression_field(n, _p, f) {
                     var js = this.args.js;
                     n.static(this.args.entry, js);
                     js.push(".");
@@ -5825,7 +5810,7 @@ Shadama {
         paramUniforms() {
             var result = [];
             this.scalarParamTable.keysAndValuesDo((key, entry) => {
-                result.push("uniform " + entry[3] + " u_scalar_" + entry[2] + ";");
+                result.push("uniform " + (entry[3] || "float") + " u_scalar_" + entry[2] + ";");
             });
             return result;
         }
@@ -6138,7 +6123,7 @@ highp float random(float seed) {
 
         shadama.initEnv(function() {
             var func = function (source) {
-                shadama.loadShadama(null, source);
+                shadama.loadShadama(source);
                 if (editor) {
                     editor.doc.setValue(source);
                 }
