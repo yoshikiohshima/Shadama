@@ -483,6 +483,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             int w = int(u_resolution.x);
             int i = fc.y * w + fc.x;
             ivec2 vp = ivec2(i % w, i / u_videoExtent.x);
+	    vp.y = u_videoExtent.y - vp.y;
 
             vec2 clipPos = (b_index + u_half) * 2.0 - 1.0;  // (-1.0-1.0, -1.0-1.0)
             gl_Position = vec4(clipPos, 0.0, 1.0);
@@ -1206,6 +1207,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         this.staticsList = []; // [name];
         this.steppers = {};  // {name: name}
         this.triggers = {};  // {triggerName: ShadamaTrigger}
+	this.media = {}; // {name: ShadamaTrigger}
+
         this.loadTime = 0.0;
 
         this.compilation = null;
@@ -1232,6 +1235,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         this.staticsList = [];
         this.scripts = {};
         this.triggers = {};
+	this.clearMedia();
         var newData = [];
         if (!source) {
             var scriptElement = document.getElementById(id);
@@ -1289,7 +1293,13 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                     } else if (js[3] == "csv") {
                         this.env[js[1]] = this.loadCSV(js[2]);
                     } else if (js[3] == "video") {
-                        this.env[js[1]] = this.loadVideo(js[2]);
+			var evt = this.loadVideo(js[2]);
+                        this.env[js[1]] = evt;
+			this.media[js[1]] = evt;
+                    } else if (js[3] == "camera") {
+			var evt = this.loadCamera(js[2]);
+                        this.env[js[1]] = evt;
+			this.media[js[1]] = evt;
                     }
 
                     if (newData.length == 0) {
@@ -1316,6 +1326,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 var success = this.callSetup();
                 if (!success) {return };
             } else {
+		this.loadTime = window.performance.now() / 1000.0;
+		this.env["time"] = 0.0;
                 var trigger = new ShadamaTrigger(newData, ["step", "setup"]);
                 this.triggers["_trigger" + trigger.trigger.toString()] = trigger;
             }
@@ -1790,12 +1802,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         var timeupdate = false;
 
         function checkReady() {
-            if (playing && timeupdate) {
-                var obj = {updateTexture: updateTexture, video: video, texture: videoTexture};
-                // there is some confusion about how often it should trigger it.
-                // here, the same object is used over and over again.
-                event.setValue(obj);
-            }
+	    return playing && timeupdate;
         }
 
         video.autoplay = true;
@@ -1808,7 +1815,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         video.addEventListener('timeupdate', function() {
             timeupdate = true;
-            checkReady();
         }, true);
 
         var location = window.location.toString();
@@ -1829,8 +1835,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             video.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
         }
 
-        //video.hidden = true;
-        document.body.appendChild(video);
+        video.hidden = true;
+        //document.body.appendChild(video);
 
         var p = video.play();
         
@@ -1841,7 +1847,103 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 console.log("Automatic playback failed!");
             });
         }
+
+        event.setValue({updateTexture: updateTexture, video: video, texture: videoTexture, checkReady: checkReady});
+
         return event;
+    }
+
+    Shadama.prototype.loadCamera = function(name) {
+        var event = new ShadamaEvent(); //event to trigger that a frame is ready
+
+        var video = document.createElement("video");
+
+        function initTexture() {
+            var texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            // Because video has to be download over the internet
+            // they might take a moment until it's ready so
+            // put a single pixel in the texture so we can
+            // use it immediately.
+            var pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                          1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                          pixel);
+            
+            // Turn off mips and set  wrapping to clamp to edge so it
+            // will work regardless of the dimensions of the video.
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            
+            return texture;
+        }
+
+        var videoTexture = initTexture();
+
+        function updateTexture(gl, texture, video) {
+            state.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                          gl.RGBA, gl.UNSIGNED_BYTE, video);
+        }
+
+	if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+	    // Not adding `{ audio: true }` since we only want video now
+	    navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+		video.src = window.URL.createObjectURL(stream);
+		video.play();
+	    });
+	}
+
+        var playing = false;
+        var timeupdate = false;
+
+        function checkReady() {
+	    return playing && timeupdate;
+        }
+
+        video.autoplay = true;
+        video.muted = true;
+        video.loop = true;
+
+        video.addEventListener('playing', function() {
+            playing = true;
+        }, true);
+
+        video.addEventListener('timeupdate', function() {
+            timeupdate = true;
+        }, true);
+
+        video.hidden = true;
+        //document.body.appendChild(video);
+
+        var p = video.play();
+        
+        if (p !== undefined) {
+            p.then(function() {
+                console.log("Automatic playback started!");
+            }).catch(function(error) {
+                console.log("Automatic playback failed!");
+            });
+        }
+
+        event.setValue({updateTexture: updateTexture, video: video, texture: videoTexture, checkReady: checkReady});
+
+        return event;
+    }
+
+    Shadama.prototype.clearMedia = function() {
+	for (var k in this.media) {
+	    var event = this.media[k];
+	    var value = event.value;
+	    if (value.video) {
+		value.video.pause();
+		value.video.remove();
+	    }
+	}
+	this.media = {};
     }
 
     Shadama.prototype.initDisplay = function() {
@@ -2358,6 +2460,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             if (video.constructor === ShadamaEvent) {
                 video = video.value;
             }
+
+	    if (!video.checkReady()) {return;}
+
             var vTex = video.texture; // rgba
 
             var updateTexture = video.updateTexture;
