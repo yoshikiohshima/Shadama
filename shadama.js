@@ -87,6 +87,104 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     var showAllEnv;
     var degaussdemo;
 
+    var fragments = {
+        patchInput: {
+            float2: `
+  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
+  vec2 _pos = vec2(_x, _y);
+`,
+            vec2: `
+  vec2 _pos = texelFetch(u_that_xy, ivec2(a_index), 0).rg;
+`,
+
+            float3: `
+  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
+  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
+  float _z = texelFetch(u_that_z, ivec2(a_index), 0).r;
+  _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
+  _y = floor(_y / v_step); // 8
+  _z = floor(_z / v_step); // 8
+
+  int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
+  vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
+`,
+
+            vec3: `
+  vec3 _xyz = texelFetch(u_that_xyz, ivec2(a_index), 0).xyz;
+  float _x = _xyz.x;
+  float _y = _xyz.y;
+  float _z = _xyz.z;
+  _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
+  _y = floor(_y / v_step); // 8
+  _z = floor(_z / v_step); // 8
+
+  int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
+  vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
+`
+},
+
+        noPatchInput:`
+  vec2 _pos = a_index;
+`,
+
+        blockPatchPrologue: {
+            vec2: `
+  vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
+`,
+
+            vec3: `
+  vec2 oneToOne = ((_pos / u_resolution.xy) + u_half) * 2.0 - 1.0;
+`
+},
+
+        blockBreedPrologue: `
+  vec2 oneToOne = (b_index + u_half) * 2.0 - 1.0;
+`,
+
+        blockEpilogue: `
+  gl_Position = vec4(oneToOne, 0.0, 1.0);
+  gl_PointSize = 1.0;
+`,
+
+        patchPrologue: {
+            float2: `
+uniform sampler2D u_that_x;
+uniform sampler2D u_that_y;
+`,
+            vec2: `
+uniform sampler2D u_that_xy;
+`,
+            float3: `
+uniform sampler2D u_that_x;
+uniform sampler2D u_that_y;
+uniform sampler2D u_that_z;
+`,
+            vec3: `
+uniform sampler2D u_that_xyz;
+`,
+},
+
+        breedPrologue: {
+            "2": `#version 300 es
+precision highp float;
+layout (location = 0) in vec2 a_index;
+layout (location = 1) in vec2 b_index;
+uniform vec2 u_resolution;
+uniform vec2 u_half;
+`,
+        
+            "3": `#version 300 es
+precision highp float;
+layout (location = 0) in vec2 a_index;
+layout (location = 1) in vec2 b_index;
+uniform vec3 u_resolution;
+uniform vec2 u_half;
+uniform float v_step;
+uniform vec3 v_resolution;
+`}
+};
+        
     var shaders = {
         "drawBreed.vert":
         `#version 300 es
@@ -674,15 +772,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         gl.deleteProgram(program);
     }
 
-    function createTexture(data, type, width, height) {
+    function createTexture(data, format, type, width, height) {
         if (!type) {
-            type = gl.UNSIGNED_BYTE;
-        }
-        if (!width) {
-            width = T;
-        }
-        if (!height) {
-            height = T;
+            type = gl.FLOAT;
         }
 
         var tex = gl.createTexture();
@@ -700,10 +792,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         if (type == gl.UNSIGNED_BYTE) {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, data, 0);
-        } else if (type == gl.R32F) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, gl.RED, gl.FLOAT, data, 0);
-        } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, type, data, 0);
+        } else if (format == gl.R32F) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, gl.RED, gl.FLOAT, data, 0);
+        } else if (format == gl.RG32F) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, gl.RG, gl.FLOAT, data, 0);
+        } else if (format == gl.RGB32F) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, gl.RGB, gl.FLOAT, data, 0);
+        } else if (format == gl.RGBA32F) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, gl.RGBA, gl.FLOAT, data, 0);
         }
 
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -715,25 +811,15 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     function makeFramebuffer(format, width, height) {
-        if (!format) {
-            format = gl.UNSIGNED_BYTE;
-        }
-        if (!width) {
-            width = T;
-        }
-        if (!height) {
-            height = T;
-        }
-
         var tex;
-        if (format == gl.FLOAT) {
+        if (format == gl.RGBA32F) {
             tex = createTexture(new Float32Array(width * height * 4), format, width, height);
         }
         if (format == gl.R32F) {
             tex = createTexture(new Float32Array(width * height), format, width, height);
         }
-        if (format == gl.UNSIGNED_BYTE) {
-            tex = createTexture(new Uint8Array(width * height * 4), format, width, height);
+        if (format == gl.RGBA) {
+            tex = createTexture(new Uint8Array(width * height * 4), format, width, height, gl.UNSIGNED_BYTE);
         }
 
         var buffer = gl.createFramebuffer();
@@ -744,9 +830,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         if (format == gl.R32F) {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
         } else if (format == gl.UNSIGNED_BYTE) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, format, null);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, format, null);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
         }
         state.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -849,7 +935,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         setTargetBuffer(null, null);
     }
 
-    function updateOwnVariable(obj, name, optData) {
+    function updateOwnVariable(obj, name, type, optData) {
         var width;
         var height;
         var ary;
@@ -864,8 +950,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             var height = VTH;
         }
 
-        var ary = optData || new Float32Array(width * height);
-
         if (obj[name]) {
             gl.deleteTexture(obj[name]);
         }
@@ -873,9 +957,24 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             gl.deleteTexture(obj[N + name]);
         }
 
-        obj.own[name] = name;
-        obj[name] = createTexture(ary, gl.R32F, width, height);
-        obj[N + name] = createTexture(ary, gl.R32F, width, height);
+        obj.own[name] = [name, type];
+
+        if (type == "float") {
+            var ary = optData || new Float32Array(width * height);
+            var format = gl.R32F;
+        } else if (type == "vec2") {
+            var ary = optData || new Float32Array(width * height * 2);
+            var format = gl.RG32F;
+        } else if (type == "vec3") {
+            var ary = optData || new Float32Array(width * height * 3);
+            var format = gl.RGB32F;
+        } else if (type == "vec4") {
+            var ary = optData || new Float32Array(width * height * 4);
+            var format = gl.RGBA32F;
+        }
+
+        obj[name] = createTexture(ary, format, width, height);
+        obj[N + name] = createTexture(ary, format, width, height);
     }
 
     function removeOwnVariable(obj, name) {
@@ -909,51 +1008,64 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             return JSON.stringify(obj);
         };
 
-        var obj = env[name];
+        var obj = env.at(name);
         if (!obj) {
             obj = new cls();
             for (var i = 0; i < fields.length; i++) {
-                updateOwnVariable(obj, fields[i]);
+                updateOwnVariable(obj, fields[i][2], fields[i][3]);
             }
-            env[name] = obj;
+            env.atPut(name, obj);
             return true;
         }
 
         var oldOwn = obj.own;
         var toBeDeleted = [];  // [<str>]
-        var toBeCreated = [];  // [<str>]
+        var toBeCreated = [];  // [[<str>, type]]
         var newOwn = {};
 
         // common case: when the existing own and fields are the same
         for (var i = 0; i < fields.length; i++) {
-            var k = fields[i];
-            newOwn[k] = k;
+            var field = fields[i];
+            var k = field[2];
+            var type = field[3];
+            newOwn[k] = [k, type];
         }
         if (stringify(newOwn) === stringify(oldOwn)) {
             return false;
         }
 
+        function find(list, pair) {
+            for (var i = 0; i < list.length; i++) {
+                if (list[i][2] === pair[0] && list[i][3] === pair[1]) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         // other case: get things into toBeDeleted and toBeCreated, and toBeMoved
         for (var k in oldOwn) {
-            if (fields.indexOf(k) < 0) {
+            if (find(fields, oldOwn[k]) < 0) {
                 toBeDeleted.push(k)
             }
         }
         for (var i = 0; i < fields.length; i++) {
-            var k = fields[i];
+            var k = fields[i][2];
+            var type = fields[i][3];
             if (!oldOwn[k]) {
-                toBeCreated.push(k);
+                toBeCreated.push([k, type]);
             }
         }
 
-        toBeCreated.forEach((k) => updateOwnVariable(obj, k));
+        toBeCreated.forEach((pair) => updateOwnVariable(obj, pair[0], pair[1]));
         toBeDeleted.forEach((k) => removeOwnVariable(obj, k));
         return true;
     }
 
-    function programFromTable(table, vert, frag, name) {
+    function programFromEntry(entry, vert, frag, name) {
         return (function () {
             var debugName = name;
+            var positionType = entry.positionType;
             if (debugName === "set") {
             }
             var prog = createProgram(createShader(name + ".vert", vert),
@@ -961,24 +1073,23 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             var vao = breedVAO;
             var uniLocations = {};
 
-
-            var forBreed = table.forBreed;
+            var forBreed = entry.forBreed;
             var viewportW = forBreed ? T : FW;
             var viewportH = forBreed ? T : FH;
-            var hasPatchInput = table.hasPatchInput;
+            var hasPatchInput = entry.hasPatchInput;
 
-            table.defaultUniforms.forEach(function(n) {
-                uniLocations[n] = gl.getUniformLocation(prog, n);
+            entry.defaultUniforms.keysAndValuesDo(function(k, quad) {
+                uniLocations[quad[2]] = gl.getUniformLocation(prog, quad[2]);
             });
 
-            table.uniformTable.keysAndValuesDo((key, entry) => {
-                var uni = table.uniform(entry);
+            entry.uniformTable.keysAndValuesDo((key, info) => {
+                var uni = entry.uniform(info[1], info[2]);
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
-            table.scalarParamTable.keysAndValuesDo((key, entry) => {
-                var name = entry[2];
-                var uni = "u_scalar_" + name;
+            entry.scalarParamTable.keysAndValuesDo((key, info) => {
+                var varName = info[2];
+                var uni = "u_scalar_" + varName;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
@@ -991,14 +1102,30 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             }
                 var object = objects["this"];
 
-                var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
+                var targets = [];
+                outs.forEach(
+                    (triple) => {
+                        var o = objects[triple[0]];
+                        var v = o ? o[N + triple[1]] : null;
+                        check(v,
+                              objects._callPosition,
+                              `${triple[1]} does not exist in object ${triple[0]}`);
+                        targets.push(v);
+                        var codeType = triple[2];
+                        var actualType = objects[triple[0]].fieldType(triple[1]);
+                        check(codeType == actualType,
+                              objects._callPosition,
+                              `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+                    }
+                );
+
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
-                    outs.forEach((pair) => {
-                        textureCopy(objects[pair[0]],
-                                    objects[pair[0]][pair[1]],
-                                    objects[pair[0]][N + pair[1]])});
+                    outs.forEach((triple) => {
+                        textureCopy(objects[triple[0]],
+                                    objects[triple[0]][triple[1]],
+                                    objects[triple[0]][N + triple[1]])});
                     setTargetBuffers(framebufferPatch, targets);
                 }
 
@@ -1015,35 +1142,74 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
-                    state.activeTexture(gl.TEXTURE0);
-                    state.bindTexture(gl.TEXTURE_2D, object.x);
-                    gl.uniform1i(uniLocations["u_that_x"], 0);
-
-                    state.activeTexture(gl.TEXTURE1);
-                    state.bindTexture(gl.TEXTURE_2D, object.y);
-                    gl.uniform1i(uniLocations["u_that_y"], 1);
-                    offset = 2;
+                    //object.hasPos
+                    if (positionType == "vec2") {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.pos);
+                        gl.uniform1i(uniLocations["u_that_xy"], 0);
+                        offset = 1;
+                    } else {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.x);
+                        gl.uniform1i(uniLocations["u_that_x"], 0);
+                        
+                        state.activeTexture(gl.TEXTURE1);
+                        state.bindTexture(gl.TEXTURE_2D, object.y);
+                        gl.uniform1i(uniLocations["u_that_y"], 1);
+                        offset = 2;
+                    }
                 }
 
                 for (var ind = 0; ind < ins.length; ind++) {
-                    var pair = ins[ind];
+                    var triple = ins[ind];
                     var glIndex = gl.TEXTURE0 + ind + offset;
-                    var k = pair[1]
-                    var val = objects[pair[0]][k];
+                    var k = triple[1];
+                    var val = objects[triple[0]][k];
+                    var actualType = objects[triple[0]].fieldType(triple[1]);
+
+                    check(triple[2] == actualType,
+                          objects._callPosition,
+                          `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+
                     state.activeTexture(glIndex);
                     state.bindTexture(gl.TEXTURE_2D, val);
-                    gl.uniform1i(uniLocations["u" + "_" + pair[0] + "_" + k], ind + offset);
+                    gl.uniform1i(uniLocations["u" + "_" + triple[0] + "_" + k], ind + offset);
                 }
 
                 for (var k in params) {
                     var val = params[k];
-                    if (val.constructor == WebGLTexture) {
-                        var glIndex = gl.TEXTURE0 + ind + offset;
-                        state.activeTexture(glIndex);
-                        state.bindTexture(gl.TEXTURE_2D, val);
-                        gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
-                        ind++;
-                    } else {
+                    var codeType = entry.getType("param", null, k);
+                    if (val.constructor == vec) {
+                        switch(val.arity) {
+                            case 1:
+                            check(codeType == "float",
+                                  objects._callPosition,
+                                  `Code expects ${codeType} but got float`);
+                            gl.uniform1f(uniLocations["u_scalar_" + k], val.x);
+                            break;
+                            case 2:
+                            check(codeType == "vec2",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform2f(uniLocations["u_scalar_" + k], val.x, val.y);
+                            break;
+                            case 3:
+                            check(codeType == "vec3",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform3f(uniLocations["u_scalar_" + k], val.x, val.y, val.z);
+                            break;
+                            case 4:
+                            check(codeType == "vec4",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform4f(uniLocations["u_scalar_" + k], val.x, val.y, val.z, val.w);
+                            break;
+                        }
+                    } else if (typeof val == "number") {
+                        check(codeType == "float",
+                              objects._callPosition,
+                              `code expects ${codeType} but got float`);
                         gl.uniform1f(uniLocations["u_scalar_" + k], val);
                     }
                 }
@@ -1052,9 +1218,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 gl.flush();
                 setTargetBuffers(null, null);
                 for (var i = 0; i < outs.length; i++) {
-                    var pair = outs[i];
-                    var o = objects[pair[0]];
-                    var name = pair[1];
+                    var triple = outs[i];
+                    var o = objects[triple[0]];
+                    var name = triple[1];
                     var tmp = o[name];
                     o[name] = o[N + name];
                     o[N + name] = tmp;
@@ -1064,33 +1230,34 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         })();
     }
 
-    function programFromTable3(table, vert, frag, name) {
+    function programFromEntry3(entry, vert, frag, name) {
         return (function () {
             var debugName = name;
-            if (debugName === "setCoreColor") {
+            var positionType = entry.positionType;
+            if (debugName === "move") {
             }
             var prog = createProgram(createShader(name + ".vert", vert),
                                      createShader(name + ".frag", frag));
             var vao = breedVAO;
             var uniLocations = {};
 
-            var forBreed = table.forBreed;
+            var forBreed = entry.forBreed;
             var viewportW = forBreed ? T : VTW;
             var viewportH = forBreed ? T : VTH;
-            var hasPatchInput = table.hasPatchInput;
+            var hasPatchInput = entry.hasPatchInput;
 
-            table.defaultUniforms.forEach(function(n) {
-                uniLocations[n] = gl.getUniformLocation(prog, n);
+            entry.defaultUniforms.keysAndValuesDo(function(k, quad) {
+                uniLocations[quad[2]] = gl.getUniformLocation(prog, quad[2]);
             });
 
-            table.uniformTable.keysAndValuesDo((key, entry) => {
-                var uni = table.uniform(entry);
+            entry.uniformTable.keysAndValuesDo((key, info) => {
+                var uni = entry.uniform(info[1], info[2]);
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
-            table.scalarParamTable.keysAndValuesDo((key, entry) => {
-                var name = entry[2];
-                var uni = "u_scalar_" + name;
+            entry.scalarParamTable.keysAndValuesDo((key, info) => {
+                var varName = info[2];
+                var uni = "u_scalar_" + varName;
                 uniLocations[uni] = gl.getUniformLocation(prog, uni);
             });
 
@@ -1099,24 +1266,42 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-                if (debugName === "setCoreColor") {
-                }
                 var object = objects["this"];
 
-                var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
+                var targets = [];
+                outs.forEach(
+                    (triple) => {
+                        var o = objects[triple[0]];
+                        var v = o ? o[N + triple[1]] : null;
+                        check(v,
+                              objects._callPosition,
+                              `${triple[1]} does not exist in object ${triple[0]}`);
+                        targets.push(v);
+                        var codeType = triple[2];
+                        var actualType = objects[triple[0]].fieldType(triple[1]);
+                        check(codeType == actualType,
+                              objects._callPosition,
+                              `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+                    }
+                );
+
                 if (forBreed) {
                     setTargetBuffers(framebufferBreed, targets);
                 } else {
-                    outs.forEach((pair) => {
-                        textureCopy(objects[pair[0]],
-                                    objects[pair[0]][pair[1]],
-                                    objects[pair[0]][N + pair[1]])});
+                    outs.forEach((triple) => {
+                        textureCopy(objects[triple[0]],
+                                    objects[triple[0]][triple[1]],
+                                    objects[triple[0]][N + triple[1]])});
                     setTargetBuffers(framebufferPatch, targets);
                 }
 
                 state.useProgram(prog);
                 gl.bindVertexArray(vao);
                 noBlend();
+
+                if (!withThreeJS) {
+                    gl.viewport(0, 0, viewportW, viewportH);
+                }
 
                 gl.uniform3f(uniLocations["u_resolution"], VW, VH, VD);
                 gl.uniform3f(uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
@@ -1125,40 +1310,78 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
                 var offset = 0;
                 if (!forBreed || hasPatchInput) {
-                    state.activeTexture(gl.TEXTURE0);
-                    state.bindTexture(gl.TEXTURE_2D, object.x);
-                    gl.uniform1i(uniLocations["u_that_x"], 0);
+                    if (positionType == "vec3") {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.pos);
+                        gl.uniform1i(uniLocations["u_that_xyz"], 0);
+                        offset = 1;
+                    } else {
+                        state.activeTexture(gl.TEXTURE0);
+                        state.bindTexture(gl.TEXTURE_2D, object.x);
+                        gl.uniform1i(uniLocations["u_that_x"], 0);
+                        
+                        state.activeTexture(gl.TEXTURE1);
+                        state.bindTexture(gl.TEXTURE_2D, object.y);
+                        gl.uniform1i(uniLocations["u_that_y"], 1);
 
-                    state.activeTexture(gl.TEXTURE1);
-                    state.bindTexture(gl.TEXTURE_2D, object.y);
-                    gl.uniform1i(uniLocations["u_that_y"], 1);
+                        state.activeTexture(gl.TEXTURE2);
+                        state.bindTexture(gl.TEXTURE_2D, object.z);
+                        gl.uniform1i(uniLocations["u_that_z"], 2);
 
-                    state.activeTexture(gl.TEXTURE2);
-                    state.bindTexture(gl.TEXTURE_2D, object.z);
-                    gl.uniform1i(uniLocations["u_that_z"], 2);
-
-                    offset = 3;
+                        offset = 3;
+                    }
                 }
 
                 for (var ind = 0; ind < ins.length; ind++) {
-                    var pair = ins[ind];
+                    var triple = ins[ind];
                     var glIndex = gl.TEXTURE0 + ind + offset;
-                    var k = pair[1]
-                    var val = objects[pair[0]][k];
+                    var k = triple[1];
+                    var val = objects[triple[0]][k];
+                    var actualType = objects[triple[0]].fieldType(triple[1]);
+
+                    check(triple[2] == actualType,
+                          objects._callPosition,
+                          `Code of ${debugName} expects type ${codeType} for variable ${triple[0]}.${triple[1]}, but got ${actualType}`);
+
                     state.activeTexture(glIndex);
                     state.bindTexture(gl.TEXTURE_2D, val);
-                    gl.uniform1i(uniLocations["u" + "_" + pair[0] + "_" + k], ind + offset);
+                    gl.uniform1i(uniLocations["u" + "_" + triple[0] + "_" + k], ind + offset);
                 }
 
                 for (var k in params) {
                     var val = params[k];
-                    if (val.constructor == WebGLTexture) {
-                        var glIndex = gl.TEXTURE0 + ind + offset;
-                        state.activeTexture(glIndex);
-                        state.bindTexture(gl.TEXTURE_2D, val);
-                        gl.uniform1i(uniLocations["u_vector_" + k], ind + offset);
-                        ind++;
-                    } else {
+                    var codeType = entry.getType("param", null, k);
+                    if (val.constructor == vec) {
+                        switch(val.arity) {
+                            case 1:
+                            check(codeType == "float",
+                                  objects._callPosition,
+                                  `Code expects ${codeType} but got float`);
+                            gl.uniform1f(uniLocations["u_scalar_" + k], val.x);
+                            break;
+                            case 2:
+                            check(codeType == "vec2",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform2f(uniLocations["u_scalar_" + k], val.x, val.y);
+                            break;
+                            case 3:
+                            check(codeType == "vec3",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform3f(uniLocations["u_scalar_" + k], val.x, val.y, val.z);
+                            break;
+                            case 4:
+                            check(codeType == "vec4",
+                                  objects._callPosition,
+                                  `code expects ${codeType} but got vec2`);
+                            gl.uniform4f(uniLocations["u_scalar_" + k], val.x, val.y, val.z, val.w);
+                            break;
+                        }
+                    } else if (typeof val == "number") {
+                        check(codeType == "float",
+                              objects._callPosition,
+                              `code expects ${codeType} but got float`);
                         gl.uniform1f(uniLocations["u_scalar_" + k], val);
                     }
                 }
@@ -1167,9 +1390,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 gl.flush();
                 setTargetBuffers(null, null);
                 for (var i = 0; i < outs.length; i++) {
-                    var pair = outs[i];
-                    var o = objects[pair[0]];
-                    var name = pair[1];
+                    var triple = outs[i];
+                    var o = objects[triple[0]];
+                    var name = triple[1];
                     var tmp = o[name];
                     o[name] = o[N + name];
                     o[N + name] = tmp;
@@ -1180,13 +1403,13 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     function initFramebuffers() {
-        debugTextureBreed = createTexture(new Float32Array(T*T*4), gl.FLOAT, T, T);
-        debugTexturePatch = createTexture(new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+        debugTextureBreed = createTexture(new Float32Array(T*T*4), gl.RGBA32F, T, T);
+        debugTexturePatch = createTexture(new Float32Array(FW*FH*4), gl.RGBA32F, FW, FH);
 
         framebufferBreed = makeFramebuffer(gl.R32F, T, T);
         framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
 
-        framebufferU8RGBA = makeFramebuffer(gl.UNSIGNED_BYTE, FW, FH);
+        framebufferU8RGBA = makeFramebuffer(gl.RGBA, FW, FH);
 
         framebufferDiffuse = makeFramebuffer(gl.R32F, FW, FH);
 
@@ -1196,12 +1419,12 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         writeFramebufferBreed = makeFramebuffer(gl.R32F, T, T);
         writeFramebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
 
-        framebufferDBreed = makeFramebuffer(gl.FLOAT, T, T);
-        framebufferDPatch = makeFramebuffer(gl.FLOAT, FW, FH);
+        framebufferDBreed = makeFramebuffer(gl.RGBA32F, T, T);
+        framebufferDPatch = makeFramebuffer(gl.RGBA32F, FW, FH);
     }
 
     function Shadama() {
-        this.env = {};  // {name: value}
+        this.env = new ShadamaEnv();  // {name: ShadamaEvent}
         this.scripts = {};    // {name: [function, inOutParam]}
         this.statics = {};    // {name: function}
         this.staticsList = []; // [name];
@@ -1217,6 +1440,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         this.readPixelArray = null;
         this.readPixelCallback = null;
+        this.vec = vec;
     }
 
     Shadama.prototype.evalShadama = function(source) {
@@ -1227,7 +1451,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         return eval(source);
     }
 
-    Shadama.prototype.loadShadama = function(id, source) {
+    Shadama.prototype.loadShadama = function(source) {
         var newSetupCode;
         var oldProgramName = this.programName;
         var schemaChange = false;
@@ -1237,11 +1461,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         this.triggers = {};
         this.clearMedia();
         var newData = [];
-        if (!source) {
-            var scriptElement = document.getElementById(id);
-            if(!scriptElement){return "";}
-            source = scriptElement.text;
-        }
         this.cleanUpEditorState();
         try {
             var result = translate(source, "TopLevel", this.reportError.bind(this));
@@ -1252,56 +1471,66 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         this.compilation = result;
 
         if (!result) {return "";}
-        if (oldProgramName != result["_programName"]) {
+        var newProgramName = result["_programName"];
+        if (oldProgramName != newProgramName) {
             this.resetSystem();
         }
-        this.programName = result["_programName"];
+        this.programName = newProgramName;
         delete result["_programName"];
 
         for (var k in result) {
-            var entry = result[k];
-            if (entry[0] == "static") { // static function case
-                var src = entry[2];
-                var js = entry[1];
+            var item = result[k];
+            var entry = item[0];
+            var type = entry.type;
+            var info = item[3];
+            if (entry[0] == "static") {
+                var js = item[1];
+                var src = item[2];
                 this.statics[k] = this.evalShadama(js);
                 this.staticsList.push(k);
-                this.env[k] = new ShadamaFunction(k, this);
+                this.env.atPut(k, new ShadamaFunction(k, this));
                 if (k === "setup") {
                     newSetupCode = src;
                 }
-            } else {
-                var js = entry[3];
-                if (js[0] === "updateBreed") {
-                    schemaChange = update(Breed, js[1], js[2], this.env) || schemaChange;
-                } else if (js[0] === "updatePatch") {
-                    schemaChange = update(Patch, js[1], js[2], this.env) || schemaChange;
-                } else if (js[0] === "updateScript") {
-                    var table = entry[0];
-                    var func = dimension == 2 ? programFromTable : programFromTable3;
-                    this.scripts[js[1]] = [ func(table, entry[1], entry[2], js[1]),
-                                      table.insAndParamsAndOuts()];
-                } else if (js[0] === "event") {
-                    this.env[js[1]] = new ShadamaEvent();
-                } else if (js[0] === "trigger") {
-                    this.triggers[k] = new ShadamaTrigger(js[1], js[2]);
-                } else if (js[0] === "data") {
-                    this.env[js[1]] = new ShadamaEvent();
-                    if (js[3] == "image") {
-                        this.env[js[1]] = this.loadImage(js[2]);
-                    } else if (js[3] == "audio") {
-                        this.env[js[1]] = this.loadAudio(js[2]);
-                    } else if (js[3] == "csv") {
-                        this.env[js[1]] = this.loadCSV(js[2]);
-                    } else if (js[3] == "video" || js[3] == "camera") {
-                        var evt = this.loadVideo(js[2], js[3] == "camera");
-                        this.env[js[1]] = evt;
-                        this.media[js[1]] = evt;
-                    }
+            }
 
-                    if (newData.length == 0) {
-                        newData = js[1];
+            if (type === "breed") {
+                schemaChange = update(Breed, k, entry.param.toArray(), this.env) || schemaChange;
+            }
+            if (type === "patch") {
+                schemaChange = update(Patch, k, entry.param.toArray(), this.env) || schemaChange;
+            }
+            if (type == "method") {
+                var func = dimension == 2 ? programFromEntry : programFromEntry3;
+                this.scripts[info] = [ func(entry, item[1], item[2], info),
+                                       entry.insAndParamsAndOuts()];
+            }
+
+            if (type === "trigger") {
+                var info = entry.info;
+                this.triggers[k] = new ShadamaTrigger(info[0], info[1]);
+	    }
+
+            if (type === "event") {
+                var info = entry.info;
+                if (info[2] == "image") {
+                    this.env.atPut(k, this.loadImage(info[1]));
+                } else if (info[2] == "audio") {
+                    this.env.atPut(k, this.loadAudio(info[1]));
+                } else if (info[2] == "csv") {
+                    this.env.atPut(k, this.loadCSV(info[1]));
+                } else if (info[2] == "video" || info[2] == "camera") {
+                    var evt = this.loadVideo(info[1], info[2] == "camera");
+                    this.env[info[1]] = evt;
+                    this.media[info[1]] = evt;
+                } else if (info[2] == "") {
+                    this.env.atPut(k, 0);
+                }
+                if (info[2] !== "") {
+                    if (newData.length === 0) {
+                        newData = info[0];
                     } else {
-                        newData = ["and", js[1], newData];
+                        newData = ["and", info[0], newData];
                     }
                 }
             }
@@ -1340,10 +1569,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         return withThreeJS ? (targetTexture && renderer.properties.get(targetTexture).__webglTexture || null) : null;
     }
 
-    Shadama.prototype.setReadPixelCallback = function(func) {
-        this.readPixelCallback = func;
-    }
-
     Shadama.prototype.makeOnAfterRender = function() {
         return function(renderer, scene, camera, geometry, material, group) {
             var mesh = this;
@@ -1377,7 +1602,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.debugDisplay = function(objName, name) {
-        var object = this.env[objName];
+        var object = this.env.at(objName);
         var forBreed = object.constructor == Breed;
         var width = forBreed ? T : FW;
         var height = forBreed ? T : FH;
@@ -1406,6 +1631,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         gl.bindVertexArray(prog.vao);
 
         var tex = object[name];
+        var type = object.own[name][1];
 
         state.activeTexture(gl.TEXTURE0);
         state.bindTexture(gl.TEXTURE_2D, tex);
@@ -1430,12 +1656,27 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         gl.flush();
 
         debugArray = new Float32Array(width * height * 4);
-        debugArray1 = new Float32Array(width * height);
+        var scale;
+        switch(type) {
+            case "float":
+            scale = 1;      break;
+            case "vec2":
+            scale = 2;      break;
+            case "vec3":
+            scale = 3;      break;
+            case "vec4":
+            scale = 4;      break;
+        }
+
+        debugArray1 = new Float32Array(width * height * scale);
         debugArray2 = new Uint8ClampedArray(width * height * 4);
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, debugArray, 0);
 
         for (var i = 0; i < width * height; i++) {
-            debugArray1[i] = debugArray[i * 4 + 0];
+            var ind = i * scale;
+            for (var j = 0; j < scale; j++) {
+                debugArray1[ind + j] = debugArray[i * 4 + j];
+            }
         }
 
         for (var i = 0; i < width * height; i++) {
@@ -1538,8 +1779,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         renderRequests = [];
 
-        for (var o in this.env) {
-            var obj = this.env[o];
+        for (var o in this.env.keys()) {
+            var obj = this.env.at(o);
             if (typeof obj == "object" && (obj.constructor == Breed || obj.constructor == Patch)) {
                 for (var k in obj.own) {
                     var tex = obj[k];
@@ -1547,7 +1788,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                         gl.deleteTexture(obj[k]);
                     }
                 }
-                delete this.env[o];
+                delete this.env.at(o);
             }
         }
     }
@@ -1555,7 +1796,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     Shadama.prototype.updateCode = function() {
         if (!editor) {return;}
         var code = editor.getValue();
-        this.loadShadama(null, code);
+        this.loadShadama(code);
         this.maybeRunner();
         if (!this.programName) {
             this.programName = prompt("Enter the program name:", "My Cool Effect!");
@@ -1572,7 +1813,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
     Shadama.prototype.callSetup = function() {
         this.loadTime = window.performance.now() / 1000.0;
-        this.env["time"] = 0.0;
+        this.env.atPut("time", 0.0);
         if (this.statics["setup"]) {
             try {
                 this.statics["setup"](this.env);
@@ -1597,7 +1838,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             var y = FH - (e.clientY + diffY - top) / fullScreenScale;
             //  console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
             //  console.log("x " + x + " y: " + y);
-            that.env[symbol] = {x: x,  y: y, time: that.env["time"]};
+            that.env.atPut(symbol, {x: x,  y: y, time: that.env.at("time")});
         }
 
         aCanvas.addEventListener("mousemove", function(e) {
@@ -1626,7 +1867,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama", "16-Diffuse.shadama", "19-Bump.shadama", "21-ForestFire.shadama", "22-WhoAmI.shadama", "23-Camera.shadama"
         ];
         examples.forEach((n) => {
-            this.env["Display"].loadProgram(n, (serverCode) => {
+            this.env.at("Display").loadProgram(n, (serverCode) => {
                 var localCode = localStorage.getItem(n);
                 //if (!localCode) {
                     localStorage.setItem(n, serverCode);
@@ -1725,7 +1966,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 dir = name;
             } else {
                 if (location.startsWith("http")) {
-                    if (frame) {
+                    if (frame && frame.dataPath) {
                         var dir = frame.dataPath + name;
                     } else {
                         var slash = location.lastIndexOf("/");
@@ -1869,14 +2110,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.initDisplay = function() {
-        this.env["Display"] = new Display(this);
+        this.env.atPut("Display", new Display(this));
     }
 
     Shadama.prototype.initEnv = function(callback) {
-        this.env.mousedown = {x: 0, y: 0};
-        this.env.mousemove = {x: 0, y: 0};
-        this.env.width = FW;
-        this.env.height = FH;
+        this.env.atPut("mousedown", {x: 0, y: 0});
+        this.env.atPut("mousemove", {x: 0, y: 0});
+        this.env.atPut("width", FW);
+        this.env.atPut("height", FH);
 
         callback();
     }
@@ -1982,7 +2223,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         button.className = "staticName";
         button.innerHTML = name;
         button.onclick = function() {
-            that.env["time"] = (window.performance.now() / 1000) - that.loadTime;
+            that.env.atPut("time", (window.performance.now() / 1000) - that.loadTime);
             if (that.statics[entry.scriptName]) {
                 try {
                     that.statics[entry.scriptName](that.env);
@@ -2036,10 +2277,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             var name = option.label;
             var source = localStorage.getItem(name);
             if (source) {
-                this.env["Display"].clear();
+                this.env.at("Display").clear();
                 console.log("loading: " + name);
                 this.resetSystem();
-                this.loadShadama(null, source);
+                this.loadShadama(source);
                 if (editor) {
                     editor.doc.setValue(source);
                 }
@@ -2089,17 +2330,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 .map((k)=>`${k}:${printNum(obj[k])}`);
             return `{${props.join(' ')}}`;
         }
-        function filter(k) {
-            if (showAllEnv) {
-                return true;
-            } else {
-                return(that.env[k] && that.env[k].constructor != ImageData);
-            }
-        }
-        let list = Object.getOwnPropertyNames(that.env)
+        let list = that.env.keys()
             .sort()
-            .filter(filter)
-            .map((k)=>`${k}: ${print(that.env[k])}`);
+//            .filter(filter)
+            .map((k)=>`${k}: ${print(that.env.at(k))}`);
         if (envList) {
             envList.innerHTML = `<pre>${list.join('\n')}</pre>`;
         }
@@ -2121,7 +2355,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.addEnv = function(key, asset) {
-        this.env[key] = asset;
+        this.env.atPut(key, asset);
     }
 
     Shadama.prototype.runLoop = function() {
@@ -2201,7 +2435,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 if (func) {
                     func(serverCode);
                 } else {
-                    that.shadama.loadShadama(null, serverCode);
+                    that.shadama.loadShadama(serverCode);
                     if (editor) {
                         editor.doc.setValue(serverCode);
                     }
@@ -2233,7 +2467,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     class Breed {
         constructor(count) {
             this.own = {};
-            this.count = count;
+            this.count = count || 0;
         }
 
         fillRandom(name, min, max) {
@@ -2242,7 +2476,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             for (var i = 0; i < ary.length; i++) {
                 ary[i] = Math.random() * range + min;
             }
-            updateOwnVariable(this, name, ary);
+            updateOwnVariable(this, name, "float", ary);
         }
 
         fillRandomDir(xName, yName) {
@@ -2253,8 +2487,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 x[i] = Math.cos(dir);
                 y[i] = Math.sin(dir);
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
+            updateOwnVariable(this, xName, "float", x);
+            updateOwnVariable(this, yName, "float", y);
         }
 
         fillRandomDir3(xName, yName, zName) {
@@ -2268,9 +2502,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 y[i] = Math.cos(angleX) * Math.cos(angleY);
                 z[i] = Math.cos(angleX) * Math.sin(angleY);
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
-            updateOwnVariable(this, zName, z);
+            updateOwnVariable(this, xName, "float", x);
+            updateOwnVariable(this, yName, "float", y);
+            updateOwnVariable(this, zName, "float", z);
         }
 
         fillSpace(xName, yName, xDim, yDim) {
@@ -2285,8 +2519,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                     y[ind] = j;
                 }
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
+            updateOwnVariable(this, xName, "float", x);
+            updateOwnVariable(this, yName, "float", y);
         }
 
         fillCuboid(xName, yName, zName, xDim, yDim, zDim, step) {
@@ -2307,9 +2541,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                     }
                 }
             }
-            updateOwnVariable(this, xName, x);
-            updateOwnVariable(this, yName, y);
-            updateOwnVariable(this, zName, z);
+            updateOwnVariable(this, xName, "float", x);
+            updateOwnVariable(this, yName, "float", y);
+            updateOwnVariable(this, zName, "float", z);
         }
 
         fill(name, value) {
@@ -2318,7 +2552,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             for (var j = 0; j < this.count; j++) {
                 x[j] = value;
             }
-            updateOwnVariable(this, name, x);
+            updateOwnVariable(this, name, "float", x);
         }
 
         fillImage(xName, yName, rName, gName, bName, aName, imagedata) {
@@ -2352,10 +2586,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                     a[dst] = imagedata.data[src * 4 + 3] / 255.0;
                 }
             }
-            updateOwnVariable(this, rName, r);
-            updateOwnVariable(this, gName, g);
-            updateOwnVariable(this, bName, b);
-            updateOwnVariable(this, aName, a);
+            updateOwnVariable(this, rName, "float", r);
+            updateOwnVariable(this, gName, "float", g);
+            updateOwnVariable(this, bName, "float", b);
+            updateOwnVariable(this, aName, "float", a);
         }
 
         loadData(data) {
@@ -2372,7 +2606,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                     for (var i = 1; i < data.length; i++) {
                         ary[i - 1] = data[i][ind];
                     }
-                    updateOwnVariable(this, k, ary);
+                    updateOwnVariable(this, k, "float", ary);
                 }
                 this.setCount(data.length - 1);
             }
@@ -2679,6 +2913,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         setCount(n) {
             var oldCount = this.count;
+            if (typeof n != "number") { //vec
+                n = n.x;
+            }
             if (n < 0 || !n) {
                 n = 0;
             }
@@ -2878,7 +3115,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 if (error.message != "runtime error") {
                     setTimeout(
                         function() {
-                            var msg = error.expected;
+                            var msg = error.reason;
                             var pos = error.pos;
                             var src = error.src;
                             if ((!src || editor.getValue() === src) && !parseErrorWidget) {
@@ -2899,7 +3136,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                                 parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                             }
                         },
-                        2500
+                        2000
                     );
                 } else {
                     for (var n in this.steppers) {
@@ -2970,11 +3207,11 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.step = function() {
-        this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
-        for (var k in this.triggers) {
-            this.triggers[k].maybeFire(this);
-        }
+        this.env.atPut("time", (window.performance.now() / 1000) - this.loadTime);
         try {
+            for (var k in this.triggers) {
+                this.triggers[k].maybeFire(this);
+            }
             for (var k in this.steppers) {
                 var func = this.statics[k];
                 if (func) {
@@ -3041,26 +3278,27 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     }
 
     Shadama.prototype.pointermove = function(x, y) {
-        this.env.mousemove = {x: x, y: y};
+        this.env.atPut("mousemove", {x: x, y: y});
     }
 
     Shadama.prototype.pointerup = function(x, y) {
-        this.env.mouseup = {x: x, y: y};
+        this.env.atPut("mouseup", {x: x, y: y});
     }
 
     Shadama.prototype.pointerdown = function(x, y) {
-        this.env.mousedown = {x: x, y: y}
+        this.env.atPut("mousedown", {x: x, y: y});
     }
 
     Shadama.prototype.tester = function() {
         return {
+            shadama: this,
             parse: parse,
+            Entry: Entry,
             update: update,
             translate: translate,
             s: s,
             Breed: Breed,
             Patch: Patch,
-            SymTable: SymTable,
         }
     }
 
@@ -3099,15 +3337,15 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     var shadamaGrammar = String.raw`
 Shadama {
   TopLevel
-    = ProgramDecl? (Breed | Patch | Event | On | Data | Script | Helper | Static)*
+    = ProgramDecl? (Breed | Patch | Event | On | Data | Method | Helper | Static)*
 
   ProgramDecl = program string
   Breed = breed ident "(" Formals ")"
   Patch = patch ident "(" Formals ")"
   Event = event ident
-  On = on TriggerExpression arrow (start|stop)? ident
+  On = on TriggerExpression arrow ident
   Data = data ident "(" string "," string ")"
-  Script = def ident "(" Formals ")" Block
+  Method = def ident "(" Formals ")" Block
   Helper = helper ident "(" Formals ")" Block
   Static = static ident "(" Formals ")" Block
 
@@ -3141,7 +3379,7 @@ Shadama {
 
   LeftHandSideExpression
     = ident "." ident -- field
-    | ident
+    | ident           -- ident
 
   TriggerExpression = 
     | TriggerExpression "&&" ident                      -- and
@@ -3170,9 +3408,9 @@ Shadama {
     | MulExpression
 
   MulExpression
-    = MulExpression "*" PrimExpression  -- times
-    | MulExpression "/" PrimExpression  -- divide
-    | MulExpression "%" PrimExpression  -- mod
+    = MulExpression "*" UnaryExpression  -- times
+    | MulExpression "/" UnaryExpression  -- divide
+    | MulExpression "%" UnaryExpression  -- mod
     | UnaryExpression
 
   UnaryExpression
@@ -3224,15 +3462,12 @@ Shadama {
   def = "def" ~identifierPart
   helper = "helper" ~identifierPart
   this = "this" ~identifierPart
-  self = "self" ~identifierPart
   static = "static" ~identifierPart
   program = "program" ~identifierPart
   return = "return" ~identifierPart
   event = "event" ~identifierPart
   on = "on" ~identifierPart
   arrow = "=>" ~identifierPart
-  start = "start" ~identifierPart
-  stop = "stop" ~identifierPart
   data = "data" ~identifierPart
 
   empty =
@@ -3246,83 +3481,85 @@ Shadama {
     var g;
     var s;
 
-    var globalTable; // This is a bad idea but then I don't know how to keep the reference to global.
-
-    var primitives;
+    var primitives; // {Receiver: {selector: [[[name, type], ...]]}}
 
     function initPrimitiveTable() {
-        var data = {
-            "clear": new SymTable([], true),
-            "setCount": new SymTable([
-                ["param", null, "num"]], true),
-            "draw": new SymTable([], true),
-            "render": new SymTable([], true),
-            "fillRandom": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "min"],
-                ["param", null, "max"]], true),
-            "fillRandomDir": new SymTable([
-                ["param", null, "xDir"],
-                ["param", null, "yDir"]] ,true),
-            "fillRandomDir3":  new SymTable([
-                ["param", null, "xDir"],
-                ["param", null, "yDir"],
-                ["param", null, "zDir"]], true),
-            "fillSpace": new SymTable([
-                ["param", null, "xName"],
-                ["param", null, "yName"],
-                ["param", null, "x"],
-                ["param", null, "y"]], true),
-            "fillCuboid": new SymTable([
-                ["param", null, "xName"],
-                ["param", null, "yName"],
-                ["param", null, "zName"],
-                ["param", null, "x"],
-                ["param", null, "y"],
-                ["param", null, "z"],
-                ["param", null, "step"]], true),
-            "fillImage": new SymTable([
-                ["param", null, "xName"],
-                ["param", null, "yName"],
-                ["param", null, "rName"],
-                ["param", null, "gName"],
-                ["param", null, "bName"],
-                ["param", null, "aName"],
-                ["param", null, "imageData"]], true),
-            "loadVideoFrame": new SymTable([
-                ["param", null, "video"]], true),
-            "diffuse": new SymTable([
-                ["param", null, "name"]], true),
-            "increasePatch": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "patch"],
-                ["param", null, "valueOrSrcName"]], true),
-            "increaseVoxel": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "patch"],
-                ["param", null, "valueOrSrcName"]], true),
-            "random": new SymTable([
-                ["param", null, "seed"]], true),
-            "playSound": new SymTable([
-                ["param", null, "name"]], true),
-            "loadProgram": new SymTable([
-                ["param", null, "name"]], true),
-            "loadData": new SymTable([
-                ["param", null, "data"]], true),
-            "readValues": new SymTable([
-                ["param", null, "name"],
-                ["param", null, "x"],
-                ["param", null, "y"],
-                ["param", null, "w"],
-                ["param", null, "h"]], true),
-            "start": new SymTable([], true),
-            "step": new SymTable([], true),
-            "stop": new SymTable([], true),
-        };
+        var data = [
+            ["breed", "draw", []],
+            ["patch", "draw", []],
+            ["breed", "render", []],
+            ["patch", "render", []],
+            ["breed", "setCount", [["count", "float"]]],
+            ["breed", "fillRandom", [["name", "string"], ["min", "float"], ["max", "float"]]],
+            ["breed", "fillRandomDir", [["xDir", "string"], ["yDir", "string"]]],
+            ["breed", "fillRandomDir", [["xyDir", "string"]]],
+
+            ["breed", "fillRandomDir3", [["xDir", "string"], ["yDir", "string"], ["zDir", "string"]]],
+            ["breed", "fillRandomDir3", [["xyzDir", "string"]]],
+
+            ["breed", "fillSpace", [["xName", "string"],
+                                    ["yName", "string"],
+                                    ["x", "float"],
+                                    ["y", "float"]]],
+            ["breed", "fillSpace", [["xyName", "string"],
+                                    ["xy", "vec2"]]],
+
+            ["breed", "fillCuboid", [["xName", "string"],
+                                     ["yName", "string"],
+                                     ["zName", "string"],
+                                     ["x", "float"],
+                                     ["y", "float"],
+                                     ["z", "float"],
+                                     ["step", "float"]]],
+            ["breed", "fillCuboid", [["xyzName", "string"],
+                                     ["xyz", "vec3"],
+                                     ["step", "float"]]],
+
+            ["breed", "fillImage", [["xName", "string"],
+                                    ["yName", "string"],
+                                    ["rName", "string"],
+                                    ["gName", "string"],
+                                    ["bName", "string"],
+                                    ["aName", "string"],
+                                    ["imageData", "object"]]],
+            ["breed", "fillImage", [["xyName", "string"],
+                                    ["colorName", "string"],
+                                    ["imageData", "object"]]],
+            ["breed", "loadVideoFrame", [["name", "object"]]],
+            ["breed", "loadData", [["data", "object"]]],
+            ["breed", "readValues", [["name", "string"],
+                                     ["x", "float"],
+                                     ["y", "float"],
+                                     ["w", "float"],
+                                     ["h", "float"]]],
+            ["patch", "diffuse", [["name", "string"]]],
+            ["patch", "increasePatch", [["name", "string"],
+					["valueOrSrcName", "object"]]],
+            ["patch", "increaseVoxel", [["name", "string"]
+					["valueOrSrcName", "object"]]],
+            ["display", "clear", []],
+            ["display", "playSound", [["name", "object"]]],
+            ["display", "loadProgram", [["name", "string"]]],
+
+            ["static", "start", []],
+            ["static", "stop", []],
+            ["static", "step", []]];
 
         primitives = {};
+
         for (var k in data) {
-            primitives[k] = data[k];
+            var ary = data[k];
+            var obj = ary[0];
+            var sel = ary[1];
+            var args = ary[2];
+
+            if (!primitives[obj]) {
+                primitives[obj] = {};
+            }
+            if (!primitives[obj][sel]) {
+                primitives[obj][sel] = [];
+            }
+            primitives[obj][sel].push(args);
         }
     }
 
@@ -3334,15 +3571,15 @@ Shadama {
     }
 
     function initSemantics() {
-        function addDefaults(obj) {
-            for (var k in primitives) {
-                obj[k] = primitives[k];
-            }
+        function addDefaultGlobalss(obj) {
+            obj["mousedown"] = new Entry("var");
+            obj["mousedown"].setInfo(["mousedown", "obj"]);
 
-            obj["mousedown"] = {x:0, y:0};
-            obj["mousemove"] = {x:0, y:0};
-            obj["mouseup"] = {x:0, y:0};
+            obj["mousemove"] = new Entry("var");
+            obj["mousemove"].setInfo(["mousemove", "obj"]);
 
+            obj["mouseup"] = new Entry("var");
+            obj["mouseup"].setInfo(["mouseup", "obj"]);
         }
 
         function processHelper(symDict) {
@@ -3377,213 +3614,56 @@ Shadama {
             }
         }
 
-        s.addOperation(
-            "symTable(table)",
+        s.addAttribute(
+            "topLevelName",
             {
-                TopLevel(p, ds) {
-                    var result = {};
-                    addDefaults(result);
-                    if (p.children.length > 0) {
-                        result = addAsSet(result, p.children[0].symTable(null));
-                    }
-                    for (var i = 0; i< ds.children.length; i++) {
-                        var d = ds.children[i].symTable(null);
-                        var ctor = ds.children[i].ctorName;
-                        if (ctor == "Script" || ctor == "Static" || ctor == "Helper") {
-                            addAsSet(result, d);
-                        }
-                        if (ctor == "On" || ctor == "Event" || ctor == "Data") {
-                            addAsSet(result, d);
-                        }
-                    }
-                    processHelper(result);
-                    globalTable = result;
-                    return result;
-                },
-
                 ProgramDecl(_p, s) {
-                    return {_programName: s.sourceString.slice(1, s.sourceString.length - 1)}
+                    return "_programName";
                 },
 
                 Breed(_b, n, _o, fs, _c) {
-                    var table = new SymTable();
-                    fs.symTable(table);
-                    table.process();
-                    return {[n.sourceString]: table};
+                    return n.sourceString;
                 },
 
                 Patch(_p, n, _o, fs, _c) {
-                    var table = new SymTable();
-                    fs.symTable(table);
-                    table.process();
-                    return {[n.sourceString]: table};
+                    return n.sourceString;
                 },
 
                 Event(_e, n) {
-                    var table = new SymTable();
-                    table.beEvent(n.sourceString);
-                    return {[n.sourceString]: table};
+                    return n.sourceString;
                 },
 
-                On(_o, t, _a, optK, n) {
-                    var table = new SymTable();
-                    var trigger = t.trigger();
-                    if (optK.children.length > 0) {
-                        var k = optK.children[0].sourceString;
-                    } else {
-                        k = "step";
-                    }
-                    table.beTrigger(trigger, [k, n.sourceString]);
-                    return {["_trigger" + trigger.toString()]: table};
+                On(_o, t, _a, n) {
+                    var trigger = t.trigger;
+                    return "_trigger" + trigger.toString();
                 },
 
-                Data(_d, n, _o, s1, _a, s2, _c) {
-                    var table = new SymTable();
-                    var realS1 = s1.children[1].sourceString;
-                    var realS2 = s2.children[1].sourceString;
-                    table.beData(n.sourceString, realS1, realS2);
-                    return {[n.sourceString]: table};
-                },
+                Data(_d, n, _o, s1, _a, s2, _c) {  // synonym for event?
+                    return n.sourceString;
+                },                  
 
-                Script(_d, n, _o, ns, _c, b) {
-                    var table = new SymTable();
-                    ns.symTable(table);
-                    b.symTable(table);
-                    table.process();
-                    return {[n.sourceString]: table};
+                Method(_d, n, _o, ns, _c, b) {
+                    return n.sourceString;
                 },
 
                 Helper(_d, n, _o, ns, _c, b) {
-                    var table = new SymTable();
-                    ns.symTable(table);
-                    b.symTable(table);
-                    table.beHelper();
-                    return {[n.sourceString]: table};
+                    return n.sourceString;
                 },
 
                 Static(_s, n, _o, ns, _c, b) {
-                    var table = new SymTable();
-                    ns.symTable(table);
-                    table.process();
-                    table.beStatic();
-                    return {[n.sourceString]: table};
-                },
-
-                Formals_list(h, _c, r) {
-                    var table = this.args.table;
-                    table.add("param", null, h.sourceString);
-                    for (var i = 0; i < r.children.length; i++) {
-                        var n = r.children[i].sourceString;
-                        table.add("param", null, n);
-                    }
-                    return table;
-                },
-
-                StatementList(ss) { // an iter node
-                    var table = this.args.table;
-                    for (var i = 0; i< ss.children.length; i++) {
-                        ss.children[i].symTable(table);
-                    }
-                    return table;
-                },
-
-                VariableDeclaration(n, optI) {
-                    var table = this.args.table;
-                    table.add("var", null, n.sourceString);
-                    if (optI.children.length > 0) {
-                        optI.children[0].symTable(table);
-                    }
-                    return table;
-                },
-
-                IfStatement(_if, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
-                    c.symTable(table);
-                    t.symTable(table);
-                    if (optF.children.length > 0) {
-                        optF.children[0].symTable(table);
-                    }
-                    return table;
-                },
-
-                LeftHandSideExpression_field(n, _a, f) {
-                    var name = n.sourceString;
-                    var table = this.args.table;
-                    if (!table.hasVariable(name)) {
-                        var error = new Error("syntax error");
-                        error.reason = `variable ${name} is not declared`;
-                        error.expected = `variable ${name} is not declared`;
-                        error.pos = n.source.endIdx;
-                        error.src = null;
-                        throw error;
-                    }
-
-                    this.args.table.add("propOut", n.sourceString, f.sourceString);
-                    return this.args.table;
-                },
-
-                PrimExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    if (!(n.ctorName === "PrimExpression" && (n.children[0].ctorName === "PrimExpression_variable"))) {
-                        console.log("you can only use 'this' or incoming patch name");
-                    }
-                    var name = n.sourceString;
-                    if (!table.isBuiltin(name)) {
-                        table.add("propIn", n.sourceString, f.sourceString);
-                    }
-                    if (!table.hasVariable(name)) {
-                        var error = new Error("syntax error");
-                        error.reason = `variable ${name} is not declared`;
-                        error.expected = `variable ${name} is not declared`;
-                        error.pos = n.source.endIdx;
-                        error.src = null;
-                        throw error;
-                    }
-                    return table;
-                },
-
-                PrimExpression_variable(n) {
-                    return {};//["var." + n.sourceString]: ["var", null, n.sourceString]};
-                },
-
-                PrimitiveCall(n, _o, as, _c) {
-                    this.args.table.maybeHelperOrPrimitive(n.sourceString);
-                    return as.symTable(this.args.table);
-                },
-
-                Actuals_list(h, _c, r) {
-                    var table = this.args.table;
-                    h.symTable(table);
-                    for (var i = 0; i < r.children.length; i++) {
-                        r.children[i].symTable(table);
-                    }
-                    return table;
-                },
-
-                ident(_h, _r) {return this.args.table;},
-                number(s) {return this.args.table;},
-                _terminal() {return this.args.table;},
-                _nonterminal(children) {
-                    var table = this.args.table;
-                    for (var i = 0; i < children.length; i++) {
-                        children[i].symTable(table);
-                    }
-                    return table;
-                },
+                    return n.sourceString;
+                }
             });
 
-        function transBinOp(l, r, op, args) {
-            var table = args.table;
-            var vert = args.vert;
-            var frag = args.frag;
-            vert.push("(");
-            l.glsl(table, vert, frag);
-            vert.push(op);
-            r.glsl(table, vert, frag);
-            vert.push(")");
-        };
+        s.addAttribute(
+            "programName",
+            {
+                ProgramDecl(_p, s) {
+                    return s.children[1].sourceString;
+                }
+            });
 
-        s.addOperation(
+        s.addAttribute(
             "trigger",
             {
                 TriggerExpression_and(t, _op, i) {
@@ -3595,440 +3675,725 @@ Shadama {
                 TriggerExpression(i) {
                     return i.sourceString;
                 }
-            }
-        );
-        
+            });
+
         s.addOperation(
-            "glsl_script_formals",
+            "symbols(entry)",
             {
-                Formals_list(h, _c, r) {
-                    return [h.sourceString].concat(r.children.map((c) => c.sourceString));
+                TopLevel(p, ds) {
+                    var table = {};
+                    var entry;
+                    addDefaultGlobals(table);
+                    if (p.children.length > 0) {
+                        // program name
+                        entry = new Entry();
+                        entry.setGlobal(table);
+                        var name = p.children[0].symbols(entry);
+                        table[name] = entry;
+                    }
+                    for (var i = 0; i< ds.children.length; i++) {
+                        entry = new Entry();
+                        entry.setGlobal(table);
+                        var name = ds.children[i].symbols(entry);
+                        table[name] = entry;
+                    }
+                    //processHelper(table);
+                    return table;
                 },
-                empty() {
-                    return [];
+
+                ProgramDecl(_p, s) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("_programName");
+                    entry.setInfo(this.programName);
+                    return this.topLevelName;
+                },
+
+                Breed(_b, n, _o, fs, _c) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("breed");
+                    fs.symbols(entry);
+                    return this.topLevelName;
+                },
+
+                Patch(_p, n, _o, fs, _c) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("patch");
+                    fs.symbols(entry);
+                    return this.topLevelName;
+                },
+
+                Event(_e, n) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("event");
+                    entry.setInfo([n.sourceString, "", ""]);
+                    return this.topLevelName;
+                },
+
+                On(_o, t, _a, n) {
+                    var entry = this.args.entry;
+                    var trigger = t.trigger;
+                    entry.setEntryType("trigger");
+                    entry.setInfo([trigger, n.sourceString]);
+                    return this.topLevelName;
+                },
+
+                Data(_d, n, _o, s1, _a, s2, _c) {  // synonym for event?
+                    var entry = this.args.entry;
+                    entry.setEntryType("event");
+                    var realS1 = s1.children[1].sourceString;
+                    var realS2 = s2.children[1].sourceString;
+                    entry.setInfo([n.sourceString, realS1, realS2]);
+                    return this.topLevelName;
+                },
+
+                Method(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("method");
+                    entry.setMethodPos(n.source.endIdx);
+                    entry.setPositionType(dimension == 2 ? "vec2" : "vec3");
+                    ns.symbols(entry);
+                    b.symbols(entry);
+                    return this.topLevelName;
+                },
+
+                Helper(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("helper");
+                    var type = n.type(entry);
+                    ns.symbols(entry);
+                    b.symbols(entry);
+                    return this.topLevelName;
+                },
+
+                Static(_s, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    entry.setEntryType("static");
+                    entry.setPositionType(dimension == 2 ? "vec2" : "vec3");
+                    ns.symbols(entry);
+                    b.symbols(entry);
+                    return this.topLevelName;
+                },
+
+                Formals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var formals = [];
+                    var sym = h.symbols(entry);
+                    entry.add("param", null, sym[0], sym[1]);
+                    for (var i = 0; i < r.children.length; i++) {
+                        var sym = r.children[i].symbols(entry);
+                        entry.add("param", null, sym[0], sym[1]);
+                    }
+                },
+
+                StatementList(ss) { // an iter node
+                    var entry = this.args.entry;
+                    for (var i = 0; i< ss.children.length; i++) {
+                        ss.children[i].symbols(entry);
+                    }
+                },
+
+                VariableDeclaration(n, optType, optI) {
+                    var entry = this.args.entry;
+                    var type = null;
+                    if (optType.children.length > 0) {
+                        type = optType.children[0].symbols(entry);
+                    }
+
+                    if (optI.children.length > 0) {
+                        optI.children[0].symbols(entry);
+                    }
+
+                    entry.add("var", null, n.sourceString, type);
+                },
+
+                IfStatement(_if, _o, c, _c, t, _e, optF) {
+                    var entry = this.args.entry;
+                    c.symbols(entry);
+                    t.symbols(entry);
+                    if (optF.children.length > 0) {
+                        optF.children[0].symbols(entry);
+                    }
+                },
+
+                LeftHandSideExpression_field(n, _a, f) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+
+                    var isOther = entry.param.has(name) &&
+                        entry.getType("param", null, name) == "object";
+
+                    check((entry.type == "method" && (name === "this" || isOther)) ||
+                          (entry.type == "helper" && isOther),
+                          n.source.endIdx,
+                          `field ${f.sourceString} of variable ${name} cannot be assigned into`);
+
+                    entry.add("propOut", n.sourceString, f.sourceString, null);;
+                },
+
+                PrimExpression_field(n, _p, f, optType) {
+                    var entry = this.args.entry;
+                    if (entry.type == "method") {
+                        if (n.ctorName === "PrimExpression" &&
+                            (n.children[0].ctorName === "PrimExpression_variable")) {
+                            var name = n.sourceString;
+                            // this is the case when it is left most.
+                            var isOther = entry.param.has(name) &&
+                                entry.getType("param", null, name) == "object";
+                            // this is when they are accessed as texture
+                            if (name === "this" || isOther) {
+                                var type = null;
+                                if (optType.children.length > 0) {
+                                    type = optType.children[0].symbols(entry);
+                                }
+                                entry.add("propIn", n.sourceString, f.sourceString, type);
+                                return;
+                            } else {
+                                check(entry.hasVariable(name),
+                                      n.source.endIdx,
+                                      `unknown variable ${name}`);
+                            }
+                        }
+                    } else if (entry.type == "static") {
+                    }
+                },
+                                
+                PrimExpression_variable(n) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+                    if (entry.type == "method" || entry.type == "helper") {
+                        check(entry.hasVariable(name),
+                              n.source.endIdx,
+                              `variable ${name} is not declared`);
+                    }
+
+                    //entry.add("ref", null, n.sourceString, null);
+                },
+
+                PrimitiveCall(n, _o, as, _c) {
+                    var entry = this.args.entry;
+                    entry.maybeHelperOrPrimitive(n.sourceString);
+                    as.symbols(entry);
+                },
+
+                Actuals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    h.symbols(entry);
+                    for (var i = 0; i < r.children.length; i++) {
+                        r.children[i].symbols(entry);
+                    }
+                },
+
+                TypedVar(i, t) {
+                    var entry = this.args.entry;
+                    return [i.sourceString, t.symbols(entry)];
+                },
+
+                ColonType(_c, t) {
+                    return t.sourceString;;
+                },
+
+                ident(_h, _r) {},
+                number(s) {},
+                _terminal() {},
+                _nonterminal(children) {
+                    var entry = this.args.entry;
+                    for (var i = 0; i < children.length; i++) {
+                        children[i].symbols(entry);
+                    }
+                },
+            });
+
+        function isSwizzle(str) {
+            if (!(1 <= str.length && str.length <= 4)) {
+                return false;
+            }
+
+            var arrays = [["x", "y", "z", "w"], ["r", "g", "b", "a"]];
+            for (var j = 0; j < arrays.length; j++) {
+                var ary = arrays[j];
+                if (ary.includes(str[0])) {
+                    for (var i = 1; i < str.length; i++) {
+                        if (!(ary.includes(str[i]))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function checkBinOp(l, op, r, args) {
+            var entry = args.entry;
+            var lType = l.type(entry);
+            var rType = r.type(entry);
+            check(l.type(entry) == r.type(entry)
+                  || lType == "float"
+                  || rType == "float",
+                  op.source.endIdx,
+                  "operand type mismatch for operator ${op.sourceString}");
+            return (lType != "float")
+                ? lType
+                : rType
+        };
+
+        s.addOperation(
+            "type(entry)",
+            {
+                TopLevel(p, ds) {
+                    var table = this.args.entry; // actually the table for toplevel
+                    for (var i = 0; i< ds.children.length; i++) {
+                        ds.children[i].type(table[ds.children[i].topLevelName]);
+                    }
+                    return null;
+                },
+
+
+                Method(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    b.type(entry);
+                    ns.type(entry);
+                    entry.process();
+                    return null;
+                },
+
+                Helper(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    ns.type(entry);
+                    b.type(entry);
+                    entry.process();
+                    return null;
+                },
+
+                Static(_s, n, _o, ns, _c, b) {
+                    return this.staticType(this.args.entry)
+                },
+
+                Formals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var sym = h.symbols(entry);
+                    return null;
+                },
+
+                VariableDeclaration(n, optType, optI) {
+                    var entry = this.args.entry;
+                    var nType = null;
+                    if (optType.children.length > 0) {
+                        nType = optType.children[0].symbols(entry);
+                        entry.setType("var", null, n.sourceString, nType);
+                    }
+                    if (optI.children.length > 0) {
+                        var type = optI.children[0].type(entry);
+                        check(type !== null,
+                              optI.source.endIdx,
+                              "type not known");
+                        check(!nType || (nType === type),
+                              n.source.endIdx,
+                              "type of the variable does not match with the value on the right");
+                        if (!nType && type) {
+                            entry.setType("var", null, n.sourceString, type);
+                        }
+                    }
+                    return nType;
+                },
+
+                AssignmentStatement(l, _e, e, _c) {
+                    var entry = this.args.entry;
+                    var left = l.type(entry);
+                    var type = e.type(entry);
+                    check (type,
+                           e.source.endIdx,
+                           "incomplete type");
+
+                    check(!left || left == type,
+                          l.source.endIdx,
+                          "type on the left does not match with the value on the right");
+
+                    var isVar = l.children[0].ctorName == "LeftHandSideExpression_ident";
+                    if (isVar) {
+                        if (!left) {
+                            entry.setType("var", null, l.sourceString, type);
+                        }
+                    } else { // field
+                        if (!left) {
+                            var field = l.children[0];
+                            var n = l.children[0].children[0].sourceString;
+                            var f = l.children[0].children[2].sourceString;
+                            entry.setType("propOut", n, f, type);
+                        }
+                    }
+                },
+
+                LeftHandSideExpression_field(n, _a, f) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+                    var type = entry.add("propOut", name, f.sourceString, null);
+                    return null;
+                },
+
+                LeftHandSideExpression_ident(n) {
+                    var entry = this.args.entry;
+                    var type = entry.add("var", null, n.sourceString, null);
+                    return null;
+                },
+
+                _nonterminal(children) {
+                    var entry = this.args.entry;
+                    var type = null;
+                    for (var i = 0; i < children.length; i++) {
+                        var val = children[i].type(entry);
+                        if (type === null) {
+                            type = val;
+                        }
+                    }
+                    return type;
+                },
+
+                LogicalExpression_and(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                LogicalExpression_or(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                RelationalExpression_le(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                RelationalExpression_ge(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                RelationalExpression_lt(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                RelationalExpression_gt(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                RelationalExpression_equal(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                RelationalExpression_notEqual(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                AddExpression_plus(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                AddExpression_minus(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                MulExpression_times(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                MulExpression_divide(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                MulExpression_mod(l, op, r) {
+                    return checkBinOp(l, op, r, this.args);
+                },
+
+                UnaryExpression_plus(_p, e) {
+                    return e.type(this.args.entry);
+                },
+
+                UnaryExpression_minus(_p, e) {
+                    return e.type(this.args.entry);
+                },
+
+                UnaryExpression_not(_p, e) {
+                    return e.type(this.args.entry);
+                },
+
+                PrimExpression_field(n, _p, f, optType) {
+                    var entry = this.args.entry;
+                    
+                    if (entry.type == "method") {
+                        if (n.ctorName === "PrimExpression" &&
+                            (n.children[0].ctorName === "PrimExpression_variable")) {
+                            var name = n.sourceString;
+                            var isOther = entry.param.has(name) &&
+                                entry.getType("param", null, name) == "object";
+                            var type;
+                            // this is when they are accessed as texture
+                            
+                            if (optType.children.length > 0) {
+                                type = optType.children[0].type(entry);
+                                entry.setType("propIn", name, f.sourceString, type);
+                            }
+                            if (name === "this" || isOther) {
+                                var type = entry.getType("propIn", name, f.sourceString);
+                                check(type,
+                                      f.source.endIdx,
+                                      "type not specified");
+                                return type;
+                            }
+                        }
+                        var nType = n.type(entry);
+                        check (nType !== "object",
+                               n.source.endIdx,
+                               "compound field access is only possible for vector types");
+                        check(isSwizzle(f.sourceString),
+                              f.source.endIdx,
+                              "field accessor has to be a swizzle accessor");
+                        var type;
+                        switch(f.sourceString.length) {
+                        case 1:
+                            return "float";
+                        case 2:
+                            return "vec2";
+                        case 3:
+                            return "vec3";
+                        case 4:
+                            return "vec4";
+                        }
+                    }
+                },
+                                
+                PrimExpression_variable(n) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+
+                    var type = entry.getVariableType(name);
+                    check(type,
+                          n.source.endIdx,
+                          "type not specified");
+                    return type;
+                },
+
+                PrimitiveCall(n, _o, as, _c) {
+                    var entry = this.args.entry;
+                    var name = n.sourceString;
+                    var types = [];
+
+                    function arity(str) {
+                        switch(str) {
+                        case "float":
+                            return 1;
+                        case "vec2":
+                            return 2;
+                        case "vec3":
+                            return 3;
+                        case "vec4":
+                            return 4;
+                        }
+                    }
+
+                    function sumArity(list) {
+                        return list.map((l) => arity(l)).reduce((a, b) => a + b, 0);
+                    }
+
+                    if (as.children[0].ctorName === "Actuals_list") {
+                        types = as.children[0].type(entry);
+                    }
+
+                    var oneArgs = ["sqrt", "floor", "length", "exp", "log", "cos", "sin", "acos", "asin"];
+                    for (var i = 0; i < oneArgs.length; i++) {
+                        var maybe = oneArgs[i];
+                        if (name == maybe) {
+                            check(types.length === 1,
+                                  n.source.endIdx, "type error");
+                            return types[0];
+                        }
+                    }
+
+                    if (name == "mod") {
+                        check(types.length === 2 &&
+                              (types[0] == types[1] || types[1] == "float"),
+                              n.source.endIdx, "type error");
+                        return types[0];
+                    }
+
+                    var twoToFloat = ["dot", "distance"];
+                    for (var i = 0; i < twoToFloat.length; i++) {
+                        var maybe = twoToFloat[i];
+                        if (name == maybe) {
+                            check(types.length === 2 && types[0] == types[1],
+                                  n.source.endIdx, "type error");
+                            return "float";
+                        }
+                    }
+
+                    if (name == "random") {
+                        check(types.length === 1 && types[0] == "float",
+                              n.source.endIdx, "type error");
+                        return types[0];
+                    }
+                    if (name == "vec2" || name == "vec3" || name == "vec4") {
+                        check(sumArity(types) == arity(name),
+                              n.source.endIdx,
+                              `arguments should total in arity ${arity(name)}`);
+                        return name;
+                    }
+                },
+
+                Actuals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var result = [];
+                    result.push(h.type(entry));
+                    for (var i = 0; i < r.children.length; i++) {
+                        result.push(r.children[i].type(entry));
+                    }
+                    return result;
+                },
+
+                ColonType(_c, t) {
+                    return t.sourceString;;
+                },
+
+                ident(_h, _r) {return null},
+                number(s) {return "float"},
+                _terminal() {return null},
+            });
+
+        s.addOperation(
+            "staticType(entry)",
+            {
+                Static(_s, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
+                    b.staticType(entry);
+                },
+
+                VariableDeclaration(n, optType, optI) {
+                    var entry = this.args.entry;
+                    var global = entry.global;
+
+                    global[n.sourceString] = new Entry();
+                    global[n.sourceString].setEntryType("event");
+                    global[n.sourceString].setInfo(n.sourceString, "", "");
+                },
+
+                _terminal() {return null},
+                _nonterminal(children) {
+                    var entry = this.args.entry;
+                    var type = null;
+                    for (var i = 0; i < children.length; i++) {
+                        children[i].staticType(entry);
+                    }
+                },
+            });
+
+        s.addOperation(
+            "compile(table)",
+            {
+                TopLevel(p, ds) {
+                    var table = this.args.table;
+                    var result = {};
+
+                    if (p.children.length > 0) {
+                        result[p.topLevelName] = p.compile(table)[0];
+                    }
+
+                    for (var i = 0; i < ds.children.length; i++) {
+                        var child = ds.children[i];
+                        result[child.topLevelName] = child.compile(table);
+                    }
+                    return result;
+                },
+
+                ProgramDecl(_p, s) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return entry.info;
+                },
+
+                Breed(_b, n, _o, fs, _c) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return [entry, n.sourceString];
+                },
+
+                Patch(_p, n, _o, fs, _c) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return [entry, n.souceString];
+                },
+
+                Event(_e, n) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return [entry];
+                },
+
+                On(_o, t, _a, k) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return [entry];
+                },
+
+                Data(_d, i, _o, s1, _a, s2, _c) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    return [entry];
+                },
+
+                Method(_d, n, _o, ns, _c, b) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    var vert = new CodeStream();
+                    var frag = new CodeStream();
+
+                    return this.glsl_method(entry, vert, frag);
+                },
+
+                Helper(_d, n, _o, ns, _c, b) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    var vert = new CodeStream();
+                    var frag = new CodeStream();
+
+                    return this.glsl_helper(entry, vert, frag);
+                },
+
+                Static(_d, n, _o, ns, _c, b) {
+                    var table = this.args.table;
+                    var entry = table[this.topLevelName];
+                    var js = new CodeStream();
+                    return this.static(entry, js);
                 }
             });
 
         s.addOperation(
-            "glsl_helper(table, vert)",
+            "glsl_method(entry, vert, frag)",
             {
-                Helper(_d, n, _o, ns, _c, b) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.push("float " + n.sourceString);
-                    vert.push("(");
-                    ns.glsl_helper(table, vert);
-                    vert.push(")");
-                    b.glsl_helper(table, vert);
-
-                    vert.crIfNeeded();
-                    var code = vert.contents();
-                    table.helperCode = code;
-
-                    return {[n.sourceString]: [table, code, "", ["updateHelper", n.sourceString]]};
-                },
-
-                Formals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.push("float " + h.sourceString);
-                    for (var i = 0; i < r.children.length; i++) {
-                        var c = r.children[i];
-                        vert.push(", float ");
-                        vert.push(c.sourceString);
-                    }
-                },
-
-                Block(_o, ss, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.pushWithSpace("{\n");
-                    vert.addTab();
-
-                    ss.glsl_helper(table, vert);
-
-                    vert.decTab();
-                    vert.tab();
-                    vert.push("}");
-                },
-
-                StatementList(ss) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    for (var i = 0; i < ss.children.length; i++) {
-                        vert.tab();
-                        ss.children[i].glsl_helper(table, vert);
-                    }
-                },
-
-                Statement(e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    e.glsl_helper(table, vert);
-                    if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
-                        vert.push(";");
-                        vert.cr();
-                    }
-                    if (e.ctorName == "IfStatement") {
-                        vert.cr();
-                    }
-                },
-
-                IfStatement(_i, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.pushWithSpace("if");
-                    vert.pushWithSpace("(");
-                    c.glsl_helper(table, vert);
-                    vert.push(")");
-                    t.glsl_helper(table, vert);
-                    if (optF.children.length === 0) { return;}
-                    vert.pushWithSpace("else");
-                    optF.glsl_helper(table, vert);
-                },
-
-
-                ReturnStatement(_r, e, _s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    vert.pushWithSpace("return");
-                    vert.push(" ");
-                    e.glsl_helper(table, vert);
-                },
-
-                AssignmentStatement(l, _a, e, _) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    l.glsl_helper(table, vert);
-                    vert.push(" = ");
-                    e.glsl_helper(table, vert);
-                },
-
-                VariableStatement(_v, d, _s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    d.glsl_helper(table, vert);
-                },
-
-                VariableDeclaration(n, i) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push("float");
-                    vert.pushWithSpace(n.sourceString);
-                    if (i.children.length !== 0) {
-                        vert.push(" = ");
-                        i.glsl_helper(table, vert);
-                    }
-                },
-
-                Initialiser(_a, e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                LeftHandSideExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push(n.sourceString);
-                },
-
-                ExpressionStatement(e ,_s) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    e.glsl_helper(table, vert);
-                },
-
-                Expression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                LogicalExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                LogicalExpression_and(l, _, r) {
-                    transBinOp(l, r, " && ", this.args);
-                },
-
-                LogicalExpression_or(l, _, r) {
-                    transBinOp(l, r, " || ", this.args);
-                },
-
-                RelationalExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                RelationalExpression_le(l, _, r) {
-                    transBinOp(l, r, " <= ", this.args);
-                },
-
-                RelationalExpression_ge(l, _, r) {
-                    transBinOp(l, r, " >= ", this.args);
-                },
-
-                RelationalExpression_lt(l, _, r) {
-                    transBinOp(l, r, " < ", this.args);
-                },
-
-                RelationalExpression_gt(l, _, r) {
-                    transBinOp(l, r, " > ", this.args);
-                },
-
-                RelationalExpression_equal(l, _, r) {
-                    transBinOp(l, r, " == ", this.args);
-                },
-
-                RelationalExpression_notEqual(l, _, r) {
-                    transBinOp(l, r, " != ", this.args);
-                },
-
-                AddExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                AddExpression_plus(l, _, r) {
-                    transBinOp(l, r, " + ", this.args);
-                },
-
-                AddExpression_minus(l, _, r) {
-                    transBinOp(l, r, " - ", this.args);
-                },
-
-                MulExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                MulExpression_times(l, _, r) {
-                    transBinOp(l, r, " * ", this.args);
-                },
-
-                MulExpression_divide(l, _, r) {
-                    transBinOp(l, r, " / ", this.args);
-                },
-
-                MulExpression_mod(l, _, r) {
-                    transBinOp(l, r, " % ", this.args);
-                },
-
-                UnaryExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                UnaryExpression_plus(_p, e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                UnaryExpression_minus(_p, e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.pushWithSpace("-");
-                    e.glsl_helper(table, vert);
-                },
-
-                UnaryExpression_not(_p, e) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.pushWithSpace("!");
-                    e.glsl_helper(table, vert);
-                },
-
-                PrimExpression(e) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                PrimExpression_paren(_o, e, _c) {
-                    e.glsl_helper(this.args.table, this.args.vert);
-                },
-
-                PrimExpression_number(e) {
-                    var vert = this.args.vert;
-                    var ind = e.sourceString.indexOf(".");
-                    if (ind < 0) {
-                        vert.push(e.sourceString + ".0");
-                    } else {
-                        vert.push(e.sourceString);
-                    }
-                },
-
-                PrimExpression_field(n, _p, f) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-
-                    if (table.isObject(n.sourceString)) {
-                        vert.push(n.sourceString + "." + f.sourceString);
-                    } else {
-                        throw "error";
-                    }
-                },
-
-                PrimExpression_variable(n) {
-                    this.args.vert.push(n.sourceString);
-                },
-
-                PrimitiveCall(n, _o, as, _c) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    vert.push(n.sourceString);
-                    vert.push("(");
-                    as.glsl_helper(table, vert);
-                    vert.push(")");
-                },
-
-                Actuals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    h.glsl_helper(table, vert);
-                    for (var i = 0; i < r.children.length; i++) {
-                        vert.push(", ");
-                        r.children[i].glsl_helper(table, vert);
-                    }
-                },
-
-                ident(n, rest) {
-                    // ??
-                    this.args.vert.push(this.sourceString);
-                },
-            });
-
-        s.addOperation(
-            "glsl_inner(table, vert, frag)",
-            {
-                Block(_o, ss, _c) {
-                    var table = this.args.table;
+                Method(_d, n, _o, ns, _c, b) {
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
 
-                    var patchInput = `
-  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
-  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
-  vec2 _pos = vec2(_x, _y);
-`;
+                    var prologue = fragments.breedPrologue[dimension.toString()]; /* "2" or "3"*/
 
-                    var voxelInput = `
-  float _x = texelFetch(u_that_x, ivec2(a_index), 0).r;
-  float _y = texelFetch(u_that_y, ivec2(a_index), 0).r;
-  float _z = texelFetch(u_that_z, ivec2(a_index), 0).r;
-  _x = floor(_x / v_step); // 8   //  [0..64), if originally within [0..512)
-  _y = floor(_y / v_step); // 8
-  _z = floor(_z / v_step); // 8
-
-  int index = int(_z * v_resolution.x * v_resolution.y + _y * v_resolution.x + _x);
-  vec2 _pos = vec2(index % int(u_resolution.x), index / int(u_resolution.x));
-`;
-
-                    var patchPrologue = `
-  vec2 oneToOne = ((_pos / u_resolution) + u_half) * 2.0 - 1.0;
-`;
-
-                    var breedPrologue = `
-  vec2 oneToOne = (b_index + u_half) * 2.0 - 1.0;
-`;
-
-                    var voxelPrologue = `
-  vec2 oneToOne = ((_pos / u_resolution.xy) + u_half) * 2.0 - 1.0;
-`;
-
-                    var epilogue = `
-  gl_Position = vec4(oneToOne, 0.0, 1.0);
-  gl_PointSize = 1.0;
-`;
-
-                    vert.pushWithSpace("{\n");
-                    vert.addTab();
-
-                    if ((table.hasPatchInput || !table.forBreed)) {
-                        if (dimension == 2) {
-                            vert.push(patchInput);
-                        } else {
-                            vert.push(voxelInput);
-                        }
+                    if (!entry.forBreed || entry.hasPatchInput) {
+                        prologue = prologue + fragments.patchPrologue["vec" + dimension];
                     }
+                    vert.push(prologue);
 
-                    if (table.forBreed) {
-                        vert.push(breedPrologue);
-                    } else {
-                        if (dimension == 2) {
-                            vert.push(patchPrologue);
-                        } else {
-                            vert.push(voxelPrologue);
-                        }
-                    }
-
-                    table.scalarParamTable.keysAndValuesDo((key, entry) => {
-                        var e = entry[2];
-                        var template1 = `float ${e} = u_scalar_${e};`;
-                        vert.tab();
-                        vert.push(template1);
-                        vert.cr();
-                    });
-
-                    table.uniformDefaults().forEach(elem => {
-                        vert.tab();
+                    entry.uniforms().forEach(elem => {
                         vert.push(elem);
                         vert.cr();
                     });
 
-                    ss.glsl(table, vert, frag);
-                    vert.push(epilogue);
-
-                    vert.decTab();
-                    vert.tab();
-                    vert.push("}");
-                },
-
-                Script(_d, n, _o, ns, _c, b) {
-                    var table = this.args.table;
-                    var vert = this.args.vert;
-                    var frag = this.args.frag;
-
-                    var breedPrologue =
-`#version 300 es
-precision highp float;
-layout (location = 0) in vec2 a_index;
-layout (location = 1) in vec2 b_index;
-uniform vec${dimension} u_resolution;
-uniform vec2 u_half;
-`;
-
-                    if (dimension == 3) {
-                        breedPrologue = breedPrologue + `uniform float v_step;
-uniform vec3 v_resolution;
-`;
-                    }
-
-                    var patchPrologue = breedPrologue + `
-uniform sampler2D u_that_x;
-uniform sampler2D u_that_y;
-`;
-
-                    if (dimension == 3) {
-                        patchPrologue = patchPrologue + `uniform sampler2D u_that_z;
-`;
-                    }
-
-                    vert.push(table.forBreed && !table.hasPatchInput ? breedPrologue : patchPrologue);
-
-                    table.uniforms().forEach(elem => {
+                    entry.paramUniforms().forEach(elem => {
                         vert.push(elem);
                         vert.cr();
                     });
 
-                    table.paramUniforms().forEach(elem => {
-                        vert.push(elem);
-                        vert.cr();
-                    });
-
-                    table.vertVaryings().forEach(elem => {
+                    entry.vertVaryings().forEach(elem => {
                         vert.push(elem);
                         vert.cr();
                     });
 
                     vert.crIfNeeded();
 
-                    table.primitivesAndHelpers().forEach((n) => {
+                    entry.primitivesAndHelpers().forEach((n) => {
                         vert.push(n);
                     });
 
@@ -4039,12 +4404,12 @@ uniform sampler2D u_that_y;
                     frag.push("#version 300 es\n");
                     frag.push("precision highp float;\n");
 
-                    table.fragVaryings().forEach((elem) =>{
+                    entry.fragVaryings().forEach((elem) =>{
                         frag.push(elem);
                         frag.cr();
                     });
 
-                    table.outs().forEach((elem) => {
+                    entry.outs().forEach((elem) => {
                         frag.push(elem);
                         frag.cr();
                     });
@@ -4052,7 +4417,7 @@ uniform sampler2D u_that_y;
                     frag.crIfNeeded();
                     frag.push("void main()");
 
-                    b.glsl_inner(table, vert, frag);
+                    b.glsl_method(entry, vert, frag);
 
                     vert.crIfNeeded();
 
@@ -4060,7 +4425,7 @@ uniform sampler2D u_that_y;
                     frag.cr();
 
                     frag.addTab();
-                    table.fragColors().forEach((line) => {
+                    entry.fragOut().forEach((line) => {
                         frag.tab();
                         frag.push(line);
                         frag.cr();
@@ -4070,114 +4435,96 @@ uniform sampler2D u_that_y;
                     frag.push("}");
                     frag.cr();
 
-                    return {[n.sourceString]: [table, vert.contents(), frag.contents(), ["updateScript", n.sourceString]]};
-                }
-            });
-
-        s.addOperation(
-            "glsl(table, vert, frag)",
-            {
-                TopLevel(p, ds) {
-                    var table = this.args.table;
-                    var result = {};
-                    for (var i = 0; i < ds.children.length; i++) {
-                        var child = ds.children[i];
-                        if (child.ctorName == "Static") {
-                            var js = new CodeStream();
-                            var val = child.static(table, js, null, false);
-                            addAsSet(result, val);
-                        } else {
-                            var val = child.glsl(table, null, null);
-                            addAsSet(result, val);
-                        }
-                    }
-                    result["_programName"] = table["_programName"];
-                    return result;
-                },
-
-                Breed(_b, n, _o, fs, _c) {
-                    var table = this.args.table;
-                    var js = ["updateBreed", n.sourceString, fs.glsl_script_formals()];
-                    return {[n.sourceString]: [table[n.sourceString], "", "", js]};
-                },
-
-                Patch(_p, n, _o, fs, _c) {
-                    var table = this.args.table;
-                    var js = ["updatePatch", n.sourceString, fs.glsl_script_formals()];
-                    return {[n.sourceString]: [table[n.sourceString], "", "" ,js]};
-                },
-
-                Event(_e, n) {
-                    var table = this.args.table;
-                    var js = ["event", n.sourceString];
-                    return {[n.sourceString]: [table[n.sourceString], "", "", js]};
-                },
-
-                On(_o, t, _a, optK, k) {
-                    var table = this.args.table;
-                    var trigger = t.trigger();
-                    var key = "_trigger" + trigger.toString();
-                    var entry = table[key];
-                    var js = ["trigger", entry.trigger, entry.triggerAction];
-                    return {[key]: [table[key], "", "", js]};
-                },
-
-                Data(_d, i, _o, s1, _a, s2, _c) {
-                    var table = this.args.table;
-                    var key = i.sourceString;
-                    var entry = table[key];
-                    var realS1 = s1.children[1].sourceString;
-                    var realS2 = s2.children[1].sourceString;
-                    var js = ["data", i.sourceString, realS1, realS2];
-                    return {[key]: [entry, "", "", js]};
-                },
-
-                Script(_d, n, _o, ns, _c, b) {
-                    var inTable = this.args.table;
-                    var table = inTable[n.sourceString];
-                    var vert = new CodeStream();
-                    var frag = new CodeStream();
-
-                    return this.glsl_inner(table, vert, frag);
-                },
-
-                Helper(_d, n, _o, ns, _c, b) {
-                    var inTable = this.args.table;
-                    var table = inTable[n.sourceString];
-                    var vert = new CodeStream();
-
-                    return this.glsl_helper(table, vert);
+                    return [entry, vert.contents(), frag.contents(), n.sourceString];
                 },
 
                 Block(_o, ss, _c) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
+                    var vert = this.args.vert;
+                    var frag = this.args.frag;
+
+                    vert.pushWithSpace("{\n");
+                    vert.addTab();
+
+                    if (entry.hasPatchInput) {
+                        vert.push(fragments.patchInput[dimension == 2 ? "vec2" : "vec3"]);
+                    } else {
+                        vert.push(fragments.noPatchInput);
+                    }
+
+                    if (entry.forBreed) {
+                        vert.push(fragments.blockBreedPrologue);
+                    } else {
+                        vert.push(fragments.blockPatchPrologue[dimension == 2 ? "vec2" : "vec3"]);
+                    }
+
+                    entry.scalarParamTable.keysAndValuesDo((key, value) => {
+                        var name = value[2];
+                        vert.tab();
+                        vert.push(`${value[3]} ${name} = u_scalar_${name};`);
+                        vert.cr();
+                    });
+
+                    entry.uniformDefaults().forEach(elem => {
+                        vert.tab();
+                        vert.push(elem);
+                        vert.cr();
+                    });
+
+                    ss.glsl_inner(entry, vert, frag);
+                    vert.push(fragments.blockEpilogue);
+
+                    vert.decTab();
+                    vert.tab();
+                    vert.push("}");
+                },
+
+
+            });
+
+        function transBinOp(l, r, op, args) {
+            var entry = args.entry;
+            var vert = args.vert;
+            var frag = args.frag;
+            vert.push("(");
+            l.glsl_inner(entry, vert, frag);
+            vert.push(op);
+            r.glsl_inner(entry, vert, frag);
+            vert.push(")");
+        };
+
+        s.addOperation(
+            "glsl_inner(entry, vert, frag)",
+            {
+                Block(_o, ss, _c) {
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
 
                     vert.pushWithSpace("{");
                     vert.cr();
                     vert.addTab();
-                    ss.glsl(table, vert, frag);
+                    ss.glsl_inner(entry, vert, frag);
                     vert.decTab();
                     vert.tab();
                     vert.push("}");
                 },
 
                 StatementList(ss) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
                     for (var i = 0; i < ss.children.length; i++) {
                         vert.tab();
-                        ss.children[i].glsl(table, vert, frag);
+                        ss.children[i].glsl_inner(entry, vert, frag);
                     }
                 },
 
                 Statement(e) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-                    e.glsl(table, vert, frag);
+                    e.glsl_inner(entry, vert, frag);
                     if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                         vert.push(";");
                         vert.cr();
@@ -4188,70 +4535,70 @@ uniform sampler2D u_that_y;
                 },
 
                 IfStatement(_i, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
                     vert.pushWithSpace("if");
                     vert.pushWithSpace("(");
-                    c.glsl(table, vert, frag);
+                    c.glsl_inner(entry, vert, frag);
                     vert.push(")");
-                    t.glsl(table, vert, frag);
+                    t.glsl_inner(entry, vert, frag);
                     if (optF.children.length === 0) { return;}
                     vert.pushWithSpace("else");
-                    optF.glsl(table, vert, frag);
+                    optF.glsl_inner(entry, vert, frag);
                 },
 
                 AssignmentStatement(l, _a, e, _) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-                    l.glsl(table, vert, frag);
+                    l.glsl_inner(entry, vert, frag);
                     vert.push(" = ");
-                    e.glsl(table, vert, frag);
+                    e.glsl_inner(entry, vert, frag);
                 },
 
                 VariableStatement(_v, d, _s) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-                    d.glsl(table, vert, frag);
+                    d.glsl_inner(entry, vert, frag);
                 },
 
-                VariableDeclaration(n, i) {
-                    var table = this.args.table;
+                VariableDeclaration(n, optT, i) {
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-                    vert.push("float");
+                    vert.push(entry.getType("var", null, n.sourceString));
                     vert.pushWithSpace(n.sourceString);
                     if (i.children.length !== 0) {
                         vert.push(" = ");
-                        i.glsl(table, vert, frag);
+                        i.glsl_inner(entry, vert, frag);
                     }
                 },
 
                 Initialiser(_a, e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 LeftHandSideExpression_field(n, _p, f) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
-                    vert.push(table.varying(["propOut", n.sourceString, f.sourceString]));
+                    vert.push(entry.varying(n.sourceString, f.sourceString));
                 },
 
                 ExpressionStatement(e ,_s) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-                    e.glsl(table, vert, frag);
+                    e.glsl_inner(entry, vert, frag);
                 },
 
                 Expression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 LogicalExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 LogicalExpression_and(l, _, r) {
@@ -4263,7 +4610,7 @@ uniform sampler2D u_that_y;
                 },
 
                 RelationalExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 RelationalExpression_le(l, _, r) {
@@ -4291,7 +4638,7 @@ uniform sampler2D u_that_y;
                 },
 
                 AddExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 AddExpression_plus(l, _, r) {
@@ -4303,7 +4650,7 @@ uniform sampler2D u_that_y;
                 },
 
                 MulExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 MulExpression_times(l, _, r) {
@@ -4319,35 +4666,35 @@ uniform sampler2D u_that_y;
                 },
 
                 UnaryExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 UnaryExpression_plus(_p, e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 UnaryExpression_minus(_p, e) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
                     vert.pushWithSpace("-");
-                    e.glsl(table, vert, frag);
+                    e.glsl_inner(entry, vert, frag);
                 },
 
                 UnaryExpression_not(_p, e) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
                     vert.pushWithSpace("!");
-                    e.glsl(table, vert, frag);
+                    e.glsl_inner(entry, vert, frag);
                 },
 
                 PrimExpression(e) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 PrimExpression_paren(_o, e, _c) {
-                    e.glsl(this.args.table, this.args.vert, this.args.frag);
+                    e.glsl_inner(this.args.entry, this.args.vert, this.args.frag);
                 },
 
                 PrimExpression_number(e) {
@@ -4360,24 +4707,36 @@ uniform sampler2D u_that_y;
                     }
                 },
 
-                PrimExpression_field(n, _p, f) {
-                    var table = this.args.table;
+                PrimExpression_field(n, _p, f, optType) {
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
 
-                    if (table.isBuiltin(n.sourceString)) {
-                        vert.push(n.sourceString + "." + f.sourceString);
-                    } else {
-                        if (n.sourceString === "this") {
-                            vert.push("texelFetch(" +
-                                      table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                      `, ivec2(a_index), 0).r`);
-                        } else {
-                            vert.push("texelFetch(" +
-                                      table.uniform(["propIn", n.sourceString, f.sourceString]) +
-                                      `, ivec2(_pos), 0).r`);
+                    if (n.ctorName === "PrimExpression" &&
+                        (n.children[0].ctorName === "PrimExpression_variable")) {
+                        var name = n.sourceString;
+                        var isOther = entry.param.has(name) &&
+                            entry.getType("param", null, name) == "object";
+                        // this is when they are accessed as texture
+                        if (name === "this" || isOther) {
+                            var type = entry.getType("propIn", n.sourceString, f.sourceString);
+                            var suffix = entry.swizzle(type);
+
+                            if (n.sourceString === "this") {
+                                vert.push("texelFetch(" +
+                                          entry.uniform(n.sourceString, f.sourceString) +
+                                          ", ivec2(a_index), 0)." + suffix);
+                            } else {
+                                var v = entry.uniform(n.sourceString, f.sourceString);
+                                vert.push("texelFetch(" +
+                                          v + ", ivec2(_pos), 0)." + suffix);
+                            }
+                            return;
                         }
                     }
+                    n.glsl_inner(entry, vert, frag);
+                    vert.push(".");
+                    vert.push(f.sourceString);
                 },
 
                 PrimExpression_variable(n) {
@@ -4385,23 +4744,23 @@ uniform sampler2D u_that_y;
                 },
 
                 PrimitiveCall(n, _o, as, _c) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
                     vert.push(n.sourceString);
                     vert.push("(");
-                    as.glsl(table, vert, frag);
+                    as.glsl_inner(entry, vert, frag);
                     vert.push(")");
                 },
 
                 Actuals_list(h, _c, r) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var vert = this.args.vert;
                     var frag = this.args.frag;
-                    h.glsl(table, vert, frag);
+                    h.glsl_inner(entry, vert, frag);
                     for (var i = 0; i < r.children.length; i++) {
                         vert.push(", ");
-                        r.children[i].glsl(table, vert, frag);
+                        r.children[i].glsl_inner(entry, vert, frag);
                     }
                 },
 
@@ -4411,120 +4770,92 @@ uniform sampler2D u_that_y;
             });
 
         function staticTransBinOp(l, r, op, args) {
-            var table = args.table;
+            var entry = args.entry;
             var js = args.js;
-            var method = args.method;
-            var isOther = args.isOther;
-            js.push("(");
-            l.static(table, js, method, isOther);
-            js.push(op);
-            r.static(table, js, method, isOther);
+            
+            var ops = {
+                "+": "add",
+                "-": "sub",
+                "*": "mul",
+                "/": "div",
+                "%": "mod",
+                "<": "lt",
+                "<=": "le",
+                ">": "gt",
+                ">=": "ge",
+                "==": "equal",
+                "!=": "notEqual",
+                "&&": "and",
+                "||": "or",
+            };
+            js.push("vec." + ops[op] + "(");
+            l.static(entry, js);
+            js.push(", ");
+            r.static(entry, js);
+            js.push(", ");
+            js.push("" + r.source.endIdx);
             js.push(")");
         };
 
         s.addOperation(
-            "static_method_inner(table, js, method, isOther)",
+            "static(entry, js)",
             {
-                Actuals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var result = [];
-                    var js = new CodeStream();
-                    var method = this.args.method;
 
-                    function isOther(i) {
-                        var realTable = table[method];
-                        if (!realTable) {return false}
-                        var p = realTable.param.at(i);
-                        if (!p) {
-                            var error = new Error("semantic error");
-                            error.reason = `argument count does not match for method ${method}`;
-                            error.expected = `argument count does not match for method ${method}`;
-                            error.pos = h.source.endIdx;
-                            error.src = null;
-                            throw error;
-                        }
-                        var r = realTable.usedAsOther(p[2]);
-                        return r;
-                    };
-                    h.static(table, js, method, isOther(0));
+                Static(_s, n, _o, fs, _c, b) {
+                    var entry = this.args.entry;
+                    var js = this.args.js;
+
+                    js.push("(function");
+                    js.pushWithSpace(n.sourceString);
+                    js.push("(");
+                    js.push(""); //fs.static(table, null, null, null));
+                    js.push(") ");
+                    b.static(entry, js);
+                    js.push(")");
+                    return [entry, js.contents(), this.sourceString];
+                },
+
+                Actuals_list(h, _c, r) {
+                    var entry = this.args.entry;
+                    var js = new CodeStream();
+
+                    var result = [];
+                    h.static(entry, js);
                     result.push(js.contents());
                     for (var i = 0; i < r.children.length; i++) {
                         var c = r.children[i];
                         var js = new CodeStream();
-                        c.static(table, js, method, isOther(i+1));
+                        c.static(entry, js);
                         result.push(js.contents());
                     }
                     return result;
                 },
 
-                Formals_list(h, _c, r) {
-                    var table = this.args.table;
-                    var result = [];
-                    var js = new CodeStream();
-
-                    result.push(h.sourceString);
-                    for (var i = 0; i < r.children.length; i++) {
-                        var c = r.children[i];
-                        result.push(", ");
-                        result.push(c.sourceString);
-                    }
-                    return result;
-                },
-
-                empty() {
-                    return [];
-                }
-            });
-
-        s.addOperation(
-            "static(table, js, method, isOther)",
-            {
-
-                Static(_s, n, _o, fs, _c, b) {
-                    var table = this.args.table;
-                    var js = this.args.js;
-                    var method = this.args.method;
-
-                    js.push("(function");
-                    js.pushWithSpace(n.sourceString);
-                    js.push("(");
-                    js.push(fs.static_method_inner(table, null, null, null));
-                    js.push(") ");
-                    b.static(table, js, method, false);
-                    js.push(")");
-                    return {[n.sourceString]: ["static", js.contents(), this.sourceString]};
-                },
-
                 Block(_o, ss, _c) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
                     js.pushWithSpace("{");
                     js.cr();
                     js.addTab();
-                    ss.static(table, js, method, false);
+                    ss.static(entry, js);
                     js.decTab();
                     js.tab();
                     js.push("}");
                 },
 
                 StatementList(ss) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
                     for (var i = 0; i < ss.children.length; i++) {
                         js.tab();
-                        ss.children[i].static(table, js, method, isOther);
+                        ss.children[i].static(entry, js);
                     }
                 },
 
                 Statement(e) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    e.static(table, js, method, isOther);
+                    e.static(entry, js);
                     if (e.ctorName !== "Block" && e.ctorName !== "IfStatement") {
                         js.push(";");
                         js.cr();
@@ -4535,172 +4866,166 @@ uniform sampler2D u_that_y;
                 },
 
                 IfStatement(_i, _o, c, _c, t, _e, optF) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
                     js.push("if");
-                    js.pushWithSpace("(");
-                    c.static(table, js, method, isOther);
-                    js.push(")");
-                    t.static(table, js, method, isOther);
+                    js.pushWithSpace("((");
+                    c.static(entry, js);
+                    js.push(").x)");
+                    t.static(entry, js);
                     if (optF.children.length === 0) {return;}
                     js.pushWithSpace("else");
-                    optF.static(table, js, method, isOther);
+                    optF.static(entry, js);
                 },
 
                 VariableStatement(_v, d, _s) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    d.static(table, js, method, isOther);
+                    d.static(entry, js);
                 },
 
-                VariableDeclaration(n, i) {
-                    var table = this.args.table;
+                VariableDeclaration(n, optT, i) {
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    var symTable = new SymTable();
-                    symTable.beStaticVariable(i.sourceString);
-                    table[n.sourceString] = symTable;
-                    js.push("env.");
+
+                    js.push("env.atPut('");
                     js.push(n.sourceString);
-                    js.pushWithSpace("= ");
-                    if (i.children.length !== 0) {
-                        i.static(table, js, method, isOther);
+                    js.push("', ");
+                    js.push("(");
+                    if (i.children.length > 0) {
+                        i.static(entry, js);
                     } else {
-                        js.pushWithSpace("null;");
+                        js.push("null");
                     }
+                    js.push(")");
+                    js.push(")");
                 },
 
                 AssignmentStatement(l, _a, e, _) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    var left = table[l.sourceString];
-                    if (!left || (!left.isEvent() && !left.isStaticVariable())) {
-//                            var error = new Error("semantic error");
-//                            error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
-//                            error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
-//                            error.pos = l.source.endIdx;
-//                            error.src = null;
-//                            throw error;
-                    }
-                    js.push("env.");
+                    var left = entry.global[l.sourceString];
+                    check(left && (left.type == "event"),
+                          l.source.endIdx,
+                          `assignment into undeclared static variable or event ${l.sourceString}`);
+                    js.push("env.atPut('");
                     js.push(l.sourceString);
-                    js.pushWithSpace("= ");
-                    e.static(table, js, method, isOther);
+                    js.push("', ");
+                    js.push("(");
+                    e.static(entry, js);
+                    js.push(")");
+                    js.push(")");
                 },
 
                 Initialiser(_a, e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 ExpressionStatement(e, _s) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 Expression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 LogicalExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 LogicalExpression_and(l, _, r) {
-                    staticTransBinOp(l, r, " && ", this.args);
+                    staticTransBinOp(l, r, "&&", this.args);
                 },
 
                 LogicalExpression_or(l, _, r) {
-                    staticTransBinOp(l, r, " || ", this.args);
+                    staticTransBinOp(l, r, "||", this.args);
                 },
 
                 RelationalExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 RelationalExpression_le(l, _, r) {
-                    staticTransBinOp(l, r, " <= ", this.args);
+                    staticTransBinOp(l, r, "<=", this.args);
                 },
 
                 RelationalExpression_ge(l, _, r) {
-                    staticTransBinOp(l, r, " >= ", this.args);
+                    staticTransBinOp(l, r, ">=", this.args);
                 },
 
                 RelationalExpression_lt(l, _, r) {
-                    staticTransBinOp(l, r, " < ", this.args);
+                    staticTransBinOp(l, r, "<", this.args);
                 },
 
                 RelationalExpression_gt(l, _, r) {
-                    staticTransBinOp(l, r, " > ", this.args);
+                    staticTransBinOp(l, r, ">", this.args);
                 },
 
                 RelationalExpression_equal(l, _, r) {
-                    staticTransBinOp(l, r, " == ", this.args);
+                    staticTransBinOp(l, r, "==", this.args);
                 },
 
                 RelationalExpression_notEqual(l, _, r) {
-                    staticTransBinOp(l, r, " != ", this.args);
+                    staticTransBinOp(l, r, "!=", this.args);
                 },
 
                 AddExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 AddExpression_plus(l, _, r) {
-                    staticTransBinOp(l, r, " + ", this.args);
+                    staticTransBinOp(l, r, "+", this.args);
                 },
 
                 AddExpression_minus(l, _, r) {
-                    staticTransBinOp(l, r, " - ", this.args);
+                    staticTransBinOp(l, r, "-", this.args);
                 },
 
                 MulExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 MulExpression_times(l, _, r) {
-                    staticTransBinOp(l, r, " * ", this.args);
+                    staticTransBinOp(l, r, "*", this.args);
                 },
 
                 MulExpression_divide(l, _, r) {
-                    staticTransBinOp(l, r, " / ", this.args);
+                    staticTransBinOp(l, r, "/", this.args);
                 },
 
                 MulExpression_mod(l, _, r) {
-                    staticTransBinOp(l, r, " % ", this.args);
+                    staticTransBinOp(l, r, "%", this.args);
                 },
 
                 UnaryExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 UnaryExpression_plus(_p, e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 UnaryExpression_minus(_p, e) {
                     var js = this.args.js;
-                    js.pushWithSpace("-");
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    js.pushWithSpace("vec.uminus(");
+                    e.static(this.args.entry, this.args.js);
+                    js.pushWithSpace(", ");
+                    js.push("" + e.source.endIdx);
+                    js.pushWithSpace(")");
                 },
 
                 UnaryExpression_not(_p, e) {
                     var js = this.args.js;
                     js.pushWithSpace("!");
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 PrimExpression(e) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 PrimExpression_paren(_o, e, _c) {
-                    e.static(this.args.table, this.args.js, this.args.method, this.args.isOther);
+                    e.static(this.args.entry, this.args.js);
                 },
 
                 PrimExpression_string(e) {
@@ -4710,26 +5035,25 @@ uniform sampler2D u_that_y;
 
                 PrimExpression_number(e) {
                     var js = this.args.js;
-                    js.push(e.sourceString);
+                    js.push("new vec(1, " + e.sourceString + ")");
                 },
 
-                PrimExpression_field(n, _p, f) {
+                PrimExpression_field(n, _p, f, optT) {
                     var js = this.args.js;
-                    n.static(this.args.table, js, this.args.method, this.args.isOther);
+                    n.static(this.args.entry, js);
                     js.push(".");
                     js.push(f.sourceString);
                 },
 
                 PrimExpression_variable(n) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = this.args.method;
-                    var isOther = this.args.isOther;
-                    js.push('env["' + n.sourceString + '"]');
+                    // need to check for unknown variables
+                    js.push("env.at('" + n.sourceString + "')");
                 },
 
                 PrimitiveCall(n, _o, as, _c) {
-                    var table = this.args.table;
+                    var entry = this.args.entry;
                     var js = this.args.js;
                     var prim = n.sourceString;
                     var math = ["random", // 0 arg
@@ -4740,108 +5064,147 @@ uniform sampler2D u_that_y;
                                 "atan2", "max", "min", "pow" // 2 args
                                ];
                     if (math.indexOf(prim) >= 0) {
-                        var actuals = as.static_method_inner(table, null, null, false);
-                        var str = actuals.join(", ");
+                        var actuals = as.static(entry, null);
                         js.push("Math.");
                         js.push(prim);
                         js.push("(");
+                        for (var i = 0; i < actuals.length; i++) {
+                            if (i > 0) {
+                                js.push(", ");
+                            }
+                            js.push("(");
+                            js.push(actuals[i]);
+                            js.push(").x")
+                        }
+                        js.push(")");
+                        return;
+                    }
+                    var vec = ["vec2", "vec3", "vec4"];
+                    var ind = vec.indexOf(prim);
+                    if (ind >= 0) {
+                        var actuals = as.static(entry, null);
+                        var str = actuals.join(", ");
+                        js.push("new vec(");
+                        js.push("" + (ind+2));
+                        js.push(", ");
                         js.push(str);
                         js.push(")");
                     }
                 },
 
                 MethodCall(r, _p, n, _o, as, _c) {
-                    var table = this.args.table;
+                    // in immediate future, the check for receiver type would have to be dynamic, and grammar would accommodate chained calls.
+                    
+                    var entry = this.args.entry;
                     var js = this.args.js;
-                    var method = n.sourceString;
 
-                    var displayBuiltIns = ["clear", "playSound", "loadProgram"];
+                    var global = entry.global;
 
-                    var builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
-                    var myTable = table[n.sourceString];
+                    var rcvr = r.sourceString;
+                    var obj = global[rcvr];
+                    var selector = n.sourceString;
 
-                    var actuals = as.static_method_inner(table, null, method, false);
-                    if ((r.sourceString === "Display" && displayBuiltIns.indexOf(method) >= 0) || builtIns.indexOf(method) >= 0) {
-                        if (actuals.length !== primitives[method].param.size()) {
-                            var error = new Error("semantic error");
-                            error.reason = `argument count does not match for primitive ${method}`;
-                            error.expected = `argument count does not match for primitive ${method}`;
-                            error.pos = as.source.endIdx;
-                            error.src = null;
-                            throw error;
-                        }
-                        var str = actuals.join(", ");
-                        js.push(`env["${r.sourceString}"].${method}(${str})`);
-                        return;
-                    }
+                    check(obj || rcvr == "Display", 
+                        r.source.endIdx,
+                        `${rcvr} is not known`);
 
-                    var formals;
-                    if (myTable) {
-                        formals = myTable.param;
-                    }
+                    var type = obj ? obj.type : "display";
 
-                    if (formals && (actuals.length !== formals.size())) {
-                        var error = new Error("semantic error");
-                        error.reason = `argument count does not match for method ${n.sourceString}`;
-                        error.expected = `argument count does not match for method ${n.sourceString}`;
-                        error.pos = as.source.endIdx;
-                        error.src = null;
-                        throw error;
-                    }
-                    var params = new CodeStream();
-                    var objectsString = new CodeStream();
+                    var actuals = as.static(entry, null);
 
-                    params.addTab();
-                    objectsString.addTab();
-                    for (var i = 0; i < actuals.length; i++) {
-                        var actual = actuals[i];
-                        if (formals) {
-                            var formal = formals.at(i);
-                            var shortName = formal[2];
-                            var isOther = myTable.usedAsOther(shortName);
-                        } else {
-                            var shortName = "t" + i;
-                            isOther = false;
-                        }
+                    // Now, if the receiver is not a breed, or even if it is,
+                    // the selector is not a known method in the compilation environment, 
+                    // is compiled to be a primitive.  If the call fails.
 
-                        if (isOther) {
-                            objectsString.tab();
-                            objectsString.push(`objects["${shortName}"] = ${actual};\n`);
-                        } else {
-                            params.push(`params["${shortName}"] = ${actual};\n`);
-                        }
-                    }
+                    if (type === "breed") {
+                        var method = global[selector];
+                        if (method && method.type == "method") {
+                            var formals = method.param;
 
+                            check((actuals.length === formals.size()),
+                                  as.source.endIdx,
+                                  `argument count does not match for method ${selector}`);
+
+                            var params = new CodeStream();
+                            var objectsString = new CodeStream();
+
+                            params.addTab();
+                            objectsString.addTab();
+                            for (var i = 0; i < actuals.length; i++) {
+                                var actual = actuals[i];
+                                var formal = formals.at(i); // ["param", null, name, type]
+                                var shortName = formal[2];
+                                if (formal[3] == "object") {
+                                    objectsString.tab();
+                                    objectsString.push(`objects["${shortName}"] = ${actual};\n`);
+                                } else {
+                                    params.push(`params["${shortName}"] = ${actual};\n`);
+                                }
+                            }
                     var callProgram = `
 (function() {
-    var data = scripts["${n.sourceString}"];
-    if (!data) {
-        var error = new Error("semantic error");
-        error.reason = "Method named ${n.sourceString} does not exist";
-        error.expected = "Method named ${n.sourceString} does not exist";
-        error.pos = ${_c.source.endIdx};
-        error.src = null;
-        throw error;
-    }
+    var data = scripts['${selector}'];
     var func = data[0];
     var ins = data[1][0]; // [[name, <fieldName>]]
     var formals = data[1][1];
     var outs = data[1][2]; //[[object, <fieldName>]]
     var objects = {};
-    objects.this = env["${r.sourceString}"];
+    objects._callPosition = ${n.source.endIdx};
+    objects.this = env.at('${rcvr}');
     ${objectsString.contents()}
     var params = {};
     ${params.contents()}
     func(objects, outs, ins, params);
 })()`;
-                js.push(callProgram);
-            },
+                            js.push(callProgram);
+                            return;
+                        }
+                    }
+
+                    var primArgsList;
+                    if (rcvr === "Display") {
+                        primArgsList = primitives["display"][selector];
+                    } else if (type == "breed" || type == "patch" || type == "static") {
+                        primArgsList = primitives[type][selector];
+                    }
+
+                    check(primArgsList,
+                          as.source.endIdx,
+                          `primitive ${selector} for ${rcvr} is not known`);
+
+                    var match = false;
+                    for (var pi = 0; pi < primArgsList.length; pi++) {
+                        var primArgs = primArgsList[pi];
+                        match |= actuals.length === primArgs.length
+                    }
+
+
+                    check(match,
+                          as.source.endIdx,
+                          `the argument count for primitive ${selector}`);
+
+                    var str = actuals.join(", ");
+                    js.push(`env.at('${rcvr}').${selector}(${str})`);
+                },
+
+                _terminal() {return []},
+                empty() {return []}
         });
+    }
+
+    function check(aBoolean, pos, message, errorType) {
+        if (!aBoolean) {
+            var error = new Error(errorType || "code error");
+            error.reason = message;
+            error.pos = pos;
+            error.src = null;
+            throw error;
+        }
     }
 
     function shouldFire(trigger, env) {
         if (typeof trigger == "string") {
-            var evt = env[trigger];
+            var evt = env.at(trigger);
             return evt && evt.ready;
         } else {
             var key = trigger[0];
@@ -4857,13 +5220,216 @@ uniform sampler2D u_that_y;
 
     function resetTrigger(trigger, env) {
         if (typeof trigger == "string") {
-            var evt = env[trigger];
+            var evt = env.at(trigger);
             if (evt) {
                 evt.ready = false;
             }
         } else {
             resetTrigger(trigger[1], env);
             resetTrigger(trigger[2], env);
+        }
+    }
+
+    class vec {
+        constructor(arity, x, y, z, w) {
+            this.arity = arity; // arity, has to be 1, 2, 3 or 4
+
+            if (arity == 1) {
+                if (typeof x === "object") {
+                    x = x.x;
+                }
+                this.x = x.x;
+            }
+
+            var values = [];
+            this.valuesInto(x, values);
+            this.valuesInto(y, values);
+            this.valuesInto(z, values);
+            this.valuesInto(w, values);
+
+            this.x = arity >= 1 ? values[0] | 0 : 0;
+            this.y = arity >= 2 ? values[1] | 0 : 0;
+            this.z = arity >= 3 ? values[2] | 0 : 0;
+            this.w = arity >= 4 ? values[3] | 0 : 0;
+        }
+
+        r() {return this.x}
+        g() {return this.y}
+        b() {return this.z}
+        a() {return this.w}
+
+        valuesInto(val, ary) {
+            if (typeof val === "number") {
+                ary.push(val);
+                return;
+            }
+            if (typeof val !== "object") {
+                return;
+            }
+
+            var arity = val.arity;
+            ary.push(val.x);
+            if (arity == 1) {return;}
+            ary.push(val.y);
+            if (arity == 2) {return;}
+            ary.push(val.z);
+            if (arity == 3) {return;}
+            ary.push(val.w);
+            return;
+        }
+
+        toString() {
+            var result = "vec" + this.arity + "(";
+            result += this.x;
+            if (this.arity == 1) {return result + ")"};
+            result += ", " + this.y;
+            if (this.arity == 2) {return result + ")"};
+            result += ", " + this.z;
+            if (this.arity == 3) {return result + ")"};
+            result += ", " + this.w;
+            if (this.arity == 4) {return result + ")"};
+        }
+    }
+
+    function arityCheck(a, b, pos) {
+        check(a.arity == b.arity,
+               pos,
+               "arity mismatch");
+    }
+
+    function arityCheckAndDo(a, b, pos, func) {
+        if (typeof a == "number") {
+            a = new vec(1, a);
+        }
+        if (typeof b == "number") {
+            b = new vec(1, b);
+        }
+        check(a.arity == b.arity,
+               pos,
+               "arity mismatch");
+        return func(a, b);
+    }
+
+    vec.add = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) => 
+                          new vec(x.arity, x.x + y.x, x.y + y.y, x.z + y.z, x.w + y.w));
+    }
+
+    vec.sub = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) => 
+                               new vec(x.arity, x.x - y.x, x.y - y.y, x.z - y.z, x.w - y.w));
+    }
+
+    vec.mul = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x * y.x, x.y * y.y, x.z * y.z, x.w * y.w));
+    }
+
+    vec.div = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (l, r) => {
+            var x = r.x !== 0 ? l.x / r.x : (l.x >= 0 ? Infinity : -Infinity);
+            var y = r.y !== 0 ? l.y / r.y : (l.y >= 0 ? Infinity : -Infinity);
+            var z = r.z !== 0 ? l.z / r.z : (l.z >= 0 ? Infinity : -Infinity);
+            var w = r.w !== 0 ? l.w / r.w : (l.w >= 0 ? Infinity : -Infinity);
+            return new vec(l.arity, x, y, z, w);
+        });
+    }
+
+    vec.uminus = function(a, pos) {
+        if (typeof a == "number") {return new vec(1, -a)}
+        return new vec(a.arity, -a.x, -a.y, -a.z, -a.w);
+    }
+
+    vec.lt = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x < y.x ? 1 : 0, x.y < y.y ? 1 : 0, x.z < y.z ? 1 : 0, x.w < y.w ? 1 : 0));
+    }
+
+    vec.le = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x <= y.x ? 1 : 0, x.y <= y.y ? 1 : 0, x.z <= y.z ? 1 : 0, x.w <= y.w ? 1 : 0));
+    }
+
+    vec.gt = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                        new vec(x.arity, x.x > y.x ? 1 : 0, x.y > y.y ? 1 : 0, x.z > y.z ? 1 : 0, x.w > y.w ? 1 : 0));
+    }
+
+    vec.ge = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x >= y.x ? 1 : 0, x.y >= y.y ? 1 : 0, x.z >= y.z ? 1 : 0, x.w >= y.w ? 1 : 0));
+    }
+
+    vec.equal = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x == y.x ? 1 : 0, x.y == y.y ? 1 : 0, x.z == y.z ? 1 : 0, x.w == y.w ? 1 : 0));
+    }
+
+    vec.notEqual = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x != y.x ? 1 : 0, x.y != y.y ? 1 : 0, x.z != y.z ? 1 : 0, x.w != y.w ? 1 : 0));
+    }
+
+    vec.or = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x || y.x ? 1 : 0, x.y || y.y ? 1 : 0, x.z || y.z ? 1 : 0, x.w || y.w ? 1 : 0));
+    }
+
+    vec.and = function(a, b, pos) {
+        return arityCheckAndDo(a, b, pos, (x, y) =>
+                               new vec(x.arity, x.x && y.x ? 1 : 0, x.y && y.y ? 1 : 0, x.z && y.z ? 1 : 0, x.w && y.w ? 1 : 0));
+    }
+
+    function createSwizzlers(vec, str4) {
+        function doIt(getter) {
+            var result = "";
+            for (var i = 0; i < getter.length; i++) {
+                result += ", this." + getter[i];
+            }
+            var str = `(function ${getter}() {return new vec(${getter.length}${result})})`;
+            var func = eval(str);
+            Object.defineProperty(vec.prototype, getter, {get: func});
+        };
+
+        var limit = Math.pow(5, 4);
+        var i = 5;
+        while (i < limit) {
+            var s = i.toString(5).split("");
+            if (s.indexOf("0") < 0) {
+                s = s.map((c) => str4[parseInt(c, 10)-1]).join("");
+                doIt(s);
+            }
+            i++;
+        }
+    }
+
+    class ShadamaTexture {
+        constructor(texture, format) {
+            this.texture = texture;
+            this.format = format;
+        }
+    }
+
+    class ShadamaEnv {
+        constructor() {
+            this.values = {};
+        }
+
+        atPut(key, value) {
+            this.values[key] = new ShadamaEvent(value);
+            return value;
+        }
+
+        at(key) {
+            var val = this.values[key];
+            if (val !== undefined) {
+                return val.value;
+            }
+            return undefined;
+        }
+
+        keys() {
+            return Object.keys(this.values);
         }
     }
 
@@ -4887,7 +5453,11 @@ uniform sampler2D u_that_y;
     }
 
     class ShadamaEvent {
-        constructor() {
+        constructor(value) {
+            if (value !== undefined) {
+                this.setValue(value);
+                return;
+            }
             this.value = undefined;
             this.ready = false;
         }
@@ -4937,12 +5507,27 @@ uniform sampler2D u_that_y;
             if (maybeEntry) {
                 if (maybeEntry[0] === entry[0] &&
                     maybeEntry[1] === entry[1] &&
-                    maybeEntry[2] === entry[2]) {
-                    return;
-                } else {
-                    throw "error duplicate variable" + k
+                    maybeEntry[2] === entry[2] &&
+                    maybeEntry[3] === entry[3]) {
                     return;
                 }
+                if (maybeEntry[0] === entry[0] &&
+                    maybeEntry[1] === entry[1] &&
+                    maybeEntry[2] === entry[2]) {
+                    if (maybeEntry[3] === null && entry[3] !== null) {
+                        maybeEntry[3] = entry[3];
+                        return;
+                    }
+                    if (maybeEntry[3] !== null && entry[3] === null) {
+                        return;
+                    }
+                    if (maybeEntry[3] !== entry[3]) {
+                        throw 'error type mismatch';
+                        return;
+                    }
+                }
+                throw "error duplicate variable" + k
+                return;
             }
             this.entries[k] = entry;
             this.keys.push(k);
@@ -4959,6 +5544,16 @@ uniform sampler2D u_that_y;
             } else {
                 return this.entries[key];
             }
+        }
+
+        atName(name) {
+            var found = null;
+            this.keysAndValuesDo((key, value) => {
+                if (value[2] == name) {
+                    found = value;
+                }
+            });
+            return found;
         }
 
         keysAndValuesDo(func) {
@@ -4983,7 +5578,11 @@ uniform sampler2D u_that_y;
                     found = value;
                 }
             });
-            return found != null;
+            return found;
+        }
+
+        toArray() {
+            return this.keys.map((k) => this.entries[k]);
         }
 
         size() {
@@ -4991,16 +5590,17 @@ uniform sampler2D u_that_y;
         }
     }
 
-    class SymTable {
-        constructor(entries, optIsPrimitive) {
+    class Entry {
+        constructor(optType) {
             this.forBreed = true;
             this.hasBreedInput = false;
             this.hasPatchInput = false;
-            this.defaultUniforms = null;
-            this.defaultAttributes = null;
+
+            this.defaultAttributes = new OrderedPair();
+            this.defaultUniforms = new OrderedPair();
 
             this.usedHelpersAndPrimitives = new OrderedPair();   // foo(a) => foo -> foo
-            this.type = optIsPrimitive ? "primitive" : "method";
+
             // - from source (extensional)
             // I use this term because I want to remember which is which)
 
@@ -5017,77 +5617,66 @@ uniform sampler2D u_that_y;
             this.uniformTable = new OrderedPair();
             this.scalarParamTable = new OrderedPair();
 
-            if (entries) {
-                for (var i = 0; i < entries.length; i++) {
-                    this.add.apply(this, (entries[i]))
-                }
+            this.type = optType;
+        }
+
+        setGlobal(table) {
+            this.global = table;
+        }
+
+        setEntryType(type) {
+            this.type = type;
+        }
+
+        setInfo(info) {
+            this.info = info;
+            // case var: [name, type]
+            // case _programName: string
+            // case trigger: [trigger array, name] // [["and", "a", ["or", "b", "c"]], func]
+            // case event: url and datatype
+
+        }
+
+        setMethodPos(pos) {
+            this.methodPos = pos;
+        }
+
+        setPositionType(type) {
+            this.positionType = type;
+
+            this.add("defaultA", null, "a_index", "vec2");
+            this.add("defaultA", null, "b_index", "vec2");
+            this.add("defaultU", null, "u_resolution", type);
+            this.add("defaultU", null, "u_half", "float");
+
+            if (type == "vec3" || type == "vec4") {
+                this.add("defaultU", null, "v_resolution", "vec3");
+                this.add("defaultU", null, "v_step", "float");
             }
-
-            this.defaultUniforms = ["u_resolution", "u_half"];
-            this.defaultAttributes = ["a_index", "b_index"];
-        }
-
-        beHelper() {
-            this.type = "helper";
-        }
-
-        beStatic() {
-            this.type = "static";
-        }
-
-        beEvent(name) {
-            this.type = "event";
-            this.eventName = name;
-        }
-
-        isEvent() {
-            return this.type === "event";
-        }
-
-        beStaticVariable(name) {
-            this.type = "staticVar";
-            this.staticVarName = name;
-        }
-
-        isStaticVariable() {
-            return this.type == "staticVar";
-        }
-
-        beTrigger(trigger, action) {
-            // trigger: name | ["and", trigger, triger] | [or trigger, trigger]
-            // action ["start"|"step"|"stop", static name]
-            this.type = "trigger";
-            this.trigger = trigger;
-            this.triggerAction = action;
-        }
-
-        beData(name, s1, s2) {
-            this.type = "data";
-            this.eventName = name;
-            this.eventSource = [s1, s2]; // not really used;
         }
 
         process() {
-            // maybe a hack: look for outs that are not ins and add them to ins.  Those are use
-            this.thisOut.keysAndValuesDo((key, entry) => {
-                var newEntry = ["propIn", "this", entry[2]];
-                var newK = newEntry.join(".");
-                this.thisIn.add(newK, newEntry);
-            });
-            this.otherOut.keysAndValuesDo((key, entry) => {
-                var newEntry = ["propIn", entry[1], entry[2]];
-                var newK = newEntry.join(".");
-                this.otherIn.add(newK, newEntry);
-            });
+            // When a method takes a patch, it'd have to index them with the position of turtles
+            // To fill them in, we
+            if (this.otherOut.size() > 0 || this.otherIn.size() > 0) {
+                var addition;
+                if (dimension == 3) {
+                    if (this.positionType == "float") {
+                        addition = [["u_that_x", "float"], ["u_that_y", "float"], ["u_that_z", "float"], ["v_step", "float"], ["v_resolution", "vec3"]];
+                    } else if (this.positionType == "vec3") {
+                        addition = [["u_that_xyz", "vec3"], ["v_step", "float"], ["v_resolution", "vec3"]];
+                    }
+                } else if (dimension == 2) {
+                    if (this.positionType == "float") {
+                        addition = [["u_that_x", "float"], ["u_that_y", "float"]];
+                    } else if (this.positionType == "vec2") {
+                        addition = [["u_that_xy", "vec2"]];
+                    }
+                }
 
-            this.uniformTable.addAll(this.thisIn);
-            this.uniformTable.addAll(this.otherIn);
-
-            if (this.thisIn.size() > 0) {
-                this.hasBreedInput = true;
-            }
-            if (this.otherIn.size() > 0) {
-                this.hasPatchInput = true;
+                addition.forEach((pair) => {
+                    this.add("defaultU", null, pair[0], pair[1]);
+                });
             }
 
             if (this.thisOut.size() > 0 && this.otherOut.size() > 0) {
@@ -5101,20 +5690,41 @@ uniform sampler2D u_that_y;
                 this.forBreed = this.thisOut.size() > 0;
             }
 
+
+            // Maybe a hack: look for outs that are not ins and add them to ins.
+            // For cases when a method does not output a value due to an if statement,
+            // It'd have to read values from the original.
+            this.thisOut.keysAndValuesDo((key, entry) => {
+                this.add("propIn", entry[1], entry[2], entry[3]);
+            });
+            this.otherOut.keysAndValuesDo((key, entry) => {
+                this.add("propIn", entry[1], entry[2], entry[3]);
+            });
+
+            this.uniformTable.addAll(this.thisIn);
+            this.uniformTable.addAll(this.otherIn);
+
+            if (this.thisIn.size() > 0) {
+                this.hasBreedInput = true;
+            }
+            if (this.otherIn.size() > 0) {
+                this.hasPatchInput = true;
+            }
+
             if (this.forBreed) {
                 this.varyingTable.addAll(this.thisOut);
             } else {
                 this.varyingTable.addAll(this.otherOut);
             }
             this.param.keysAndValuesDo((key, entry) => {
-                if (!this.usedAsOther(entry[2])) {
+                if (!this.usedAsObject(entry[2])) {
                     this.scalarParamTable.add(key, entry);
                 }
             });
         };
 
-        add(tag, rcvr, name) {
-            var entry = [tag, rcvr, name];
+        add(tag, rcvr, name, type) {
+            var entry = [tag, rcvr, name, type];
             var k = [tag, rcvr ? rcvr : "null", name].join(".");
 
             if (tag === "propOut" && rcvr === "this") {
@@ -5129,20 +5739,56 @@ uniform sampler2D u_that_y;
                 this.param.add(k, entry);
             } else if (tag === "var") {
                 this.local.add(k, entry);
-            }
-
-            if ((this.otherOut.size() > 0 || this.otherIn.size() > 0) &&
-                this.defaultUniforms.indexOf("u_that_x") < 0) {
-                this.defaultUniforms = this.defaultUniforms.concat(["u_that_x", "u_that_y"]);
-                if (dimension == 3) {
-                    if (this.defaultUniforms.indexOf("u_that_z") < 0) {
-                        this.defaultUniforms = this.defaultUniforms.concat(["u_that_z", "v_step", "v_resolution"]);
-                    }
-                }
+            } else if (tag === "defaultA") {
+                this.defaultAttributes.add(k, entry);
+            } else if (tag === "defaultU") {
+                this.defaultUniforms.add(k, entry);
             }
         }
 
-        usedAsOther(n) {
+        setType(tag, rcvr, name, type) {
+            return this.add(tag, rcvr, name, type);
+        }
+
+        getType(tag, rcvr, name, type) {
+            var entry;
+            if (tag === "propOut" && rcvr === "this") {
+                entry = this.thisOut.has(name);
+            } else if (tag === "propOut" && rcvr !== "this") {
+                entry = this.otherOut.has(name);
+            } else if (tag === "propIn" && rcvr === "this") {
+                entry = this.thisIn.has(name);
+            } else if (tag === "propIn" && rcvr !== "this") {
+                entry = this.otherIn.has(name);
+            } else if (tag === "param") {
+                entry = this.param.has(name);
+            } else if (tag === "var") {
+                entry = this.local.has(name);
+            } else if (tag === "defaultA") {
+                entry = this.defaultAttributes.has(name);
+            } else if (tag === "defaultU") {
+                entry = this.defaultUniforms.has(name);
+            }
+            if (entry) {
+                return entry[3];
+            }
+            return null;
+        }
+
+        getVariableType(name) {
+            var t;
+            t = this.getType("var", null, name);
+            if (t) {return t;}
+            t = this.getType("param", null, name);
+            if (t) {return t;}
+            t = this.getType("defaultU", null, name);
+            if (t) {return t;}
+            t = this.getType("defaultA", null, name);
+            if (t) {return t;}
+            return null;
+        }
+
+        usedAsObject(n) {
             var result = false;
             this.otherIn.keysAndValuesDo((k, entry) => {
                 result = result || (entry[1] === n);
@@ -5153,17 +5799,14 @@ uniform sampler2D u_that_y;
             return result;
         }
 
-        uniform(entry) {
-            var k = ["propIn", entry[1], entry[2]].join(".");
+        uniform(name, field) {
+            var k = ["propIn", name, field].join(".");
             var entry = this.uniformTable.at(k);
-            if (!entry) {
-                debugger;
-            }
             return ["u", entry[1], entry[2]].join("_");
         }
 
-        varying(entry) {
-            var k = ["propOut", entry[1], entry[2]].join(".");
+        varying(name, field) {
+            var k = ["propOut", name, field].join(".");
             var entry = this.varyingTable.at(k);
             return ["v", entry[1],  entry[2]].join("_");
         }
@@ -5176,32 +5819,33 @@ uniform sampler2D u_that_y;
 
         uniforms() {
             return this.uniformTable.keysAndValuesCollect((key, entry) =>
-                                                          "uniform sampler2D " + this.uniform(entry) + ";");
+                                                          "uniform sampler2D " + this.uniform(entry[1], entry[2]) + ";");
         }
 
         paramUniforms() {
             var result = [];
             this.scalarParamTable.keysAndValuesDo((key, entry) => {
-                result.push("uniform float u_scalar_" + entry[2] + ";");
+                result.push("uniform " + entry[3] + " u_scalar_" + entry[2] + ";");
             });
             return result;
         }
 
         vertVaryings() {
             return this.varyingTable.keysAndValuesCollect((key, entry) =>
-                                                          "out float " + this.varying(entry) + ";");
+                                                          "out " + entry[3] + " " + this.varying(entry[1], entry[2]) + ";");
         }
 
         fragVaryings() {
             return this.varyingTable.keysAndValuesCollect((key, entry) =>
-                                                          "in float " + this.varying(entry) + ";");
+                                                          "in " + entry[3] + " " + this.varying(entry[1], entry[2]) + ";");
         }
 
         uniformDefaults() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
-                var u_entry = ["propIn", entry[1], entry[2]];
                 var ind = entry[1] === "this" ? `ivec2(a_index)` : `ivec2(_pos)`;
-                return `${this.varying(entry)} = texelFetch(${this.uniform(u_entry)}, ${ind}, 0).r;`;
+
+                var swizzle = this.swizzle(entry[3]);
+                return `${this.varying(entry[1], entry[2])} = texelFetch(${this.uniform(entry[1], entry[2])}, ${ind}, 0).${swizzle};`;
             })
         }
 
@@ -5209,40 +5853,49 @@ uniform sampler2D u_that_y;
             var i = 0;
             var result = [];
             this.varyingTable.keysAndValuesDo((key, entry) => {
-                result.push("layout (location = " + i + ") out float " + this.out(entry) + ";");
+                result.push("layout (location = " + i + ") out " + entry[3] + " " + this.out(entry) + ";");
                 i++;
             })
             return result;
         }
 
-        fragColors() {
+        fragOut() {
             return this.varyingTable.keysAndValuesCollect((key, entry) =>
-                                                          this.out(entry) + " = " + this.varying(entry) + ";");
-        }
-
-        isBuiltin(n) {
-            return this.defaultAttributes.indexOf(n) >= 0 || this.defaultUniforms.indexOf(n) >= 0 ;
+                                                          this.out(entry) + " = " + this.varying(entry[1], entry[2]) + ";");
         }
 
         hasVariable(n) {
-            if (this.param.has(n)) {return true;}
-            if (this.local.has(n)) {return true;}
-            if (["this", "u_resolution", "u_half", "a_index", "b_index"].indexOf(n) >= 0) {
-                return true;
-            }
+            if (this.param.has(n) !== null) {return true;}
+            if (this.local.has(n) !== null) {return true;}
+
+            if (this.defaultUniforms.has(n) !== null) {return true;}
+            if (this.defaultAttributes.has(n) !== null) {return true;}
             return false;
         }
 
         insAndParamsAndOuts() {
-            var ins = this.uniformTable.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
+            var ins = this.uniformTable.keysAndValuesCollect((key, entry) => entry.slice(1));
             var shortParams = this.scalarParamTable.keysAndValuesCollect((key, entry) => entry[2]);
             var outs;
             if (this.forBreed) {
-                outs = this.thisOut.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
+                outs = this.thisOut.keysAndValuesCollect((key, entry) => entry.slice(1));
             } else {
-                outs = this.otherOut.keysAndValuesCollect((key, entry) => [entry[1], entry[2]]);
+                outs = this.otherOut.keysAndValuesCollect((key, entry) => entry.slice(1));
             }
             return [ins, shortParams, outs];
+        }
+
+        swizzle(type) {
+            switch (type) {
+                case "float":
+                return "r";
+                case "vec2":
+                return "rg";
+                case "vec3":
+                return "rgb";
+                case "vec4":
+                return "rgba" // ?
+            }
         }
 
         rawTable() {
@@ -5261,7 +5914,7 @@ uniform sampler2D u_that_y;
         }
 
         primitivesAndHelpers() {
-            return this.allUsedHelpersAndPrimitives.keysAndValuesCollect((n, v) => {
+            return this.usedHelpersAndPrimitives.keysAndValuesCollect((n, v) => {
                 if (n === "random") {
                     return `
 highp float random(float seed) {
@@ -5273,8 +5926,6 @@ highp float random(float seed) {
    return fract(sin(sn) * c);
 }
 `
-                } else if (globalTable[n] && globalTable[n].type == "helper") {
-                    return globalTable[n].helperCode;
                 } else {
                     return "";
                 }
@@ -5368,17 +6019,16 @@ highp float random(float seed) {
         if (!match.succeeded()) {
             console.log(str);
             console.log("did not parse: " + str);
-            var error = new Error("parse error");
-            error.reason = "parse error";
-            error.expected = "Expected: " + match.getExpectedText();
-            error.pos = match.getRightmostFailurePosition();
-            error.src = str;
-            throw error;
+            check(false, 
+                  match.getRightmostFailurePosition(),
+                  "Expected: " + match.getExpectedText());
         }
 
         var n = s(match);
-        var symTable = n.symTable(null);
-        return n.glsl(symTable, null, null);
+        var table = n.symbols(null);
+        n.type(table);
+        var result = n.compile(table);
+        return result;
     }
 
     var shadama;
@@ -5501,7 +6151,7 @@ highp float random(float seed) {
                     shadama.maybeRunner();
                 }
             };
-            shadama.env["Display"].loadProgram(defaultProgName, func);
+            shadama.env.at("Display").loadProgram(defaultProgName, func);
         });
     } else {
         if (!renderer.context ||
@@ -5519,7 +6169,7 @@ highp float random(float seed) {
         shadama.initDisplay();
         shadama.initEnv(function() {
             if (parent) {
-                shadama.env["Display"].loadProgram(defaultProgName);
+                shadama.env.at("Display").loadProgram(defaultProgName);
                 parent.onAfterRender = shadama.makeOnAfterRender();
             }
         });
