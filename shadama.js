@@ -954,7 +954,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     function programFromTable(table, vert, frag, name) {
         return (function () {
             var debugName = name;
-            if (debugName === "set") {
+            if (debugName === "move") {
             }
             var prog = createProgram(createShader(name + ".vert", vert),
                                      createShader(name + ".frag", frag));
@@ -987,8 +987,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 // outs: [[varName, fieldName]]
                 // ins: [[varName, fieldName]]
                 // params: {shortName: value}
-            if (debugName === "set") {
-            }
+                if (debugName === "move") {
+                    debugger;
+                }
                 var object = objects["this"];
 
                 var targets = outs.map(function(pair) {return objects[pair[0]][N + pair[1]]});
