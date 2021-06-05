@@ -1,9 +1,10 @@
-/* globals CodeMirror SPECTOR THREE Papa ohm
+/* globals CodeMirror THREE Papa ohm
         setTestParams
         grammarUnitTests
         symTableUnitTests
         translateTests
 */
+/* SPECTOR */
 
 export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
     let threeRenderer = frame ? frame.renderer : null;
@@ -1235,13 +1236,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         // evaluates ohm compiled shadama code (js code) so that variables are
         // accessible inside the eval
 
-/*        let f = new Function("env", "scripts", 'return ' + source);
+        let f = new Function("env", "scripts", 'return ' + source);
         let val = f(this.env, this.scripts);
-        return val;*/
-
-        let env = this.env;
-        let scripts = this.scripts;
-        let val = eval(source);
         return val;
     };
 
@@ -4438,6 +4434,15 @@ uniform sampler2D u_that_y;
                     let js = this.args.js;
                     let method = this.args.method;
 
+                    js.push("(");
+                    js.push("(");
+                    js.push(fs.static_method_inner(table, null, null, null));
+                    js.push(")");
+                    js.push(" => ");
+                    b.static(table, js, method, false);
+                    js.push(")");
+
+                    /*
                     js.push("(function");
                     js.pushWithSpace(n.sourceString);
                     js.push("(");
@@ -4445,6 +4450,7 @@ uniform sampler2D u_that_y;
                     js.push(") ");
                     b.static(table, js, method, false);
                     js.push(")");
+                    */
                     return {[n.sourceString]: ["static", js.contents(), this.sourceString]};
                 },
 
@@ -5106,7 +5112,7 @@ uniform sampler2D u_that_y;
             let k = ["propIn", entry[1], entry[2]].join(".");
             let result = this.uniformTable.at(k);
             if (!result) {
-                debugger;
+                throw new Error("internal compilation error");
             }
             return ["u", result[1], result[2]].join("_");
         }
