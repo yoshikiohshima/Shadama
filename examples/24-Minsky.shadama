@@ -1,0 +1,49 @@
+program "Minsky"
+
+breed Turtle (x, y, dx, dy, r, g, b, a)
+patch Field (r, g, b, a)
+breed Clear (x, y)
+
+def setColor() {
+  this.r = this.x / 512;
+  this.g = this.y / 512;
+  this.b = 0;
+  this.a = 1;
+}
+
+def move() {
+  var dx = this.dx - 0.01 * this.dy;
+  var dy = this.dy + 0.01 * dx;
+  this.dx = dx;
+  this.dy = dy;
+  this.x = this.x + dx;
+  this.y = this.y + dy;
+}
+
+def drop(field) {
+  field.r = field.r + 0.1;
+  field.a = 1;
+}
+
+def clean(field) {
+  field.r = 0;
+  field.a = 0;
+}
+
+static setup() {
+  Turtle.setCount(10);
+  Clear.fillSpace("x", "y", 512, 512);
+  Clear.clean(Field);
+  Turtle.fillRandom("x", 0, 512);
+  Turtle.fillRandom("y", 0, 512);
+  Turtle.fillRandomDir("dx", "dy");
+  Turtle.setColor();
+  Turtle.draw();
+}
+
+static loop() {
+  Turtle.move();
+  Turtle.drop(Field);
+  Display.clear();
+  Field.draw();
+}

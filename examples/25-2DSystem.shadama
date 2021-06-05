@@ -1,0 +1,112 @@
+program "2DSystem"
+breed Plane (x, y, r, g, b, a, sx, sy, dx, dy, t)
+
+def planeColor() {
+  this.r = 0.0;
+  this.g = 0.0;
+  this.b = 0.0;
+  this.a = 1.0;
+}
+
+def centerColor() {
+  var x = this.x - 256;
+  var y = this.y - 256;
+  var dist = 256 - sqrt(x * x + y * y);
+  this.r = dist / 300;
+  this.g = 0.0;
+  this.b = 0.0;
+  this.a = 1.0;
+}
+  
+def initT() {
+  this.t = -1;
+}
+
+def randomT() {
+  if (this.t < 0) {
+    this.t = random(a_index.x);
+  }
+}
+
+def maybeInitT() {
+  if (this.t < 0) {
+    this.t = 0;
+  }
+}
+
+
+def incrT() {
+  var t = this.t;
+  if (t >= 0) {
+    t = t + (1/256);
+  }
+  if (t > 1.0) {
+    t = -1;
+  }
+  if (isnan(t)) {
+    t = -1;
+  }
+  this.t = t;
+}
+
+
+def maybeChooseRandomStart(time) {
+  if (this.t < 0) {
+    this.sx = random(a_index.x * 1.3 + time) * 512;
+    this.sy = random(a_index.x * 1.1 + time) * 512;
+  }
+}
+
+def maybeChooseRandomEnd(time) {
+  if (this.t < 0) {
+    var r = random(a_index.x * 0.8);
+    if (r < 0.7) {
+      this.dx = 256;
+      this.dy = 256;
+    } else {
+      this.dx = random(a_index.x * 1.5 + time) * 512;
+      this.dy = random(a_index.x * 1.8 + time) * 512;
+    }    
+  }
+}
+
+def copyPosition() {
+  this.x = this.sx;
+  this.y = this.sy;
+}
+
+def move() { // for a Plane.
+  var sx = this.sx;
+  var sy = this.sy;
+  var dx = this.dx;
+  var dy = this.dy;
+  var t = this.t;
+  var px = sx + t * (dx - sx);
+  var py = sy + t * (dy - sy);
+
+  this.x = px;
+  this.y = py;
+}
+
+static setup() {
+  Plane.setCount(100000);
+  Plane.planeColor();
+  Plane.initT();
+  Plane.maybeChooseRandomStart(time);
+  Plane.maybeChooseRandomEnd(time);
+  Plane.randomT();
+  Plane.copyPosition();
+  Plane.draw();
+  loop.start();
+}
+
+static loop() {
+  Plane.maybeChooseRandomStart(time);
+  Plane.maybeChooseRandomEnd(time);
+  Plane.maybeInitT();
+  //Plane.centerColor();
+
+  Plane.incrT();
+  Plane.move();
+  Plane.draw();
+}

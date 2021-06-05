@@ -5,7 +5,7 @@
         translateTests
 */
 
-function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
+export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
     let threeRenderer = frame ? frame.renderer : null;
     let TEXTURE_SIZE = 1024;
     let FIELD_WIDTH = 512;
@@ -93,8 +93,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     let runTests;
     let showAllEnv;
     let degaussdemo;
-
-    let spector;
 
     let shaders = {
         "drawBreed.vert":
@@ -803,6 +801,10 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         }
     }
 
+    function webglTexture() {
+        return withThreeJS ? (targetTexture && renderer.properties.get(targetTexture).__webglTexture || null) : null;
+    }
+
     function noBlend() {
         if (withThreeJS) {
             state.setCullFace(THREE.CullFaceNone);
@@ -904,7 +906,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             if (type === "[object Object]") {
                 let pairs = [];
                 for (let k in obj) {
-                    if (!obj.hasOwnProperty(k)) continue;
+                    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
                     pairs.push([k, stringify(obj[k])]);
                 }
                 pairs.sort((a, b) => a[0] < b[0] ? -1 : 1);
@@ -962,7 +964,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
     function programFromTable(table, vert, frag, name) {
         let debugName = name;
         if (debugName === "maybeChooseRandomPlace") {
-            debugger;
         }
         let prog = createProgram(createShader(name + ".vert", vert),
                                  createShader(name + ".frag", frag));
@@ -995,7 +996,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
             if (debugName === "maybeChooseRandomPlace") {
-                debugger;
             }
             let object = objects["this"];
 
@@ -1243,7 +1243,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         let scripts = this.scripts;
         let val = eval(source);
         return val;
-    }
+    };
 
     Shadama.prototype.loadShadama = function(id, source) {
         let newSetupCode;
@@ -1266,12 +1266,12 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             result = translate(source, "TopLevel", this.reportError.bind(this));
         } catch (e) {
             this.reportError(e);
-            return;
+            return null;
         }
         this.compilation = result;
 
         if (!result) {return "";}
-        if (oldProgramName != result["_programName"]) {
+        if (oldProgramName !== result["_programName"]) {
             this.resetSystem();
         }
         this.programName = result["_programName"];
@@ -1339,7 +1339,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         if (schemaChange) {
             if (newData.length === 0) {
                 let success = this.callSetup();
-                if (!success) {return };
+                if (!success) {return null;}
             } else {
                 this.loadTime = window.performance.now() / 1000.0;
                 this.env["time"] = 0.0;
@@ -1349,22 +1349,18 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         }
 //        this.runLoop();
         return source;
-    }
+    };
 
     Shadama.prototype.setTarget = function(aTexture) {
         targetTexture = aTexture;
-    }
-
-    function webglTexture() {
-        return withThreeJS ? (targetTexture && renderer.properties.get(targetTexture).__webglTexture || null) : null;
-    }
+    };
 
     Shadama.prototype.setReadPixelCallback = function(func) {
         this.readPixelCallback = func;
-    }
+    };
 
     Shadama.prototype.makeOnAfterRender = function() {
-        return function(renderer, scene, camera, geometry, material, group) {
+        return function(_renderer, scene, camera, _geometry, _material, _group) {
             let mesh = this;
             let pMatrix = camera.projectionMatrix;
             let mvMatrix = mesh.modelViewMatrix;
@@ -1377,8 +1373,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 }
             }
             renderRequests.length = 0;
-        }
-    }
+        };
+    };
 
     Shadama.prototype.readPixels = function() {
         let width = FW;
@@ -1393,7 +1389,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         let img = new ImageData(clamped, width, height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         return img;
-    }
+    };
 
     Shadama.prototype.debugDisplay = function(objName, name) {
         let object = this.env[objName];
@@ -1470,7 +1466,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         gl.bindVertexArray(null);
         return debugArray1;
-    }
+    };
 
     Shadama.prototype.readValues = function(object, name, x, y, w, h) {
         let forBreed = object.constructor === Breed;
@@ -1538,7 +1534,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         }
 
         return debugArray1;
-    }
+    };
 
     Shadama.prototype.resetSystem = function() {
         for (let s in this.steppers) {
@@ -1569,7 +1565,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 delete this.env[o];
             }
         }
-    }
+    };
 
     Shadama.prototype.updateCode = function() {
         if (!editor) {return;}
@@ -1582,12 +1578,12 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 alert("program not saved");
                 return;
             }
-            code = "program " + '"' + this.programName + '"\n' + code;
+            code = `program " ${this.programName}"\n${code}`;
             editor.setValue(code);
         }
         localStorage.setItem(this.programName + ".shadama", code);
         this.initFileList(this.programName);
-    }
+    };
 
     Shadama.prototype.callSetup = function() {
         this.loadTime = window.performance.now() / 1000.0;
@@ -1601,7 +1597,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             }
         }
         return true;
-    }
+    };
 
     Shadama.prototype.addListeners = function(aCanvas) {
         if (!domTools) {return;}
@@ -1615,7 +1611,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             var y = FH - (e.clientY + diffY - top) / fullScreenScale;
             //  console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
             //  console.log("x " + x + " y: " + y);
-            this.env[symbol] = {x: x,  y: y, time: this.env["time"]};
+            this.env[symbol] = {x,  y, time: this.env["time"]};
         };
 
         aCanvas.addEventListener("mousemove", (e) => set(e, "mousemove"));
@@ -1630,23 +1626,23 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 }
             }
         }, true);
-    }
+    };
 
     Shadama.prototype.initServerFiles = function() {
         if (!editor) {return;}
         let examples = [
-            "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama", "16-Diffuse.shadama", "19-Bump.shadama", "21-ForestFire.shadama", "22-WhoAmI.shadama", "23-Camera.shadama"
+            "1-Fill.shadama", "2-Disperse.shadama", "3-Gravity.shadama", "4-Two Circles.shadama", "5-Bounce.shadama", "6-Picture.shadama", "7-Duck Bounce.shadama", "8-Back and Forth.shadama", "9-Mandelbrot.shadama", "10-Life Game.shadama", "11-Ball Gravity.shadama", "12-Duck Gravity.shadama", "13-Ribbons.shadama", "16-Diffuse.shadama", "19-Bump.shadama", "21-ForestFire.shadama", "22-WhoAmI.shadama", "23-Camera.shadama", "24-Minsky.shadama", "25-2DSystem.shadama"
         ];
         examples.forEach((n) => {
             this.env["Display"].loadProgram(n, (serverCode) => {
-                let localCode = localStorage.getItem(n);
+                //let localCode = localStorage.getItem(n);
                 //if (!localCode) {
                     localStorage.setItem(n, serverCode);
                 //}
                 this.initFileList();
-            })
+            });
         });
-    }
+    };
 
     Shadama.prototype.loadAudio = function(name) {
         let event = new ShadamaEvent();
@@ -1682,7 +1678,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             loadSound("http://tinlizzie.org/~ohshima/shadama2/" + name);
         }
         return event;
-    }
+    };
 
     Shadama.prototype.loadImage = function(name) {
         let event = new ShadamaEvent();
@@ -1724,7 +1720,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         };
         document.body.appendChild(img);
         return event;
-    }
+    };
 
     Shadama.prototype.loadCSV = function(name) {
         let xobj = new XMLHttpRequest();
@@ -1766,7 +1762,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
 
         xobj.send();
         return event;
-    }
+    };
 
     Shadama.prototype.loadVideo = function(name, isCamera) {
         let event = new ShadamaEvent(); //event to trigger that a frame is ready
@@ -1817,9 +1813,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             timeupdate = true;
         }, true);
 
-        let checkReady = () =>{
-            return playing && timeupdate;
-        };
+        let checkReady = () => playing && timeupdate;
 
         video.hidden = true;
         //document.body.appendChild(video);
@@ -1857,10 +1851,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             });
         }
 
-        event.setValue({updateTexture: updateTexture, video: video, texture: videoTexture, checkReady: checkReady});
-
+        event.setValue({updateTexture, video, texture: videoTexture, checkReady});
         return event;
-    }
+    };
 
     Shadama.prototype.clearMedia = function() {
         for (let k in this.media) {
@@ -1872,11 +1865,11 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             }
         }
         this.media = {};
-    }
+    };
 
     Shadama.prototype.initDisplay = function() {
         this.env["Display"] = new Display(this);
-    }
+    };
 
     Shadama.prototype.initEnv = function(callback) {
         this.env.mousedown = {x: 0, y: 0};
@@ -1885,7 +1878,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         this.env.height = FH;
 
         callback();
-    }
+    };
 
     Shadama.prototype.makeClock = function() {
         let aClock = document.createElement("canvas");
@@ -1893,21 +1886,21 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         aClock.height = 40;
         aClock.ticking = false;
         aClock.hand = 0;
-        drawClock(aClock, 0, false);
+        this.drawClock(aClock, 0, false);
 
         aClock.onclick = () => this.toggleScript(aClock.entry.scriptName);
         return aClock;
-    }
+    };
 
     Shadama.prototype.stopClock = function(aClock) {
         aClock.ticking = false;
-        drawClock(aClock);
-    }
+        this.drawClock(aClock);
+    };
 
     Shadama.prototype.startClock = function(aClock) {
         aClock.ticking = true;
-        drawClock(aClock);
-    }
+        this.drawClock(aClock);
+    };
 
     Shadama.prototype.stopScript = function(name) {
         delete this.steppers[name];
@@ -1915,7 +1908,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         if (entry) {
             this.stopClock(entry.clock);
         }
-    }
+    };
 
     Shadama.prototype.startScript = function(name) {
         this.steppers[name] = name;
@@ -1923,7 +1916,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         if (entry) {
             this.startClock(entry.clock);
         }
-    }
+    };
 
     Shadama.prototype.toggleScript = function(name) {
         if (this.steppers[name]) {
@@ -1931,9 +1924,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         } else {
             this.startScript(name);
         }
-    }
+    };
 
-    function drawClock(aClock) {
+    Shadama.prototype.drawClock = function(aClock) {
         let hand = aClock.hand;
         let ticking = aClock.ticking;
         function drawFace(ctx, radius, backColor) {
@@ -1951,7 +1944,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             ctx.arc(0, 0, radius*0.1, 0, 2*Math.PI);
             ctx.fillStyle = "#333";
             ctx.fill();
-        };
+        }
 
         function drawHand(ctx, length, dir) {
             ctx.beginPath();
@@ -1961,7 +1954,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             ctx.rotate(dir);
             ctx.lineTo(0, -length);
             ctx.stroke();
-        };
+        }
 
         let ctx = aClock.getContext('2d');
         let backColor = ticking ? '#ffcccc' : '#ffffff';
@@ -1971,7 +1964,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         drawFace(aClock.getContext('2d'), 16, backColor);
         drawHand(aClock.getContext('2d'), 10, dir);
         ctx.resetTransform();
-    }
+    };
 
     Shadama.prototype.makeEntry = function(name) {
         if (!domTools) {return null;}
@@ -1996,7 +1989,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         };
         entry.appendChild(button);
         return entry;
-    }
+    };
 
     Shadama.prototype.detectEntry = function(name) {
         if (!domTools) {return null;}
@@ -2005,21 +1998,21 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             if (oldEntry.scriptName === name) {return oldEntry;}
         }
         return null;
-    }
+    };
 
     Shadama.prototype.removeAll = function() {
         if (!domTools) {return;}
         while (watcherList.firstChild) {
             watcherList.removeChild(watcherList.firstChild);
         }
-    }
+    };
 
     Shadama.prototype.addAll = function(elems) {
         if (!domTools) {return;}
         for (let j = 0; j < elems.length; j++) {
             watcherList.appendChild(elems[j]);
         }
-    }
+    };
 
     Shadama.prototype.updateClocks = function() {
         if (!domTools) {return;}
@@ -2029,9 +2022,9 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             if (aClock.ticking) {
                 aClock.hand = (aClock.hand + 2) % 360;
             }
-            drawClock(aClock);
+            this.drawClock(aClock);
         }
-    }
+    };
 
     Shadama.prototype.selectFile = function(dom) {
         if (dom.selectedIndex > 0) {// 0 is for the default label
@@ -2049,7 +2042,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 this.maybeRunner();
             }
         }
-    }
+    };
 
     Shadama.prototype.initFileList = function(optSelection) {
         if (optSelection) {
@@ -2061,7 +2054,14 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         dom.onchange = () => {this.selectFile(dom);};
         let selectIndex = null;
         if (localStorage) {
-            var list = Object.keys(localStorage).filter((k) => k.endsWith(".shadama"));
+            let list = Object.keys(localStorage).filter((k) => k.endsWith(".shadama"));
+            list.sort((a, b) => {
+                let aVal = parseFloat(a);
+                let bVal = parseFloat(b);
+                if (a === 0) {return -1;}
+                if (b === 0) {return 1;}
+                return aVal - bVal;
+            });
             dom.options.length = 0;
             dom.options[0] = new Option("Choose a File:", 0);
             for (let i = 0; i < list.length; i++) {
@@ -2074,7 +2074,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
                 dom.selectedIndex = selectIndex;
             }
         }
-    }
+    };
 
     Shadama.prototype.updateEnv = function() {
         let printNum = (obj) => {
@@ -2094,9 +2094,8 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         let filter = (k) => {
             if (showAllEnv) {
                 return true;
-            } else {
-                return(this[k] && this.env[k].constructor !== ImageData);
             }
+            return this[k] && this.env[k].constructor !== ImageData;
         };
         let list = Object.getOwnPropertyNames(this.env)
             .sort()
@@ -2105,7 +2104,7 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         if (envList) {
             envList.innerHTML = `<pre>${list.join('\n')}</pre>`;
         }
-    }
+    };
 
     Shadama.prototype.populateList = function(newList) {
         if (!domTools) {return;}
@@ -2120,100 +2119,27 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         }
         this.removeAll();
         this.addAll(watcherElements);
-    }
+    };
 
     Shadama.prototype.addEnv = function(key, asset) {
         this.env[key] = asset;
-    }
+    };
 
     Shadama.prototype.runLoop = function() {
         if (this.statics["loop"]) {
             this.startScript("loop");
         }
-    }
+    };
 
     Shadama.prototype.once = function(name) {
         if (this.statics[name]) {
             this.statics[name](this.env);
         }
-    }
+    };
 
     Shadama.prototype.setEditor = function(anEditor, type) {
         editor = anEditor;
         editorType = type;
-    }
-
-    function Display(shadama) {
-        this.shadama = shadama;
-        if (withThreeJS) {
-            this.clearColor = new THREE.Color(0xFFFFFFFF);
-            this.otherColor = new THREE.Color(0x00000000);
-        } else {
-            this.clearColor = 'white';
-        }
-    }
-
-    Display.prototype.clear = function() {
-        let t = webglTexture();
-        if (t) {
-            setTargetBuffer(framebufferU8RGBA, t);
-        } else {
-            setTargetBuffer(null, null);
-        }
-
-        if (withThreeJS) {
-            this.otherColor.copy(renderer.getClearColor());
-            renderer.setClearColor(this.clearColor);
-            renderer.clearColor();
-            renderer.setClearColor(this.otherColor);
-        } else {
-            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-            gl.clearColor(1.0, 1.0, 1.0, 1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-        }
-
-        if (!t) {
-            setTargetBuffer(null, null);
-        }
-    }
-
-    Display.prototype.playSound = function(buffer) {
-        if (!buffer) {return;}
-        if (buffer.constructor === ShadamaEvent) {
-            buffer = buffer.value;
-        }
-        let source = audioContext.createBufferSource(); // creates a sound source
-        source.buffer = buffer;                    // tell the source which sound to play
-        source.connect(audioContext.destination);       // connect the source to the context's destination (the speakers)
-        source.start(0);                           // play the source now
-    }
-
-    Display.prototype.loadProgram = function(name, func) {
-        let location = window.location.toString();
-        if (!location.startsWith("http")) {return;}
-        let slash = location.lastIndexOf("/");
-        let dir = `${location.slice(0, slash)}/examples`;
-
-        let file = dir + "/" + encodeURIComponent(name);
-
-        let shadama = this.shadama;
-        let xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = () => {
-            if (xhttp.readyState === 4 && xhttp.status === 200) {
-                let serverCode = xhttp.responseText;
-                if (func) {
-                    func(serverCode);
-                } else {
-                    shadama.loadShadama(null, serverCode);
-                    if (editor) {
-                        editor.doc.setValue(serverCode);
-                    }
-                    shadama.maybeRunner();
-                }
-            }
-        };
-        xhttp.open("GET", file, true);
-        xhttp.send();
     };
 
     Shadama.prototype.emptyImageData = function(width, height) {
@@ -2225,6 +2151,285 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
             ary[i * 4 + 3] = 255;
         }
         return new ImageData(ary, 256, 256);
+    };
+
+    Shadama.prototype.cleanUpEditorState = function() {
+        if (editor) {
+            if (editorType === "CodeMirror") {
+                if (parseErrorWidget) {
+                    editor.removeLineWidget(parseErrorWidget);
+                    parseErrorWidget = undefined;
+                }
+                editor.getAllMarks().forEach((mark) => mark.clear());
+            }
+            if (editorType === "Carota") {
+                if (parseErrorWidget) {
+                    parseErrorWidget.visible(false);
+                }
+            }
+        }
+    };
+
+    Shadama.prototype.reportError = function(error) {
+        function toDOM(x) {
+            if (x instanceof Array) {
+                let xNode = document.createElement(x[0]);
+                x.slice(1)
+                    .map(toDOM)
+                    .forEach(yNode => xNode.appendChild(yNode));
+                return xNode;
+            }
+            return document.createTextNode(x);
+        }
+
+        if (editor) {
+            if (editorType === "CodeMirror") {
+                if (error.message !== "runtime error") {
+                    setTimeout(
+                        function() {
+                            let msg = error.expected;
+                            let pos = error.pos;
+                            let src = error.src;
+                            if ((!src || editor.getValue() === src) && !parseErrorWidget) {
+                                function repeat(x, n) {
+                                    let xs = [];
+                                    while (n-- > 0) {
+                                        xs.push(x);
+                                    }
+                                    return xs.join('');
+                                }
+                                let docPos = editor.doc.posFromIndex(pos);
+                                let widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
+                                if (pos && msg) {
+                                    console.log(pos, msg);
+                                } else {
+                                    console.log(error);
+                                }
+                                parseErrorWidget = editor.addLineWidget(docPos.line, widget);
+                            }
+                        },
+                        2500
+                    );
+                } else {
+                    for (let n in this.steppers) {
+                        this.stopScript(n);
+                    }
+                    alert(error.expected);
+                }
+            }
+        } else {
+            let msg = error.expected;
+            let pos = error.pos;
+            if (pos && msg) {
+                console.log(pos, msg);
+            } else {
+                console.log(error);
+            }
+        }
+    };
+
+    Shadama.prototype.step = function() {
+        this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
+        for (let k in this.triggers) {
+            this.triggers[k].maybeFire(this);
+        }
+        try {
+            for (let k in this.steppers) {
+                let func = this.statics[k];
+                if (func) {
+                    func(this.env);
+                }
+            }
+        } catch(e) {
+            this.reportError(e);
+        }
+    };
+
+    Shadama.prototype.maybeRunner = function(optFunc) {
+        if (!animationRequested) {
+            this.runner(optFunc);
+        }
+    };
+
+    Shadama.prototype.runner = function(optFunc) {
+        let that = this;
+
+        let runBody = () => {
+            if (domTools) {
+                animationRequested = false;
+                let start = performance.now();
+                that.step();
+                let now = performance.now();
+                times.push({start, step: now - start});
+
+                if ((times.length > 0 && now - times[0].start > 1000) || times.length === 2) {
+                    while (times.length > 1 && now - times[0].start > 500) {
+                        times.shift();
+                    }
+
+                    let frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
+                    //let stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
+                    readout.innerHTML = "" + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
+                    that.updateEnv();
+                }
+
+                that.updateClocks();
+
+                if (optFunc) {
+                    optFunc();
+                }
+                if (keepGoing) {
+                    window.requestAnimationFrame(runBody);
+                    animationRequested = true;
+                } else {
+                    keepGoing = true;
+                }
+            }
+        };
+        runBody();
+    };
+
+    Shadama.prototype.destroy = function() {
+        if (editorType === "Carota") {
+            if (parseErrorWidget) {
+                parseErrorWidget.removeSelf();
+            }
+        }
+        //
+    };
+
+    Shadama.prototype.pause = function() {
+        this.steppers = {};
+    };
+
+    Shadama.prototype.pointermove = function(x, y) {
+        this.env.mousemove = {x, y};
+    };
+
+    Shadama.prototype.pointerup = function(x, y) {
+        this.env.mouseup = {x, y};
+    };
+
+    Shadama.prototype.pointerdown = function(x, y) {
+        this.env.mousedown = {x, y};
+    };
+
+    Shadama.prototype.tester = function() {
+        return {
+            parse,
+            update,
+            translate,
+            s,
+            Breed,
+            Patch,
+            SymTable,
+        };
+    };
+
+    Shadama.prototype.goFullScreen = function() {
+        let req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen
+            || shadamaCanvas.mozRequestFullScreen || shadamaCanvas.msRequestFullscreen;
+
+        if (req) {
+            req.call(shadamaCanvas);
+
+            let fsChanged = () => {
+                if (document.fullscreenElement
+                    || document.webkitFullscreenElement
+                    || document.mozFullScreenElement
+                    || document.msFullscreenElement) {
+                    let rx = window.innerWidth / FW;
+                    let ry = window.innerHeight / FH;
+                    fullScreenScale = Math.min(rx, ry);
+                    shadamaCanvas.style.width = FW * fullScreenScale + 'px';
+                    shadamaCanvas.style.height = FH * fullScreenScale + 'px';
+                } else {
+                    fullScreenScale = 1.0;
+                    shadamaCanvas.style.width = FW + 'px';
+                    shadamaCanvas.style.height = FH + 'px';
+                }
+            };
+
+            document.addEventListener("fullscreenchange", fsChanged);
+            document.addEventListener("webkitfullscreenchange", fsChanged);
+            document.addEventListener("mozfullscreenchange", fsChanged);
+            document.addEventListener("MSFullscreenChange", fsChanged);
+        }
+    };
+
+    class Display {
+        constructor(shadama) {
+            this.shadama = shadama;
+            if (withThreeJS) {
+                this.clearColor = new THREE.Color(0xFFFFFFFF);
+                this.otherColor = new THREE.Color(0x00000000);
+            } else {
+                this.clearColor = 'white';
+            }
+        }
+
+        clear() {
+            let t = webglTexture();
+            if (t) {
+                setTargetBuffer(framebufferU8RGBA, t);
+            } else {
+                setTargetBuffer(null, null);
+            }
+
+            if (withThreeJS) {
+                this.otherColor.copy(renderer.getClearColor());
+                renderer.setClearColor(this.clearColor);
+                renderer.clearColor();
+                renderer.setClearColor(this.otherColor);
+            } else {
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+                gl.clearColor(1.0, 1.0, 1.0, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+
+            if (!t) {
+                setTargetBuffer(null, null);
+            }
+        }
+
+        playSound(buffer) {
+            if (!buffer) {return;}
+            if (buffer.constructor === ShadamaEvent) {
+                buffer = buffer.value;
+            }
+            let source = audioContext.createBufferSource(); // creates a sound source
+            source.buffer = buffer;                    // tell the source which sound to play
+            source.connect(audioContext.destination);       // connect the source to the context's destination (the speakers)
+            source.start(0);                           // play the source now
+        }
+
+        loadProgram(name, func) {
+            let location = window.location.toString();
+            if (!location.startsWith("http")) {return;}
+            let slash = location.lastIndexOf("/");
+            let dir = `${location.slice(0, slash)}/examples`;
+
+            let file = dir + "/" + encodeURIComponent(name);
+
+            let shadama = this.shadama;
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = () => {
+                if (xhttp.readyState === 4 && xhttp.status === 200) {
+                    let serverCode = xhttp.responseText;
+                    if (func) {
+                        func(serverCode);
+                    } else {
+                        shadama.loadShadama(null, serverCode);
+                        if (editor) {
+                            editor.doc.setValue(serverCode);
+                        }
+                        shadama.maybeRunner();
+                    }
+                }
+            };
+            xhttp.open("GET", file, true);
+            xhttp.send();
+        }
     }
 
     class StandAloneRenderer {
@@ -2842,210 +3047,6 @@ function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMT
         }
     }
 
-    Shadama.prototype.cleanUpEditorState = function() {
-        if (editor) {
-            if (editorType === "CodeMirror") {
-                if (parseErrorWidget) {
-                    editor.removeLineWidget(parseErrorWidget);
-                    parseErrorWidget = undefined;
-                }
-                editor.getAllMarks().forEach((mark) => mark.clear());
-            }
-            if (editorType === "Carota") {
-                if (parseErrorWidget) {
-                    parseErrorWidget.visible(false);
-                }
-            }
-        }
-    }
-
-    Shadama.prototype.reportError = function(error) {
-        function toDOM(x) {
-            if (x instanceof Array) {
-                let xNode = document.createElement(x[0]);
-                x.slice(1)
-                    .map(toDOM)
-                    .forEach(yNode => xNode.appendChild(yNode));
-                return xNode;
-            }
-            return document.createTextNode(x);
-        }
-
-        if (editor) {
-            if (editorType === "CodeMirror") {
-                if (error.message !== "runtime error") {
-                    setTimeout(
-                        function() {
-                            let msg = error.expected;
-                            let pos = error.pos;
-                            let src = error.src;
-                            if ((!src || editor.getValue() === src) && !parseErrorWidget) {
-                                function repeat(x, n) {
-                                    let xs = [];
-                                    while (n-- > 0) {
-                                        xs.push(x);
-                                    }
-                                    return xs.join('');
-                                }
-                                let docPos = editor.doc.posFromIndex(pos);
-                                let widget = toDOM(['parseerror', repeat(' ', docPos.ch) + '^\n' + msg]);
-                                if (pos && msg) {
-                                    console.log(pos, msg);
-                                } else {
-                                    console.log(error);
-                                }
-                                parseErrorWidget = editor.addLineWidget(docPos.line, widget);
-                            }
-                        },
-                        2500
-                    );
-                } else {
-                    for (let n in this.steppers) {
-                        this.stopScript(n);
-                    }
-                    alert(error.expected);
-                }
-            }
-        } else {
-            let msg = error.expected;
-            let pos = error.pos;
-            if (pos && msg) {
-                console.log(pos, msg);
-            } else {
-                console.log(error);
-            }
-        }
-    }
-
-    Shadama.prototype.step = function() {
-        this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
-        for (let k in this.triggers) {
-            this.triggers[k].maybeFire(this);
-        }
-        try {
-            for (let k in this.steppers) {
-                let func = this.statics[k];
-                if (func) {
-                    func(this.env);
-                }
-            }
-        } catch(e) {
-            this.reportError(e);
-        }
-    }
-
-    Shadama.prototype.maybeRunner = function(optFunc) {
-        if (!animationRequested) {
-            this.runner(optFunc);
-        }
-    }
-
-    Shadama.prototype.runner = function(optFunc) {
-        let that = this;
-
-        let runBody = () => {
-            if (domTools) {
-                animationRequested = false;
-                let start = performance.now();
-                that.step();
-                let now = performance.now();
-                times.push({start: start, step: now - start});
-                
-                if ((times.length > 0 && now - times[0].start > 1000) || times.length === 2) {
-                    while (times.length > 1 && now - times[0].start > 500) {
-                        times.shift();
-                    };
-                    let frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
-                    let stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
-                    readout.innerHTML = "" + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
-                    that.updateEnv();
-                }
-
-                that.updateClocks();
-
-                if (optFunc) {
-                    optFunc();
-                }
-                if (keepGoing) {
-                    window.requestAnimationFrame(runBody);
-                    animationRequested = true;
-                } else {
-                    keepGoing = true;
-                }
-            }
-        };
-        runBody();
-    }
-
-    Shadama.prototype.destroy = function() {
-        if (editorType === "Carota") {
-            if (parseErrorWidget) {
-                parseErrorWidget.removeSelf();
-            }
-        }
-        //
-    }
-
-    Shadama.prototype.pause = function() {
-        this.steppers = {};
-    }
-
-    Shadama.prototype.pointermove = function(x, y) {
-        this.env.mousemove = {x: x, y: y};
-    }
-
-    Shadama.prototype.pointerup = function(x, y) {
-        this.env.mouseup = {x: x, y: y};
-    }
-
-    Shadama.prototype.pointerdown = function(x, y) {
-        this.env.mousedown = {x: x, y: y}
-    }
-
-    Shadama.prototype.tester = function() {
-        return {
-            parse: parse,
-            update: update,
-            translate: translate,
-            s: s,
-            Breed: Breed,
-            Patch: Patch,
-            SymTable: SymTable,
-        }
-    }
-
-    Shadama.prototype.goFullScreen = function() {
-
-        let req = shadamaCanvas.requestFullscreen || shadamaCanvas.webkitRequestFullscreen ||
-            shadamaCanvas.mozRequestFullScreen || shadamaCanvas.msRequestFullscreen;
-
-        if (req) {
-            req.call(shadamaCanvas);
-
-            function fsChanged() {
-                if (document.fullscreenElement ||
-                        document.webkitFullscreenElement ||
-                        document.mozFullScreenElement ||
-                        document.msFullscreenElement) {
-                    let rx = window.innerWidth / FW;
-                    let ry = window.innerHeight / FH;
-                    fullScreenScale = Math.min(rx, ry);
-                    shadamaCanvas.style.width = FW * fullScreenScale + 'px';
-                    shadamaCanvas.style.height = FH * fullScreenScale + 'px';
-                } else {
-                    fullScreenScale = 1.0;
-                    shadamaCanvas.style.width = FW + 'px';
-                    shadamaCanvas.style.height = FH + 'px';
-                }
-            };
-
-            document.addEventListener("fullscreenchange", fsChanged);
-            document.addEventListener("webkitfullscreenchange", fsChanged);
-            document.addEventListener("mozfullscreenchange", fsChanged);
-            document.addEventListener("MSFullscreenChange", fsChanged);
-        }
-    }
-
     let shadamaGrammar = String.raw`
 Shadama {
   TopLevel
@@ -3581,7 +3582,6 @@ Shadama {
                 },
 
                 Formals_list(h, _c, r) {
-                    let table = this.args.table;
                     let vert = this.args.vert;
 
                     vert.push("float " + h.sourceString);
@@ -4060,7 +4060,7 @@ uniform sampler2D u_that_y;
                     return {[n.sourceString]: [table[n.sourceString], "", "", js]};
                 },
 
-                On(_o, t, _a, optK, k) {
+                On(_o, t, _a, _optK, _k) {
                     let table = this.args.table;
                     let trigger = t.trigger();
                     let key = "_trigger" + trigger.toString();
@@ -4079,7 +4079,7 @@ uniform sampler2D u_that_y;
                     return {[key]: [entry, "", "", js]};
                 },
 
-                Script(_d, n, _o, _ns, _c, b) {
+                Script(_d, n, _o, _ns, _c, _b) {
                     let inTable = this.args.table;
                     let table = inTable[n.sourceString];
                     let vert = new CodeStream();
@@ -4088,7 +4088,7 @@ uniform sampler2D u_that_y;
                     return this.glsl_inner(table, vert, frag);
                 },
 
-                Helper(_d, n, _o, _ns, _c, b) {
+                Helper(_d, n, _o, _ns, _c, _b) {
                     let inTable = this.args.table;
                     let table = inTable[n.sourceString];
                     let vert = new CodeStream();
@@ -4360,7 +4360,7 @@ uniform sampler2D u_that_y;
                     }
                 },
 
-                ident(n, rest) {
+                ident(_n, _rest) {
                     this.args.vert.push(this.sourceString);
                 }
             });
@@ -5125,7 +5125,8 @@ uniform sampler2D u_that_y;
 
         uniforms() {
             return this.uniformTable.keysAndValuesCollect((key, entry) => {
-                return "uniform sampler2D " + this.uniform(entry) + ";";
+                let result = `uniform sampler2D ${this.uniform(entry)};`;
+                return result;
             });
         }
 
@@ -5139,13 +5140,15 @@ uniform sampler2D u_that_y;
 
         vertVaryings() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
-                return "out float " + this.varying(entry) + ";";
+                let result = `out float ${this.varying(entry)};`;
+                return result;
             });
         }
 
         fragVaryings() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
-                return "in float " + this.varying(entry) + ";";
+                let result = `in float ${this.varying(entry)};`;
+                return result;
             });
         }
 
@@ -5169,7 +5172,8 @@ uniform sampler2D u_that_y;
 
         fragColors() {
             return this.varyingTable.keysAndValuesCollect((key, entry) => {
-                return this.out(entry) + " = " + this.varying(entry) + ";";
+                let result = `${this.out(entry)} = ${this.varying(entry)};`;
+                return result;
             });
         }
 
@@ -5306,7 +5310,7 @@ highp float random(float seed) {
 
     function addAsSet(to, from) {
         for (let k in from) {
-            if (from.hasOwnProperty(k)) {
+            if (Object.prototype.hasOwnProperty.call(from, k)) {
                 to[k] = from[k];
             }
         }
@@ -5376,8 +5380,6 @@ highp float random(float seed) {
         watcherList = document.getElementById("watcherList");
         envList = document.getElementById("envList");
 
-        let ext;
-
         if (!withThreeJS) {
             shadamaCanvas = document.getElementById("shadamaCanvas");
             if (!shadamaCanvas) {
@@ -5389,9 +5391,9 @@ highp float random(float seed) {
             shadamaCanvas.style.width = FW + "px";
             shadamaCanvas.style.height = FH + "px";
             gl = shadamaCanvas.getContext("webgl2");
-            //spector = new SPECTOR.Spector();
+            //let spector = new SPECTOR.Spector();
             //spector.displayUI();
-            ext = gl.getExtension("EXT_color_buffer_float");
+            gl.getExtension("EXT_color_buffer_float");
             state = gl;
         } else {
             gl = renderer.context;
@@ -5399,7 +5401,7 @@ highp float random(float seed) {
                 throw new Error("a WebGLState has to be passed in");
             }
             state = renderer.state;
-            ext = gl.getExtension("EXT_color_buffer_float");
+            gl.getExtension("EXT_color_buffer_float");
             shadamaCanvas = gl.canvas;
             shadamaCanvas.id = "shadamaCanvas";
             shadamaCanvas.width = FW;
@@ -5507,7 +5509,8 @@ highp float random(float seed) {
         symTableUnitTests();
         translateTests();
     }
-//    window.shadama = shadama;
+    //    window.shadama = shadama;
+    return shadama;
 }
 
 //export {
