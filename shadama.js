@@ -5365,7 +5365,7 @@ highp float random(float seed) {
         if (degaussdemo) {
             FIELD_WIDTH = 1024;
             FIELD_HEIGHT = 768;
-            defaultProgName = "14-DeGauss.shadama";
+            defaultProgName = "25-2DSystem.shadama";
         }
         let match;
         match = /fw=([0-9]+)/.exec(window.location.search);

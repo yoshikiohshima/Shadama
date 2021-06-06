@@ -1,5 +1,10 @@
 program "2DSystem"
+breed Slide (x, y, dx, dy, r, g, b, a)
+
 breed Plane (x, y, r, g, b, a, sx, sy, dx, dy, t)
+
+data World("world.png", "image")
+
 
 def planeColor() {
   this.r = 0.0;
@@ -52,20 +57,20 @@ def incrT() {
 
 def maybeChooseRandomStart(time) {
   if (this.t < 0) {
-    this.sx = random(a_index.x * 1.3 + time) * 512;
-    this.sy = random(a_index.x * 1.1 + time) * 512;
+    this.sx = random((a_index.x + (a_index.y * 1024)) * 1.3 + time) * 1024;
+    this.sy = random((a_index.x + (a_index.y * 1024)) * 1.1 + time) * 768;
   }
 }
 
 def maybeChooseRandomEnd(time) {
   if (this.t < 0) {
     var r = random(a_index.x * 0.8);
-    if (r < 0.7) {
-      this.dx = 256;
-      this.dy = 256;
+    if (r < 0.1) {
+      this.dx = 512;
+      this.dy = 384;
     } else {
-      this.dx = random(a_index.x * 1.5 + time) * 512;
-      this.dy = random(a_index.x * 1.8 + time) * 512;
+      this.dx = random(a_index.x * 1.5 + time) * 1024;
+      this.dy = random(a_index.x * 1.8 + time) * 768;
     }    
   }
 }
@@ -97,6 +102,9 @@ static setup() {
   Plane.randomT();
   Plane.copyPosition();
   Plane.draw();
+
+  Slide.fillImage("x", "y", "r", "g", "b", "a", World);
+
   loop.start();
 }
 
@@ -108,5 +116,7 @@ static loop() {
 
   Plane.incrT();
   Plane.move();
+  Display.clear();
+  Slide.draw();
   Plane.draw();
 }
