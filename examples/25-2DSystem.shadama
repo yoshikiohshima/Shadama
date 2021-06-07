@@ -65,13 +65,12 @@ def maybeChooseRandomStart(time) {
 def maybeChooseRandomEnd(time) {
   if (this.t < 0) {
     var r = random(a_index.x * 0.8);
-    if (r < 0.0) {
-      this.dx = 512;
-      this.dy = 384;
+    if (r < 0.5) {
+      this.dy = random(a_index.x * 1.8 + time) * 20 - 10;
     } else {
-      this.dx = random(a_index.x * 1.5 + time) * 1024;
-      this.dy = random(a_index.x * 1.8 + time) * 768;
-    }    
+      this.dy = random(a_index.x * 1.8 + time) * 20 + 758;
+    }
+    this.dx = this.sx + 200 + random(a_index.x * 1.5 + time) * 100;
   }
 }
 
@@ -111,6 +110,8 @@ static setup() {
   Plane.draw();
 
   Slide.fillImage("x", "y", "r", "g", "b", "a", World);
+
+  Display.setClearColor(0, 0, 0, 0);
 
   loop.start();
 }

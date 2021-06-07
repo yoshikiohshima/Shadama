@@ -6,6 +6,8 @@
 */
 /* SPECTOR */
 
+import {MessengerClient} from "./croquet.js";
+
 export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
     let threeRenderer = frame ? frame.renderer : null;
     let TEXTURE_SIZE = 1024;
@@ -94,6 +96,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     let runTests;
     let showAllEnv;
     let degaussdemo;
+    let climatedemo;
+    let croquetClient;
 
     let shaders = {
         "drawBreed.vert":
@@ -2353,6 +2357,55 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         }
     };
 
+    Shadama.prototype.resizeClimateFullScreen = function() {
+        let box = {width: window.innerWidth, height: window.innerHeight};
+        let scale = Math.min(box.width / 1024, box.height / 768);
+        shadamaCanvas.style.setProperty("transform", `scale(${scale})`);
+        shadamaCanvas.style.setProperty("transform-origin", `0 0`);
+    };
+
+    Shadama.prototype.toggleClimateFullScreen = function() {
+        let elems = ["bigTitle", "controlBox", "readout", "fullScreenButton"];
+        let canvasHolder = document.getElementById("canvasHolder");
+        shadamaCanvas = document.getElementById("shadamaCanvas");
+        if (!this.climateFullScrren) {
+            this.climateFullScrren = true;
+            elems.forEach(n => {
+                document.getElementById(n).style.setProperty("display", "none");
+            });
+            canvasHolder.style.setProperty("float", "none");
+            canvasHolder.style.setProperty("width", "100%");
+            canvasHolder.style.setProperty("height", "100%");
+            // shadamaCanvas.style.setProperty("border", "0px");
+            shadamaCanvas.style.setProperty("margin-right", "0px");
+
+            window.onresize = () => this.resizeClimateFullScreen();
+
+            this.resizeClimateFullScreen();
+            let code = document.body.querySelector(".CodeMirror");
+            if (code) {
+                code.style.setProperty("display", "none");
+            }
+            document.body.style.setProperty("margin", "0px");
+        } else {
+            this.climateFullScrren = true;
+            elems.forEach(n => {
+                document.getElementById(n).style.removeProperty("display");
+            });
+            canvasHolder.style.removeProperty("float");
+            canvasHolder.style.removeProperty("width");
+            canvasHolder.style.removeProperty("height");
+            // shadamaCanvas.style.removeProperty("border");
+            shadamaCanvas.style.removeProperty("margin-right");
+            let code = document.body.querySelector(".CodeMirror");
+            if (code) {
+                code.style.removeProperty("display");
+            }
+            document.body.style.removeProperty("margin");
+            delete window.onresize;
+        }
+    };
+
     class Display {
         constructor(shadama) {
             this.shadama = shadama;
@@ -2360,7 +2413,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 this.clearColor = new THREE.Color(0xFFFFFFFF);
                 this.otherColor = new THREE.Color(0x00000000);
             } else {
-                this.clearColor = 'white';
+                this.clearColor = [1, 1, 1, 1];
             }
         }
 
@@ -2379,13 +2432,17 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 renderer.setClearColor(this.otherColor);
             } else {
                 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-                gl.clearColor(1.0, 1.0, 1.0, 1.0);
+                gl.clearColor(...this.clearColor);
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
 
             if (!t) {
                 setTargetBuffer(null, null);
             }
+        }
+
+        setClearColor(r, g, b, a) {
+            this.clearColor = [r, g, b, a];
         }
 
         playSound(buffer) {
@@ -3256,6 +3313,11 @@ Shadama {
                 ["param", null, "name"]], true),
             "loadData": new SymTable([
                 ["param", null, "data"]], true),
+            "setClearColor": new SymTable([
+                ["param", null, "r"],
+                ["param", null, "g"],
+                ["param", null, "b"],
+                ["param", null, "a"]], true),
             "readValues": new SymTable([
                 ["param", null, "name"],
                 ["param", null, "x"],
@@ -4711,7 +4773,7 @@ uniform sampler2D u_that_y;
                     let js = this.args.js;
                     let method = n.sourceString;
 
-                    let displayBuiltIns = ["clear", "playSound", "loadProgram"];
+                    let displayBuiltIns = ["clear", "playSound", "loadProgram", "setClearColor"];
 
                     let builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
                     let myTable = table[n.sourceString];
@@ -5360,12 +5422,24 @@ highp float random(float seed) {
     runTests = /test.?=/.test(window.location.search);
     showAllEnv = !(/allEnv=/.test(window.location.search));
     degaussdemo = /degaussdemo/.test(window.location.search);
+    climatedemo = /climatedemo/.test(window.location.search);
+
+    let bigTitle = document.getElementById("bigTitle");
 
     if (domTools) {
         if (degaussdemo) {
             FIELD_WIDTH = 1024;
             FIELD_HEIGHT = 768;
+            defaultProgName = "14-DeGauss.shadama";
+        }
+        if (climatedemo) {
+            FIELD_WIDTH = 1024;
+            FIELD_HEIGHT = 768;
             defaultProgName = "25-2DSystem.shadama";
+
+            croquetClient = new MessengerClient();
+            bigTitle.innerHTML = "Full Screen";
+            bigTitle.onclick = () => shadama.toggleClimateFullScreen();
         }
         let match;
         match = /fw=([0-9]+)/.exec(window.location.search);
@@ -5379,7 +5453,7 @@ highp float random(float seed) {
 
         if (runTests) {
             setTestParams();
-            document.getElementById("bigTitle").innerHTML = "Shadama Tests";
+            bigTitle.innerHTML = "Shadama Tests";
         }
 
         readout = document.getElementById("readout");
@@ -5423,8 +5497,8 @@ highp float random(float seed) {
         }
 
         if (degaussdemo) {
-            document.getElementById("bigTitle").innerHTML = "<button>Full Screen</button>";
-            document.getElementById("bigTitle").firstChild.onclick = shadama.goFullScreen;
+            bigTitle.innerHTML = "<button>Full Screen</button>";
+            bigTitle.firstChild.onclick = shadama.goFullScreen;
         }
 
         if (!editor) {
