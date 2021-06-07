@@ -97,7 +97,6 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     let showAllEnv;
     let degaussdemo;
     let climatedemo;
-    let croquetClient;
 
     let shaders = {
         "drawBreed.vert":
@@ -1602,13 +1601,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     Shadama.prototype.addListeners = function(aCanvas) {
         if (!domTools) {return;}
         let set = (e, symbol) => {
-            var rect = aCanvas.getBoundingClientRect();
-            var left = rect.left;
-            var top = rect.top;
-            var diffY = e.pageY - e.clientY;
-            var diffX = e.pageX - e.clientX;
-            var x = (e.clientX + diffX - left) / fullScreenScale;
-            var y = FH - (e.clientY + diffY - top) / fullScreenScale;
+            var x = e.offsetX;
+            var y = FH - e.offsetY;
             //  console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
             //  console.log("x " + x + " y: " + y);
             this.env[symbol] = {x,  y, time: this.env["time"]};
@@ -4754,7 +4748,8 @@ uniform sampler2D u_that_y;
                                 "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh",
                                 "cbrt", "ceil", "cos", "cosh", "exp", "expm1", "floor",
                                 "log", "log1p", "log10", "log2", "round", "sign", "sin",
-                                "sinh", "sqrt", "tan", "tanh", "trunc", // 1 arg
+                                "sinh", "sqrt", "tan", "tanh", "trunc",
+                                "floatBitsToUint", // 1 arg
                                 "atan2", "max", "min", "pow" // 2 args
                                ];
                     if (math.indexOf(prim) >= 0) {
@@ -5289,6 +5284,45 @@ uniform sampler2D u_that_y;
             return this.allUsedHelpersAndPrimitives.keysAndValuesCollect((n, _v) => {
                 if (n === "random") {
                     return `
+uint hash(uint x) {
+  x += (x << 10u);
+  x ^= (x >>  6u);
+  x += (x <<  3u);
+  x ^= (x >> 11u);
+  x += (x << 15u);
+  return x;
+}
+
+uint hashInt(uint x)
+{
+  x += x >> 11;
+  x ^= x << 7;
+  x += x >> 15;
+  x ^= x << 5;
+  x += x >> 12;
+  x ^= x << 9;
+  return x;
+}
+
+
+highp float rand(uint h) {
+  const uint mantissaMask = 0x007FFFFFu;
+  const uint one          = 0x3F800000u;
+
+  h &= mantissaMask;
+  h |= one;
+    
+  float  r2 = uintBitsToFloat(h);
+  return r2 - 1.0;
+}
+
+highp float random(float f) {
+  return rand(hashInt(floatBitsToUint(f)));
+}
+`;
+
+/*
+
 highp float random(float seed) {
    highp float a  = 12.9898;
    highp float b  = 78.233;
@@ -5297,7 +5331,7 @@ highp float random(float seed) {
    highp float sn = mod(dt, 3.14159);
    return fract(sin(sn) * c);
 }
-`;
+*/
                 }
                 if (globalTable[n] && globalTable[n].type === "helper") {
                     return globalTable[n].helperCode;
@@ -5437,7 +5471,7 @@ highp float random(float seed) {
             FIELD_HEIGHT = 768;
             defaultProgName = "25-2DSystem.shadama";
 
-            croquetClient = new MessengerClient();
+            new MessengerClient();
             bigTitle.innerHTML = "Full Screen";
             bigTitle.onclick = () => shadama.toggleClimateFullScreen();
         }
@@ -5500,6 +5534,8 @@ highp float random(float seed) {
             bigTitle.innerHTML = "<button>Full Screen</button>";
             bigTitle.firstChild.onclick = shadama.goFullScreen;
         }
+
+        document.getElementById("fullScreenButton").onclick = () => shadama.goFullScreen();
 
         if (!editor) {
             let words = (str) => {

@@ -1,7 +1,7 @@
 program "2DSystem"
 breed Slide (x, y, dx, dy, r, g, b, a)
 
-breed Plane (x, y, r, g, b, a, sx, sy, dx, dy, t)
+breed Plane (x, y, r, g, b, a, sx, sy, dx, dy, s, c, t, dist2)
 
 data World("world.png", "image")
 
@@ -9,7 +9,7 @@ data World("world.png", "image")
 def planeColor() {
   this.r = abs(this.y - 384) / 512;
   this.g = 0.0;
-  this.b = random(a_index.x);
+  this.b = 0.0;
   this.a = 1.0;
 }
 
@@ -39,38 +39,26 @@ def maybeInitT() {
   }
 }
 
-
-def incrT() {
-  var t = this.t;
-  if (t >= 0) {
-    t = t + (1/256);
-  }
-  if (t > 1.0) {
-    t = -1;
-  }
-  if (isnan(t)) {
-    t = -1;
-  }
-  this.t = t;
-}
-
-
 def maybeChooseRandomStart(time) {
   if (this.t < 0) {
     this.sx = random((a_index.x + (a_index.y * 1024)) * 1.3 + time) * 1024;
-    this.sy = random((a_index.x + (a_index.y * 1024)) * 1.1 + time) * 40 + 384;
+    this.sy = random((a_index.x + (a_index.y * 1024)) * 1.1 + time) * 8 + 380;
   }
 }
 
-def maybeChooseRandomEnd(time) {
+def maybeChooseRandomDir(time) {
   if (this.t < 0) {
-    var r = random(a_index.x * 0.8);
+    var r = random((a_index.x + (a_index.y + 1024)) * 0.8 + time);
+    var d = 1.5707963267948966;
+    var m = random((a_index.y + (a_index.x + 1024)) * 0.2 + time) * 0.1;
     if (r < 0.5) {
-      this.dy = random(a_index.x * 1.8 + time) * 20 - 10;
-    } else {
-      this.dy = random(a_index.x * 1.8 + time) * 20 + 758;
+      d = 0 - d;
     }
-    this.dx = this.sx + 200 + random(a_index.x * 1.5 + time) * 100;
+    d = d + r * 0.5;
+    var s = sin(d) + m;
+    var c = cos(d);
+    this.s = s;
+    this.c = c;
   }
 }
 
@@ -79,15 +67,28 @@ def copyPosition() {
   this.y = this.sy;
 }
 
-def move() { // for a Plane.
-  var sx = this.sx;
-  var sy = this.sy;
-  var dx = this.dx;
-  var dy = this.dy;
-  var t = this.t;
-  var px = sx + t * (dx - sx);
-  var py = sy + t * (dy - sy);
+def maybeCopyPosition() {
+  if (this.t < 0) {
+    this.x = this.sx;
+    this.y = this.sy;
+  }
+}
 
+def incrC() {
+  this.c = this.c + 0.01;
+}
+
+def maybeResetT() {
+  if (this.y > 630 || this.y < 158) {
+     this.t = -1;
+  }
+}
+
+def moveX() {
+  var c = this.c;
+  var x = this.x;
+  var px = x + c;
+  
   if (px < 0) {
     px = 1024 - px;
   }
@@ -96,7 +97,22 @@ def move() { // for a Plane.
   }
 
   this.x = px;
+}
+
+def moveY() {
+  var s = this.s;
+  var y = this.y;
+  var py = y + s;
   this.y = py;
+}
+
+def dist(eddyX, eddyY) {
+  var y = this.y;
+  var x = this.x;
+  var dist2 = (eddyX - x) * (eddyX - x) + (eddyY - y) * (eddyY - y);
+  if (dist2 < 60) {
+      this.c = random(a_index.x * 1.3 + eddyX + eddyY) * (0 - 0.25);
+  }
 }
 
 static setup() {
@@ -104,27 +120,44 @@ static setup() {
   Plane.planeColor();
   Plane.initT();
   Plane.maybeChooseRandomStart(time);
-  Plane.maybeChooseRandomEnd(time);
+  Plane.maybeChooseRandomDir(time);
   Plane.randomT();
   Plane.copyPosition();
+  Plane.fillRandom("y", 158, 630);
   Plane.draw();
 
   Slide.fillImage("x", "y", "r", "g", "b", "a", World);
 
   Display.setClearColor(0, 0, 0, 0);
 
+  var eddyX = 0;
+  var eddyY = 0;
   loop.start();
 }
 
 static loop() {
+  if (mousedown.x > 0 && mousedown.y > 100) {
+    eddyX = mousedown.x;
+    eddyY = mousedown.y;
+  }
+
+  if (mousedown.y < 100) {
+     eddyX = 0;
+     eddyY = 0;
+  }
+
   Plane.maybeChooseRandomStart(time);
-  Plane.maybeChooseRandomEnd(time);
+  Plane.maybeChooseRandomDir(time);
+  Plane.maybeCopyPosition();
   Plane.maybeInitT();
   Plane.planeColor();
   //Plane.centerColor();
 
-  Plane.incrT();
-  Plane.move();
+  Plane.moveX();
+  Plane.moveY();
+  Plane.dist(eddyX, eddyY)  
+  Plane.incrC();
+  Plane.maybeResetT();
   Display.clear();
   Slide.draw();
   Plane.draw();
