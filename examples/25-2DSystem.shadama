@@ -127,6 +127,12 @@ def dissolve() {
   this.y = this.y + this.dy;
 }
 
+def noAlpha() {
+  if (!(this.r == 0) || !(this.g == 0) || !(this.b == 0)) {
+    this.a = 1;
+  }
+}   
+
 static setup() {
   Plane.setCount(100000);
   Plane.planeColor();
@@ -174,6 +180,7 @@ Plane.maybeChooseRandomStart(time);
   if (slideDissolve == 1) {
      Slide.dissolve();
      Plane.noColor();
+     Slide.noAlpha();
   }
 
   Plane.moveX();
