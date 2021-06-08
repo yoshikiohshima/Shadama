@@ -1,16 +1,17 @@
 program "2DSystem"
 breed Slide (x, y, dx, dy, r, g, b, a)
 
-breed Plane (x, y, r, g, b, a, sx, sy, dx, dy, s, c, t, dist2)
+breed Plane (x, y, r, g, b, a, sx, sy, dx, dy, s, c, t)
 
 data World("world.png", "image")
 
-
-def planeColor() {
-  this.r = abs(this.y - 384) / 384;
-  this.g = 0.2;
-  this.b = 0.2;
-  this.a = 1.0;
+def maybeInitColor() {
+  if (this.t < 0) {
+    this.r = 0;//abs(this.y - 384) / 384;
+    this.g = 0.1;
+    this.b = this.x / 2048;
+    this.a = 1.0;
+  }
 }
 
 def noColor() {
@@ -20,36 +21,30 @@ def noColor() {
   this.a = 0;
 }
 
-def centerColor() {
-  var x = this.x - 256;
-  var y = this.y - 256;
-  var dist = 256 - sqrt(x * x + y * y);
-  this.r = dist / 300;
-  this.g = 0.0;
-  this.b = 0.0;
-  this.a = 1.0;
-}
-  
 def initT() {
   this.t = -1;
 }
 
 def randomT() {
   if (this.t < 0) {
-    this.t = random(a_index.x);
+    this.t = 0;//random(a_index.x) * 0.1;
   }
 }
 
 def maybeInitT() {
   if (this.t < 0) {
-    this.t = 0;
+    this.t = random(a_index.x);
   }
 }
 
 def maybeChooseRandomStart(time) {
   if (this.t < 0) {
-    this.sx = random((a_index.x + (a_index.y * 1024)) * 1.3 + time) * 1024;
-    this.sy = random((a_index.x + (a_index.y * 1024)) * 1.1 + time) * 8 + 380;
+    var sx = random((a_index.x + (a_index.y * 1024)) * 1.3 + time) * 1024;
+    var sy = random((a_index.x + (a_index.y * 1024)) * 1.1 + time) * 8 + 380;
+    this.sx = sx;
+    this.sy = sy;
+    this.x = sx;
+    this.y = sy;
   }
 }
 
@@ -57,11 +52,11 @@ def maybeChooseRandomDir(time) {
   if (this.t < 0) {
     var r = random((a_index.x + (a_index.y + 1024)) * 0.8 + time);
     var d = 1.5707963267948966;
-    var m = random((a_index.y + (a_index.x + 1024)) * 0.2 + time) * 0.1;
+    var m = random((a_index.y + (a_index.x + 1024)) * 0.2 + time) * 0.2;
     if (r < 0.5) {
       d = 0 - d;
     }
-    d = d + r * 0.5;
+    d = d + r * 0.8;
     var s = sin(d) + m;
     var c = cos(d);
     this.s = s;
@@ -69,57 +64,51 @@ def maybeChooseRandomDir(time) {
   }
 }
 
-def copyPosition() {
-  this.x = this.sx;
-  this.y = this.sy;
-}
-
-def maybeCopyPosition() {
-  if (this.t < 0) {
-    this.x = this.sx;
-    this.y = this.sy;
-  }
-}
-
-def incrC() {
-  this.c = this.c + 0.008;
-}
-
 def maybeResetT() {
-  if (this.y > 634 || this.y < 138) {
-     this.t = -1;
+  var t = this.t;
+  t = t + (1/300);
+  if (t > 1) {
+    t = -1;
   }
+  if (this.y > 634 || this.y < 138) {
+     t = -1;
+  }
+  this.t = t;
 }
 
-def moveX() {
+def move() {
   var c = this.c;
   var x = this.x;
+  var s = this.s;
+  var y = this.y;
+
   var px = x + c;
   
   if (px < 0) {
-    px = 1024 - px;
+    px = 1024 + px;
   }
   if (px > 1024) {
     px = px - 1024;
   }
 
-  this.x = px;
-}
-
-def moveY() {
-  var s = this.s;
-  var y = this.y;
   var py = y + s;
+
+  this.x = px;
   this.y = py;
 }
 
-def dist(eddyX, eddyY) {
-  var y = this.y;
+def updateC(eddyX, eddyY) {
   var x = this.x;
+  var y = this.y;
+  var c = this.c;
   var dist2 = (eddyX - x) * (eddyX - x) + (eddyY - y) * (eddyY - y);
+
+  c = c + 0.008;
   if (dist2 < 100) {
-      this.c = random(a_index.x * 1.3 + eddyX + eddyY) * (0 - 0.25);
+      c = random(a_index.x * 1.3 + eddyX + eddyY) * (0 - 0.5);
+      this.r = 1.0;
   }
+  this.c = c;
 }
 
 def dissolve() {
@@ -131,16 +120,14 @@ def noAlpha() {
   if (!(this.r == 0) || !(this.g == 0) || !(this.b == 0)) {
     this.a = 1;
   }
-}   
+}
 
 static setup() {
-  Plane.setCount(100000);
-  Plane.planeColor();
+  Plane.setCount(50000);
   Plane.initT();
   Plane.maybeChooseRandomStart(time);
   Plane.maybeChooseRandomDir(time);
   Plane.randomT();
-  Plane.copyPosition();
   Plane.fillRandom("y", 158, 630);
   Plane.draw();
 
@@ -170,12 +157,10 @@ static loop() {
     slideDissolve = 1;
   }
 
-Plane.maybeChooseRandomStart(time);
+  Plane.maybeChooseRandomStart(time);
   Plane.maybeChooseRandomDir(time);
-  Plane.maybeCopyPosition();
+  Plane.maybeInitColor();
   Plane.maybeInitT();
-  Plane.planeColor();
-  //Plane.centerColor();
 
   if (slideDissolve == 1) {
      Slide.dissolve();
@@ -183,10 +168,8 @@ Plane.maybeChooseRandomStart(time);
      Slide.noAlpha();
   }
 
-  Plane.moveX();
-  Plane.moveY();
-  Plane.dist(eddyX, eddyY)  
-  Plane.incrC();
+  Plane.move();
+  Plane.updateC(eddyX, eddyY)  
   Plane.maybeResetT();
   Display.clear();
   Slide.draw();

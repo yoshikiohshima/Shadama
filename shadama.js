@@ -736,6 +736,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             height = T;
         }
 
+        /*
         let tex;
         if (format === gl.FLOAT) {
             tex = createTexture(new Float32Array(width * height * 4), format, width, height);
@@ -746,10 +747,12 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         if (format === gl.UNSIGNED_BYTE) {
             tex = createTexture(new Uint8Array(width * height * 4), format, width, height);
         }
+*/
 
         var buffer = gl.createFramebuffer();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+        /*
+        state.bindFramebuffer(gl.FRAMEBUFFER, buffer);
         state.bindTexture(gl.TEXTURE_2D, tex);
 
         if (format === gl.R32F) {
@@ -762,10 +765,12 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         state.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+*/
+
         if (withThreeJS) {
             var target = new THREE.WebGLRenderTarget(width, height);
             renderer.properties.get(target).__webglFramebuffer = buffer;
-            gl.deleteTexture(tex);
+            //gl.deleteTexture(tex); // has to be revisited
             return target;
         }
         return buffer;
@@ -780,6 +785,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
     function setTargetBuffers(buffer, tex) {
         if (!buffer) {
+            gl.drawBuffers([]);
             renderer.setRenderTarget(null, gl.DRAW_FRAMEBUFFER);
             return;
         }
@@ -967,7 +973,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
     function programFromTable(table, vert, frag, name) {
         let debugName = name;
-        if (debugName === "maybeChooseRandomPlace") {
+        if (debugName === "move") {
         }
         let prog = createProgram(createShader(name + ".vert", vert),
                                  createShader(name + ".frag", frag));
@@ -999,12 +1005,17 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             // outs: [[varName, fieldName]]
             // ins: [[varName, fieldName]]
             // params: {shortName: value}
-            if (debugName === "maybeChooseRandomPlace") {
+            if (debugName === "move") {
             }
             let object = objects["this"];
 
             let targets = outs.map((pair) => objects[pair[0]][N + pair[1]]);
             if (forBreed) {
+                if (framebufferBreed) {
+                    gl.deleteFramebuffer(framebufferBreed);
+                    framebufferBreed = null;
+                }
+                framebufferBreed = makeFramebuffer(gl.R32F, T, T);
                 setTargetBuffers(framebufferBreed, targets);
             } else {
                 outs.forEach((pair) => {
@@ -1012,6 +1023,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                                 objects[pair[0]][pair[1]],
                                 objects[pair[0]][N + pair[1]]);
                 });
+                if (framebufferPatch) {
+                    gl.deleteFramebuffer(framebufferPatch);
+                }
+                framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
                 setTargetBuffers(framebufferPatch, targets);
             }
 
@@ -1068,6 +1083,15 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             setTargetBuffers(null, null);
+
+            if (forBreed) {
+                gl.deleteFramebuffer(framebufferBreed);
+                framebufferBreed = null;
+            } else {
+                gl.deleteFramebuffer(framebufferPatch);
+                framebufferPatch = null;
+            }
+
             for (let i = 0; i < outs.length; i++) {
                 let pair = outs[i];
                 let o = objects[pair[0]];
@@ -1120,6 +1144,11 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
             let targets = outs.map((pair) => objects[pair[0]][N + pair[1]]);
             if (forBreed) {
+                if (framebufferBreed) {
+                    gl.deleteFramebuffer(framebufferBreed);
+                    framebufferBreed = null;
+                }
+                framebufferBreed = makeFramebuffer(gl.R32F, T, T);
                 setTargetBuffers(framebufferBreed, targets);
             } else {
                 outs.forEach((pair) => {
@@ -1127,6 +1156,11 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                                 objects[pair[0]][pair[1]],
                                 objects[pair[0]][N + pair[1]]);
                 });
+
+                if (framebufferPatch) {
+                    gl.deleteFramebuffer(framebufferPatch);
+                }
+                framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
                 setTargetBuffers(framebufferPatch, targets);
             }
 
@@ -1183,6 +1217,15 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.drawArrays(gl.POINTS, 0, object.count);
             gl.flush();
             setTargetBuffers(null, null);
+
+            if (forBreed) {
+                gl.deleteFramebuffer(framebufferBreed);
+                framebufferBreed = null;
+            } else {
+                gl.deleteFramebuffer(framebufferPatch);
+                framebufferPatch = null;
+            }
+
             for (let i = 0; i < outs.length; i++) {
                 let pair = outs[i];
                 let o = objects[pair[0]];
@@ -1199,8 +1242,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         debugTextureBreed = createTexture(new Float32Array(T*T*4), gl.FLOAT, T, T);
         debugTexturePatch = createTexture(new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
 
-        framebufferBreed = makeFramebuffer(gl.R32F, T, T);
-        framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
+        //framebufferBreed = makeFramebuffer(gl.R32F, T, T);
+        //framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
 
         framebufferU8RGBA = makeFramebuffer(gl.UNSIGNED_BYTE, FW, FH);
 
@@ -2651,6 +2694,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             let cs = ["r", "g", "b", "a"];
 
             let targets = cs.map((n) => this[N + n]);
+
+            framebufferBreed = makeFramebuffer(gl.R32F, T, T);
             setTargetBuffers(framebufferBreed, targets);
 
             state.useProgram(prog.program);
@@ -2674,6 +2719,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.flush();
 
             noBlend();
+            gl.deleteFramebuffer(framebufferBreed);
+            framebufferBreed = null;
 
             setTargetBuffer(null, null);
             for (let i = 0; i < cs.length; i++) {
