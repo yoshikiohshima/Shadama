@@ -108,6 +108,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
         uniform vec2 u_resolution;
         uniform vec2 u_half;
+        uniform float u_pointSize;
 
         uniform sampler2D u_x;
         uniform sampler2D u_y;
@@ -133,7 +134,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             float b = texelFetch(u_b, fc, 0).r;
             float a = texelFetch(u_a, fc, 0).r;
             v_color = vec4(r, g, b, a);
-            gl_PointSize = 1.0;
+            gl_PointSize = u_pointSize;
         }`,
 
         "drawBreed.frag":
@@ -604,7 +605,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     }
 
     function drawBreedProgram() {
-        return makePrimitive("drawBreed", ["u_resolution", "u_half", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
+        return makePrimitive("drawBreed", ["u_resolution", "u_half", "u_pointSize", "u_x", "u_y", "u_r", "u_g", "u_b", "u_a"], breedVAO);
     }
 
     function drawPatchProgram() {
@@ -2558,6 +2559,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         constructor(count) {
             this.own = {};
             this.count = count;
+            this.pointSize = 1;
         }
 
         fillRandom(name, min, max) {
@@ -2682,6 +2684,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             updateOwnVariable(this, aName, a);
         }
 
+        setPointSize(size) {
+            this.pointSize = size;
+        }
+
         loadData(data) {
             // assumes that the first line is the schema of the table
             if (data.constructor === ShadamaEvent) {
@@ -2802,6 +2808,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
             gl.uniform2f(prog.uniLocations["u_half"], 0.5/FW, 0.5/FH);
+            gl.uniform1f(prog.uniLocations["u_pointSize"], this.pointSize);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
             gl.flush();
@@ -3364,6 +3371,8 @@ Shadama {
                 ["param", null, "video"]], true),
             "diffuse": new SymTable([
                 ["param", null, "name"]], true),
+            "setPointSize": new SymTable([
+                ["param", null, "size"]], true),
             "increasePatch": new SymTable([
                 ["param", null, "name"],
                 ["param", null, "patch"],
@@ -4847,7 +4856,7 @@ uniform sampler2D u_that_y;
 
                     let displayBuiltIns = ["clear", "playSound", "loadProgram", "setClearColor", "croquetPublish"];
 
-                    let builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
+                    let builtIns = ["draw", "render", "setPointSize", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
                     let myTable = table[n.sourceString];
 
                     let actuals = as.static_method_inner(table, null, method, false);

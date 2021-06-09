@@ -9,8 +9,8 @@ def maybeInitColor() {
   if (this.t < 0) {
     this.r = 0;//abs(this.y - 384) / 384;
     this.g = 0.1;
-    this.b = this.x / 2048;
-    this.a = 1.0;
+    this.b = this.x / 1536;
+    this.a = 0.3;
   }
 }
 
@@ -107,6 +107,7 @@ def updateC(eddyX, eddyY) {
   if (dist2 < 100) {
       c = random(a_index.x * 1.3 + eddyX + eddyY) * (0 - 0.5);
       this.r = 1.0;
+      this.a = 0.7;
   }
   this.c = c;
 }
@@ -129,7 +130,9 @@ static setup() {
   Plane.maybeChooseRandomDir(time);
   Plane.randomT();
   Plane.fillRandom("y", 158, 630);
+  Plane.setPointSize(4);
   Plane.draw();
+
 
   Slide.fillImage("x", "y", "r", "g", "b", "a", World);
   Slide.fillRandomDir("dx", "dy");
