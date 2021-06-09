@@ -146,9 +146,12 @@ static loop() {
   if (mousedown.x > 0 && mousedown.y > 100) {
     eddyX = mousedown.x;
     eddyY = mousedown.y;
+    if (abs(time - mousedown.time) < 0.1) {
+      Display.croquetPublish("eddy", eddyX, eddyY);
+    }
   }
 
-  if (mousedown.y < 100) {
+  if (0 < mousedown.y && mousedown.y < 100) {
      eddyX = 0;
      eddyY = 0;
   }
@@ -163,9 +166,14 @@ static loop() {
   Plane.maybeInitT();
 
   if (slideDissolve == 1) {
-     Slide.dissolve();
+     slideDissolve = 2;
      Plane.noColor();
      Slide.noAlpha();
+     Display.croquetPublish("slideDissolve", 0, 0);
+  }
+
+  if (slideDissolve == 2) {
+    Slide.dissolve();
   }
 
   Plane.move();

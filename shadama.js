@@ -6,7 +6,7 @@
 */
 /* SPECTOR */
 
-import {MessengerClient} from "./croquet.js";
+import {join} from "./croquet.js";
 
 export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
     let threeRenderer = frame ? frame.renderer : null;
@@ -97,6 +97,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     let showAllEnv;
     let degaussdemo;
     let climatedemo;
+
+    let croquetView;
 
     let shaders = {
         "drawBreed.vert":
@@ -1658,8 +1660,12 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             if (evt.target === document.body) {
                 if (evt.key === '`') {
                     this.callSetup();
-                } else if (evt.key === "\\") {
+                } else if (evt.key === "!") {
                     this.toggleScript("loop");
+                } else if (evt.key === "\\") {
+                    if (climatedemo) {
+                        this.setClimateFullScreen();
+                    }
                 }
             }
         }, true);
@@ -2265,6 +2271,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         }
     };
 
+    Shadama.prototype.setVariable = function(varName, value) {
+        this.env[varName] = value;
+    };
+
     Shadama.prototype.step = function() {
         this.env["time"] = (window.performance.now() / 1000) - this.loadTime;
         for (let k in this.triggers) {
@@ -2401,12 +2411,20 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         shadamaCanvas.style.setProperty("transform-origin", `0 0`);
     };
 
-    Shadama.prototype.toggleClimateFullScreen = function() {
+    Shadama.prototype.setClimateFullScreen = function(optFlag) {
+        let flag = optFlag;
+        if (flag === undefined) {
+            flag = !this.climateFullScreen;
+        }
+
+        if (flag === this.climateFullScreen) {return;}
+        this.climateFullScreen = flag;
+
         let elems = ["bigTitle", "controlBox", "readout", "fullScreenButton"];
         let canvasHolder = document.getElementById("canvasHolder");
+
         shadamaCanvas = document.getElementById("shadamaCanvas");
-        if (!this.climateFullScrren) {
-            this.climateFullScrren = true;
+        if (flag) {
             elems.forEach(n => {
                 document.getElementById(n).style.setProperty("display", "none");
             });
@@ -2425,7 +2443,6 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             }
             document.body.style.setProperty("margin", "0px");
         } else {
-            this.climateFullScrren = true;
             elems.forEach(n => {
                 document.getElementById(n).style.removeProperty("display");
             });
@@ -2440,6 +2457,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             }
             document.body.style.removeProperty("margin");
             delete window.onresize;
+        }
+        if (croquetView) {
+            croquetView.updateFullScreen(this.climateFullScreen);
         }
     };
 
@@ -2519,6 +2539,12 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             };
             xhttp.open("GET", file, true);
             xhttp.send();
+        }
+
+        croquetPublish(name, v1, v2) {
+            if (croquetView) {
+                croquetView.publishMessage(name, v1, v2);
+            }
         }
     }
 
@@ -3365,6 +3391,10 @@ Shadama {
                 ["param", null, "y"],
                 ["param", null, "w"],
                 ["param", null, "h"]], true),
+            "croquetPublish": new SymTable([
+                ["param", null, "name"],
+                ["param", null, "v1"],
+                ["param", null, "v2"]], true),
             "start": new SymTable([], true),
             "step": new SymTable([], true),
             "stop": new SymTable([], true),
@@ -4815,7 +4845,7 @@ uniform sampler2D u_that_y;
                     let js = this.args.js;
                     let method = n.sourceString;
 
-                    let displayBuiltIns = ["clear", "playSound", "loadProgram", "setClearColor"];
+                    let displayBuiltIns = ["clear", "playSound", "loadProgram", "setClearColor", "croquetPublish"];
 
                     let builtIns = ["draw", "render", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
                     let myTable = table[n.sourceString];
@@ -5517,10 +5547,6 @@ highp float random(float seed) {
             FIELD_WIDTH = 1024;
             FIELD_HEIGHT = 768;
             defaultProgName = "25-2DSystem.shadama";
-
-            new MessengerClient();
-            bigTitle.innerHTML = "Full Screen";
-            bigTitle.onclick = () => shadama.toggleClimateFullScreen();
         }
         let match;
         match = /fw=([0-9]+)/.exec(window.location.search);
@@ -5583,6 +5609,16 @@ highp float random(float seed) {
         }
 
         document.getElementById("fullScreenButton").onclick = () => shadama.goFullScreen();
+
+        if (climatedemo) {
+            join().then(session => {
+                croquetView = session.view;
+                croquetView.setShadama(shadama);
+            });
+        }
+
+        bigTitle.innerHTML = "Full Screen";
+        bigTitle.onclick = () => shadama.setClimateFullScreen();
 
         if (!editor) {
             let words = (str) => {
