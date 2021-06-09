@@ -34,28 +34,28 @@ window.onload = () => {
     camera.position.z = 500;
     camera.position.x = 0;
     camera.position.y = 0;
-    shadama = ShadamaFactory({renderer: renderer, dataPath: "./"}, 3, cube, "Airports2.shadama", true);
+    shadama = ShadamaFactory({renderer: renderer, dataPath: "./"}, 3, cube, "26-Airports.shadama", true);
     shadama.maybeRunner(function() {renderer.render (scene, camera)});
 };
 </script>
 
-        </head>
-        <body>
-          <h1 id="bigTitle">Shadama</h1>
-          <div id="canvasHolder" style="float: left">
-              <canvas id="shadamaCanvas"></canvas>
-          </div>
-          <textarea style="float: left" id="code"></textarea>
-          <div style="float: left" id="controlBox">
-            <select id="myDropdown" class="dropdown-content"></select>
-            <hr>
-            <div id="watcherList"></div>
-            <hr>
-            <div id="envList"></div>
-          </div>
-          <br>
-          <div style="clear: left" id="readout"></div>
-          <button id="fullScreenButton">Full Screen</button>
-          <!-- <canvas id="debugCanvas1"></canvas> -->
-       </body>
+    </head>
+    <body>
+      <h1 id="bigTitle">Shadama</h1>
+      <div id="canvasHolder" style="float: left">
+        <canvas id="shadamaCanvas"></canvas>
+      </div>
+      <textarea style="float: left" id="code"></textarea>
+      <div style="float: left" id="controlBox">
+        <select id="myDropdown" class="dropdown-content"></select>
+        <hr>
+        <div id="watcherList"></div>
+        <hr>
+        <div id="envList"></div>
+      </div>
+      <br>
+      <div style="clear: left" id="readout"></div>
+      <button id="fullScreenButton">Full Screen</button>
+      <!-- <canvas id="debugCanvas1"></canvas> -->
+    </body>
 </html>

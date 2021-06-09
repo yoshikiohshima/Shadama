@@ -751,7 +751,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         if (format === gl.UNSIGNED_BYTE) {
             tex = createTexture(new Uint8Array(width * height * 4), format, width, height);
         }
-*/
+        */
 
         var buffer = gl.createFramebuffer();
 
@@ -768,8 +768,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         }
         state.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-*/
+        */
 
         if (withThreeJS) {
             var target = new THREE.WebGLRenderTarget(width, height);
@@ -989,7 +988,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         let viewportH = forBreed ? T : FH;
         let hasPatchInput = table.hasPatchInput;
 
-        table.defaultUniforms.forEach(function(n) {
+        table.defaultUniforms.forEach((n) => {
             uniLocations[n] = gl.getUniformLocation(prog, n);
         });
 
@@ -1027,6 +1026,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                                 objects[pair[0]][pair[1]],
                                 objects[pair[0]][N + pair[1]]);
                 });
+
                 if (framebufferPatch) {
                     gl.deleteFramebuffer(framebufferPatch);
                 }
@@ -1060,7 +1060,6 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             }
 
             let ind = 0;
-
             for (ind = 0; ind < ins.length; ind++) {
                 let pair = ins[ind];
                 let glIndex = gl.TEXTURE0 + ind + offset;
@@ -1113,7 +1112,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         if (debugName === "setCoreColor") {
         }
         let prog = createProgram(createShader(name + ".vert", vert),
-                                     createShader(name + ".frag", frag));
+                                 createShader(name + ".frag", frag));
         let vao = breedVAO;
         let uniLocations = {};
 
@@ -1122,7 +1121,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         let viewportH = forBreed ? T : VTH;
         let hasPatchInput = table.hasPatchInput;
 
-        table.defaultUniforms.forEach(function(n) {
+        table.defaultUniforms.forEach((n) => {
             uniLocations[n] = gl.getUniformLocation(prog, n);
         });
 
@@ -1223,10 +1222,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             setTargetBuffers(null, null);
 
             if (forBreed) {
-                gl.deleteFramebuffer(framebufferBreed);
+                framebufferBreed.dispose();
                 framebufferBreed = null;
             } else {
-                gl.deleteFramebuffer(framebufferPatch);
+                framebufferPatch.dispose();
                 framebufferPatch = null;
             }
 
@@ -1235,7 +1234,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 let o = objects[pair[0]];
                 let n = pair[1];
                 let tmp = o[n];
-                o[name] = o[N + n];
+                o[n] = o[N + n];
                 o[N + n] = tmp;
             }
             gl.bindVertexArray(null);
@@ -5629,15 +5628,16 @@ highp float random(float seed) {
 
         document.getElementById("fullScreenButton").onclick = () => shadama.goFullScreen();
 
-        if (climatedemo && useCroquet) {
-            join().then(session => {
-                croquetView = session.view;
-                croquetView.setShadama(shadama);
-            });
+        if (climatedemo) {
+            bigTitle.innerHTML = "Full Screen";
+            bigTitle.onclick = () => shadama.setClimateFullScreen();
+            if (useCroquet) {
+                join().then(session => {
+                    croquetView = session.view;
+                    croquetView.setShadama(shadama);
+                });
+            }
         }
-
-        bigTitle.innerHTML = "Full Screen";
-        bigTitle.onclick = () => shadama.setClimateFullScreen();
 
         if (!editor) {
             let words = (str) => {
