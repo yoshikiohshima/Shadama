@@ -1,0 +1,196 @@
+program "Airports"
+
+breed Airport (Latitude, Longitude, Altitude, x, y, z, nx, ny, nz, r, g, b, a, d)
+
+patch Place(x, y, z)
+breed Plane (x, y, z, r, g, b, a, p0x, p0y, p0z, p1x, p1y, p1z, dot, omega, t, step, rand, d)
+
+data Airports("airports.dat", "csv")
+
+def setColor() {
+  this.r = this.x / 512.0;
+  this.g = this.y / 512.0;
+  this.b = this.z / 512.0;
+  this.a = 1.0;
+
+  this.d = 2;
+}
+
+def setNormalLocation() {
+  var la = this.Latitude;  // [-90, 90]
+  var lo = this.Longitude; // [-180, 180]
+  //var al = this.Altitude;
+
+  la = la * 3.141592653589793 / 180.0;  //  [-pi/2, pi/2]
+  lo = lo * 3.141592653589793 / 180.0;  //  [-pi, pi]
+
+  this.nx = cos(la) * sin(lo);
+  this.nz = cos(la) * cos(lo);
+  this.ny = sin(la);
+}
+
+def setPlace(place) {
+  place.x = this.nx;
+  place.y = this.ny;
+  place.z = this.nz;
+}
+
+def setLocation() {
+  var r = 200;
+  this.y = this.ny * r + 256;
+  this.x = this.nx * r + 256;
+  this.z = this.nz * r + 256;
+}
+
+def planeColor() {
+  this.r = 1.0;
+  this.g = 1.0;
+  this.b = 1.0;
+  this.a = 1.0;
+}
+
+def maybeGoToRandomPlace(n, r) {
+  if (this.t < 0) {
+    var ind = floor(random(a_index.x + r) * n);
+    var x = mod(ind, 64) * 8;
+    var y = mod(floor(ind / 64), 64) * 8;
+    var z = floor(ind / (64 * 64)) * 8;
+
+    this.rand = ind;
+
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+}
+
+def loadPlace(place, isDest) {
+  if (this.t < 0) {
+    var x = place.x;
+    var y = place.y;
+    var z = place.z;
+
+    if (isDest == 1) {
+      this.p1x = x;
+      this.p1y = y;
+      this.p1z = z;
+    } else {
+      this.p0x = x;
+      this.p0y = y;
+      this.p0z = z;
+    }
+  }
+}
+
+def maybeComputeDist() {
+  if (this.t < 0) {
+    var p0x = this.p0x;
+    var p0y = this.p0y;
+    var p0z = this.p0z;
+
+    var p1x = this.p1x;
+    var p1y = this.p1y;
+    var p1z = this.p1z;
+
+    var dot =  p0x * p1x + p0y * p1y + p0z * p1z;
+    var omega = acos(dot);
+
+    this.dot = dot;
+    this.omega = omega;
+    this.step = (3 / 1000.0) / omega;
+  }
+}
+
+def initT() {
+  this.t = -1;
+}
+
+def planeDotSize() {
+  this.d = 1.5;
+}
+
+def maybeInitT() {
+  if (this.t < 0) {
+     this.t = 0;
+  }
+}
+
+def incrT() {
+  var t = this.t;
+  if (t >= 0) {
+    t = t + this.step;
+  }
+  if (t > 1.0) {
+    t = -1;
+  }
+  if (isnan(t)) {
+    t = -1;
+  }
+  this.t = t;
+}
+
+def move() { // for a Plane.
+  var p0x = this.p0x;
+  var p0y = this.p0y;
+  var p0z = this.p0z;
+
+  var p1x = this.p1x;
+  var p1y = this.p1y;
+  var p1z = this.p1z;
+
+  var t = this.t;
+  var dot = this.dot;
+  var omega = this.omega;
+
+  var t1 = sin((1-t) * omega) / sin(omega);
+  var t2 = sin(t * omega) / sin(omega);
+
+  var px = t1 * p0x + t2 * p1x;
+  var py = t1 * p0y + t2 * p1y;
+  var pz = t1 * p0z + t2 * p1z;
+
+  var r = 200;
+
+  this.x = r * px + 256;
+  this.y = r * py + 256;
+  this.z = r * pz + 256;
+}
+
+static setup() {
+  Airport.loadData(Airports);   // Lat Long <- data
+  var count = Airport.count;    // number of data
+  Airport.setNormalLocation();  // nx, ny, nz <- f(Lat, Long)
+  Airport.fillCuboid("x", "y", "z", 512, 512, 16, 8); // x, y, z, count
+  Airport.setPlace(Place);      // place.x, place.y, place.z <- nx, ny, nz
+  Airport.setLocation();        // x, y, z <- nx, ny, nz
+  Airport.setCount(count);
+  Airport.setColor();
+
+  Plane.setCount(10000);
+  Plane.planeColor();
+  Plane.initT();
+
+  Plane.maybeGoToRandomPlace(count-2, 2.2);
+  Plane.loadPlace(Place, 0);
+  Plane.maybeGoToRandomPlace(count-2, -3.4);
+  Plane.loadPlace(Place, 1);
+  Plane.maybeComputeDist();
+  Plane.maybeInitT();
+  Plane.planeDotSize();
+  loop.start();
+}
+
+static loop() {
+  Plane.maybeGoToRandomPlace(count-2, time);
+  Plane.loadPlace(Place, 0);
+  Plane.maybeGoToRandomPlace(count-2, time + 0.3);
+  Plane.loadPlace(Place, 1);
+  Plane.maybeComputeDist();
+  Plane.maybeInitT();
+
+  Plane.move();
+  Plane.incrT();
+
+  Airport.render();
+  Plane.render();
+}
