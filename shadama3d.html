@@ -9,41 +9,40 @@
         <script src="thirdparty/ohm.min.js"></script>
         <script src="thirdparty/papaparse.min.js"></script>
         <script src="thirdparty/three.min.js"></script>
-        <script src="shadama.js" type="text/javascript"></script>
         <script src="shadama-tests.js" type="text/javascript"></script>
+	<script src="https://unpkg.com/@croquet/croquet@0.5.0"></script>
 
-<script>
-var material, geometry, cube, renderer;
-var shadama;
+<script type="module">
+import {ShadamaFactory} from "./shadama.js";
+let material, geometry, cube, renderer, scene, camera, canvas;
+let shadama;
 
-onload = function() {
+window.onload = () => {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera( 75, 512/512, 0.1, 1000 );
+    canvas = document.getElementById("shadamaCanvas");
+    renderer = new THREE.WebGLRenderer({webgl2: true, preserveDrawingBuffer: true, canvas: canvas});
+    renderer.setSize( 512, 512 );
+    //document.body.appendChild( renderer.domElement );
 
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera( 75, 512/512, 0.1, 1000 );
-  var canvas = document.getElementById("shadamaCanvas");
-  renderer = new THREE.WebGLRenderer({webgl2: true, preserveDrawingBuffer: true, canvas: canvas});
-  renderer.setSize( 512, 512 );
-  //document.body.appendChild( renderer.domElement );
+    geometry = new THREE.BoxBufferGeometry( 512, 512, 512 );
+    material = new THREE.MeshBasicMaterial({color: 0x00004000, wireframe: true});
 
-  geometry = new THREE.BoxBufferGeometry( 512, 512, 512 );
-  material = new THREE.MeshBasicMaterial({color: 0x00004000, wireframe: true});
+    cube = new THREE.Mesh( geometry, material );
+    scene.add( cube );
 
-  cube = new THREE.Mesh( geometry, material );
-  scene.add( cube );
-
-  camera.position.z = 500;
-  camera.position.x = 0;
-  camera.position.y = 0;
+    camera.position.z = 500;
+    camera.position.x = 0;
+    camera.position.y = 0;
     shadama = ShadamaFactory({renderer: renderer, dataPath: "./"}, 3, cube, "Airports2.shadama", true);
-  shadama.maybeRunner(function() {renderer.render (scene, camera)});
-}
-
+    shadama.maybeRunner(function() {renderer.render (scene, camera)});
+};
 </script>
 
         </head>
         <body>
           <h1 id="bigTitle">Shadama</h1>
-          <div style="float: left">
+          <div id="canvasHolder" style="float: left">
               <canvas id="shadamaCanvas"></canvas>
           </div>
           <textarea style="float: left" id="code"></textarea>
@@ -56,7 +55,7 @@ onload = function() {
           </div>
           <br>
           <div style="clear: left" id="readout"></div>
-          <button onclick="shadama.goFullScreen()">Full Screen</button>
+          <button id="fullScreenButton">Full Screen</button>
           <!-- <canvas id="debugCanvas1"></canvas> -->
        </body>
 </html>
