@@ -2257,8 +2257,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                                 parseErrorWidget = editor.addLineWidget(docPos.line, widget);
                             }
                         },
-                        2500
-                    );
+                        1500);
                 } else {
                     for (let n in this.steppers) {
                         this.stopScript(n);
