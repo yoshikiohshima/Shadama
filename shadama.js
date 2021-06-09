@@ -2178,7 +2178,11 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
     Shadama.prototype.once = function(name) {
         if (this.statics[name]) {
-            this.statics[name](this.env);
+            try {
+                this.statics[name](this.env);
+            } catch(e) {
+                this.reportError(e);
+            }
         }
     };
 
@@ -2203,7 +2207,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             if (editorType === "CodeMirror") {
                 if (parseErrorWidget) {
                     editor.removeLineWidget(parseErrorWidget);
-                    parseErrorWidget = undefined;
+                    parseErrorWidget = null;
                 }
                 editor.getAllMarks().forEach((mark) => mark.clear());
             }
@@ -2216,7 +2220,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     };
 
     Shadama.prototype.reportError = function(error) {
-        function toDOM(x) {
+        let toDOM = (x) => {
             if (x instanceof Array) {
                 let xNode = document.createElement(x[0]);
                 x.slice(1)
@@ -2225,7 +2229,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 return xNode;
             }
             return document.createTextNode(x);
-        }
+        };
 
         if (editor) {
             if (editorType === "CodeMirror") {
@@ -5656,6 +5660,11 @@ highp float random(float seed) {
                     "Alt-S": (_cm) => shadama.updateCode(),
                     "Ctrl-S": (_cm) => shadama.updateCode(),
                 },
+            });
+            cm.on("change", () => {
+                if (parseErrorWidget) {
+                    shadama.cleanUpEditorState();
+                }
             });
             shadama.setEditor(cm, "CodeMirror");
         }
