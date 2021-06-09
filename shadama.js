@@ -97,6 +97,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     let showAllEnv;
     let degaussdemo;
     let climatedemo;
+    let useCroquet;
 
     let croquetView;
 
@@ -2547,6 +2548,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 croquetView.publishMessage(name, v1, v2);
             }
         }
+
+        debugger() {
+            debugger;
+        }
     }
 
     class StandAloneRenderer {
@@ -3404,6 +3409,7 @@ Shadama {
                 ["param", null, "name"],
                 ["param", null, "v1"],
                 ["param", null, "v2"]], true),
+            "debugger": new SymTable([], true),
             "start": new SymTable([], true),
             "step": new SymTable([], true),
             "stop": new SymTable([], true),
@@ -4854,7 +4860,7 @@ uniform sampler2D u_that_y;
                     let js = this.args.js;
                     let method = n.sourceString;
 
-                    let displayBuiltIns = ["clear", "playSound", "loadProgram", "setClearColor", "croquetPublish"];
+                    let displayBuiltIns = ["clear", "playSound", "loadProgram", "setClearColor", "croquetPublish", "debugger"];
 
                     let builtIns = ["draw", "render", "setPointSize", "setCount", "fillRandom", "fillSpace", "fillCuboid", "fillRandomDir", "fillRandomDir3", "fillImage", "loadVideoFrame", "loadData", "readValues", "start", "stop", "step", "diffuse", "increasePatch", "increaseVoxel"];
                     let myTable = table[n.sourceString];
@@ -5543,6 +5549,7 @@ highp float random(float seed) {
     showAllEnv = !(/allEnv=/.test(window.location.search));
     degaussdemo = /degaussdemo/.test(window.location.search);
     climatedemo = /climatedemo/.test(window.location.search);
+    useCroquet = /useCroquet/.test(window.location.search);
 
     let bigTitle = document.getElementById("bigTitle");
 
@@ -5619,7 +5626,7 @@ highp float random(float seed) {
 
         document.getElementById("fullScreenButton").onclick = () => shadama.goFullScreen();
 
-        if (climatedemo) {
+        if (climatedemo && useCroquet) {
             join().then(session => {
                 croquetView = session.view;
                 croquetView.setShadama(shadama);
