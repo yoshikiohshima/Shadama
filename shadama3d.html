@@ -35,7 +35,7 @@ window.onload = () => {
     camera.position.x = 0;
     camera.position.y = 0;
     shadama = ShadamaFactory({renderer: renderer, dataPath: "./"}, 3, cube, "26-Airports.shadama", true);
-    shadama.maybeRunner(function() {renderer.render (scene, camera)});
+    shadama.maybeRunner(function() {shadama.handleEvents(scene, camera); renderer.render (scene, camera)});
 };
 </script>
 

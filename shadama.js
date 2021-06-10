@@ -100,6 +100,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     let useCroquet;
 
     let croquetView;
+    let moveVector;
+    let euler;
 
     let shaders = {
         "drawBreed.vert":
@@ -788,7 +790,6 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
     function setTargetBuffers(buffer, tex) {
         if (!buffer) {
-            gl.drawBuffers([]);
             renderer.setRenderTarget(null, gl.DRAW_FRAMEBUFFER);
             return;
         }
@@ -1421,6 +1422,32 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         };
     };
 
+    Shadama.prototype.handleEvents = function(scene, camera) {
+        if (!this.keys) {return;}
+        let keys = this.keys;
+        if (keys["a"]) {
+            euler.setFromQuaternion(camera.quaternion);
+	    euler.y += 0.02;
+            camera.quaternion.setFromEuler(euler);
+        }
+        if (keys["d"]) {
+            euler.setFromQuaternion(camera.quaternion);
+	    euler.y += -0.02;
+            camera.quaternion.setFromEuler(euler);
+        }
+        if (keys["w"]) {
+            moveVector.setFromMatrixColumn(camera.matrix, 0);
+	    moveVector.crossVectors(camera.up, moveVector);
+	    camera.position.addScaledVector(moveVector, 1);
+        }
+
+        if (keys["s"]) {
+            moveVector.setFromMatrixColumn(camera.matrix, 0);
+	    moveVector.crossVectors(camera.up, moveVector);
+	    camera.position.addScaledVector(moveVector, -0.8);
+        }
+    };
+
     Shadama.prototype.readPixels = function() {
         let width = FW;
         let height = FH;
@@ -1668,6 +1695,21 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                         this.setClimateFullScreen();
                     }
                 }
+            }
+        }, true);
+    };
+
+    Shadama.prototype.add3DNavigation = function() {
+        document.addEventListener('keydown', (evt) => {
+            if (evt.target === document.body) {
+                if (["a", "w", "s", "d"].includes(evt.key)) {
+                    this.keys[evt.key] = true;
+                }
+            }
+        });
+        document.addEventListener('keyup', (evt) => {
+            if (["a", "w", "s", "d"].includes(evt.key)) {
+                delete this.keys[evt.key];
             }
         }, true);
     };
@@ -5619,6 +5661,13 @@ highp float random(float seed) {
         shadama.initDisplay();
         if (!withThreeJS) {
             shadama.addListeners(shadamaCanvas);
+        }
+
+        if (dimension === 3 && domTools) {
+            shadama.keys = {};
+            moveVector = new THREE.Vector3();
+            euler = new THREE.Euler(0, 0, 0, "YXZ");
+            shadama.add3DNavigation();
         }
 
         if (degaussdemo) {
