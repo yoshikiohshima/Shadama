@@ -105,7 +105,7 @@ def updateC(eddyX, eddyY) {
   var c = this.c;
   var s = this.s;
   var swirled = this.swirled;
-  var dist = (x - 512) * (x - 512) + (y - 512) * (y - 512);
+  var dist = (x - 512) * (x - 525) + (y - 512) * (y - 525);
   var dist2 = (eddyX - x) * (eddyX - x) + (eddyY - y) * (eddyY - y);
 
   if (dist2 < 100) {
@@ -115,8 +115,11 @@ def updateC(eddyX, eddyY) {
       this.a = 0.7;
       this.swirled = 1;
   } else if (dist < 64) {
-      c = random(a_index.x * 1.2) * 0.4 - 0.1;
-      s = random(a_index.x * 2) * 0.4 - 0.1;
+      c = random(a_index.x * 1.2) * 0.1 + 0.05;
+      s = random(a_index.x * 2) * 0.2 + 0.1;
+      this.sy = y;
+      this.r = 0.5;
+      this.a = 0.3;
   }
   
   if (swirled == 0) {
