@@ -6,7 +6,7 @@
 */
 /* SPECTOR */
 
-import {join} from "./croquet.js";
+// import {join} from "./croquet.js";
 
 export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
     let threeRenderer = frame ? frame.renderer : null;
@@ -594,13 +594,13 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     }
 
     function makePrimitive(name, uniforms, vao) {
-        let vs = createShader(name + ".vert", shaders[name+'.vert']);
-        let fs = createShader(name + ".frag", shaders[name+'.frag']);
+        let vs = createShader(name + ".vert", shaders[name + '.vert']);
+        let fs = createShader(name + ".frag", shaders[name + '.frag']);
 
         let prog = createProgram(vs, fs);
 
         let uniLocations = {};
-        uniforms.forEach(function (n) {
+        uniforms.forEach((n) => {
             uniLocations[n] = gl.getUniformLocation(prog, n);
         });
 
@@ -755,7 +755,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         }
         */
 
-        var buffer = gl.createFramebuffer();
+        let buffer = gl.createFramebuffer();
 
         /*
         state.bindFramebuffer(gl.FRAMEBUFFER, buffer);
@@ -773,7 +773,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         */
 
         if (withThreeJS) {
-            var target = new THREE.WebGLRenderTarget(width, height);
+            let target = new THREE.WebGLRenderTarget(width, height);
             renderer.properties.get(target).__webglFramebuffer = buffer;
             //gl.deleteTexture(tex); // has to be revisited
             return target;
@@ -808,8 +808,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     function setBufferAttribute(buffers, data, attrL, attrS) {
         for (let i in buffers) {
             gl.bindBuffer(gl.ARRAY_BUFFER, buffers[i]);
-            gl.bufferData(gl.ARRAY_BUFFER,
-                          new Float32Array(data[i]), gl.STATIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data[i]), gl.STATIC_DRAW);
             gl.enableVertexAttribArray(attrL[i]);
             gl.vertexAttribPointer(attrL[i], attrS[i], gl.FLOAT, false, 0, 0);
         }
@@ -979,8 +978,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         let debugName = name;
         if (debugName === "move") {
         }
-        let prog = createProgram(createShader(name + ".vert", vert),
-                                 createShader(name + ".frag", frag));
+        let prog = createProgram(
+            createShader(name + ".vert", vert),
+            createShader(name + ".frag", frag));
         let vao = breedVAO;
         let uniLocations = {};
 
@@ -1023,9 +1023,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 setTargetBuffers(framebufferBreed, targets);
             } else {
                 outs.forEach((pair) => {
-                    textureCopy(objects[pair[0]],
-                                objects[pair[0]][pair[1]],
-                                objects[pair[0]][N + pair[1]]);
+                    textureCopy(
+                        objects[pair[0]],
+                        objects[pair[0]][pair[1]],
+                        objects[pair[0]][N + pair[1]]);
                 });
 
                 if (framebufferPatch) {
@@ -1046,7 +1047,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             if (uniLocations["u_resolution"]) {
                 gl.uniform2f(uniLocations["u_resolution"], FW, FH);
             }
-            gl.uniform2f(uniLocations["u_half"], 0.5/viewportW, 0.5/viewportH);
+            gl.uniform2f(uniLocations["u_half"], 0.5 / viewportW, 0.5 / viewportH);
 
             let offset = 0;
             if (!forBreed || hasPatchInput) {
@@ -1112,8 +1113,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         let debugName = name;
         if (debugName === "setCoreColor") {
         }
-        let prog = createProgram(createShader(name + ".vert", vert),
-                                 createShader(name + ".frag", frag));
+        let prog = createProgram(
+            createShader(name + ".vert", vert),
+            createShader(name + ".frag", frag));
         let vao = breedVAO;
         let uniLocations = {};
 
@@ -1156,9 +1158,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 setTargetBuffers(framebufferBreed, targets);
             } else {
                 outs.forEach((pair) => {
-                    textureCopy(objects[pair[0]],
-                                objects[pair[0]][pair[1]],
-                                objects[pair[0]][N + pair[1]]);
+                    textureCopy(
+                        objects[pair[0]],
+                        objects[pair[0]][pair[1]],
+                        objects[pair[0]][N + pair[1]]);
                 });
 
                 if (framebufferPatch) {
@@ -1173,9 +1176,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             noBlend();
 
             gl.uniform3f(uniLocations["u_resolution"], VW, VH, VD);
-            gl.uniform3f(uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
+            gl.uniform3f(uniLocations["v_resolution"], VW / VS, VH / VS, VD / VS);
             gl.uniform1f(uniLocations["v_step"], VS);
-            gl.uniform2f(uniLocations["u_half"], 0.5/viewportW, 0.5/viewportH);
+            gl.uniform2f(uniLocations["u_half"], 0.5 / viewportW, 0.5 / viewportH);
 
             let offset = 0;
             if (!forBreed || hasPatchInput) {
@@ -1243,8 +1246,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     }
 
     function initFramebuffers() {
-        debugTextureBreed = createTexture(new Float32Array(T*T*4), gl.FLOAT, T, T);
-        debugTexturePatch = createTexture(new Float32Array(FW*FH*4), gl.FLOAT, FW, FH);
+        debugTextureBreed = createTexture(new Float32Array(T * T * 4), gl.FLOAT, T, T);
+        debugTexturePatch = createTexture(new Float32Array(FW * FH * 4), gl.FLOAT, FW, FH);
 
         //framebufferBreed = makeFramebuffer(gl.R32F, T, T);
         //framebufferPatch = makeFramebuffer(gl.R32F, FW, FH);
@@ -1343,8 +1346,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 } else if (js[0] === "updateScript") {
                     let table = entry[0];
                     let func = dimension === 2 ? programFromTable : programFromTable3;
-                    this.scripts[js[1]] = [ func(table, entry[1], entry[2], js[1]),
-                                      table.insAndParamsAndOuts()];
+                    this.scripts[js[1]] = [
+                        func(table, entry[1], entry[2], js[1]),
+                        table.insAndParamsAndOuts()];
                 } else if (js[0] === "event") {
                     this.env[js[1]] = new ShadamaEvent();
                 } else if (js[0] === "trigger") {
@@ -1358,7 +1362,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                     } else if (js[3] === "csv") {
                         this.env[js[1]] = this.loadCSV(js[2]);
                     } else if (js[3] === "video" || js[3] === "camera") {
-                        var evt = this.loadVideo(js[2], js[3] === "camera");
+                        let evt = this.loadVideo(js[2], js[3] === "camera");
                         this.env[js[1]] = evt;
                         this.media[js[1]] = evt;
                     }
@@ -1393,7 +1397,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 this.triggers["_trigger" + trigger.trigger.toString()] = trigger;
             }
         }
-//        this.runLoop();
+        //  this.runLoop();
         return source;
     };
 
@@ -1410,7 +1414,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             let mesh = this;
             let pMatrix = camera.projectionMatrix;
             let mvMatrix = mesh.modelViewMatrix;
-           // mvpMatrix.multiply(modelViewMatrix);
+            // mvpMatrix.multiply(modelViewMatrix);
 
             for (let i = 0; i < renderRequests.length; i++) {
                 let item = renderRequests[i];
@@ -1501,7 +1505,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.viewport(0, 0, width, height);
         }
         gl.uniform1i(prog.uniLocations["u_value"], 0);
-        gl.uniform2f(prog.uniLocations["u_half"], 0.5/width, 0.5/height);
+        gl.uniform2f(prog.uniLocations["u_half"], 0.5 / width, 0.5 / height);
 
         if (withThreeJS) {
             renderer.setClearColor(new THREE.Color(0x000000));
@@ -1575,7 +1579,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.viewport(0, 0, maxWidth, maxHeight);
         }
         gl.uniform1i(prog.uniLocations["u_value"], 0);
-        gl.uniform2f(prog.uniLocations["u_half"], 0.5/maxWidth, 0.5/maxHeight);
+        gl.uniform2f(prog.uniLocations["u_half"], 0.5 / maxWidth, 0.5 / maxHeight);
 
         if (withThreeJS) {
             renderer.setClearColor(new THREE.Color(0x000000));
@@ -1674,8 +1678,8 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     Shadama.prototype.addListeners = function(aCanvas) {
         if (!domTools) {return;}
         let set = (e, symbol) => {
-            var x = e.offsetX;
-            var y = FH - e.offsetY;
+            let x = e.offsetX;
+            let y = FH - e.offsetY;
             //  console.log("y " + e.clientY + " top " + top + " pageY: " + e.pageY);
             //  console.log("x " + x + " y: " + y);
             this.env[symbol] = {x,  y, time: this.env["time"]};
@@ -1723,7 +1727,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             this.env["Display"].loadProgram(n, (serverCode) => {
                 //let localCode = localStorage.getItem(n);
                 //if (!localCode) {
-                    localStorage.setItem(n, serverCode);
+                localStorage.setItem(n, serverCode);
                 //}
                 this.initFileList();
             });
@@ -1745,14 +1749,15 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
             // Decode asynchronously
             request.onload = () => {
-                audioContext.decodeAudioData(request.response,
-                                             (buffer) => {
-                                                 event.setValue(buffer);
-                                             },
-                                             (error) => {
-                                                 console.log(error);
-                                                 event.setValue("");
-                                             });
+                audioContext.decodeAudioData(
+                    request.response,
+                    (buffer) => {
+                        event.setValue(buffer);
+                    },
+                    (error) => {
+                        console.log(error);
+                        event.setValue("");
+                    });
             };
             request.send();
         };
@@ -1836,7 +1841,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         };
 
         let resultCSV = (result) => {
-            var data = result.data;
+            let data = result.data;
             event.setValue(data);
         };
 
@@ -1863,9 +1868,10 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             // put a single pixel in the texture so we can
             // use it immediately.
             let pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-                          1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-                          pixel);
+            gl.texImage2D(
+                gl.TEXTURE_2D, 0, gl.RGBA,
+                1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                pixel);
 
             // Turn off mips and set  wrapping to clamp to edge so it
             // will work regardless of the dimensions of the video.
@@ -1875,13 +1881,12 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             return texture;
         }
 
-        var videoTexture = initTexture();
+        let videoTexture = initTexture();
 
         let updateTexture = (_gl, texture, _video) => {
             state.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-                          gl.RGBA, gl.UNSIGNED_BYTE, video);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
         };
 
         let playing = false;
@@ -1907,7 +1912,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         if (isCamera) {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 // Not adding `{ audio: true }` since we only want video now
-                navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+                navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
                     video.srcObject = stream; //window.URL.createObjectURL(stream);
                     video.play();
                 });
@@ -2018,16 +2023,16 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
         function drawFace(ctx, radius, backColor) {
             ctx.moveTo(0, 0);
             ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, 2*Math.PI);
+            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
             ctx.fillStyle = backColor;
             ctx.fill();
 
             ctx.strokeStyle = '#333';
-            ctx.lineWidth = radius*0.1;
+            ctx.lineWidth = radius * 0.1;
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.arc(0, 0, radius*0.1, 0, 2*Math.PI);
+            ctx.arc(0, 0, radius * 0.1, 0, 2 * Math.PI);
             ctx.fillStyle = "#333";
             ctx.fill();
         }
@@ -2276,7 +2281,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             if (editorType === "CodeMirror") {
                 if (error.message !== "runtime error") {
                     setTimeout(
-                        function() {
+                        () => {
                             let msg = error.expected;
                             let pos = error.pos;
                             let src = error.src;
@@ -2345,41 +2350,46 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
     };
 
     Shadama.prototype.runner = function(optFunc) {
-        let that = this;
+        if (!this.lastFrameTime) {
+            this.lastFrameTime = performance.now();
+        }
+        let runBody = (frameTime) => {
+            if (!domTools) {return;}
+            if (frameTime < this.lastFrameTime + 16.6) {
+                requestAnimationFrame(runBody);
+                animationRequested = true;
+                return;
+            }
 
-        let runBody = () => {
-            if (domTools) {
-                animationRequested = false;
-                let start = performance.now();
-                that.step();
-                let now = performance.now();
-                times.push({start, step: now - start});
+            animationRequested = false;
+            times.push({start: frameTime, step: frameTime - this.lastFrameTime});
 
-                if ((times.length > 0 && now - times[0].start > 1000) || times.length === 2) {
-                    while (times.length > 1 && now - times[0].start > 500) {
-                        times.shift();
-                    }
+            this.lastFrameTime = frameTime;
+            this.step();
 
-                    let frameTime = (times[times.length-1].start - times[0].start) / (times.length - 1);
-                    //let stepTime = times.reduce((a, b) => ({step: a.step + b.step})).step / times.length;
-                    readout.innerHTML = "" + frameTime.toFixed(1) + " msecs/frame (" + (1000 / frameTime).toFixed(1) + " fps)";
-                    that.updateEnv();
+            if ((times.length > 0 && frameTime - times[0].start > 1000) || times.length === 2) {
+                while (times.length > 1 && frameTime - times[0].start > 500) {
+                    times.shift();
                 }
 
-                that.updateClocks();
+                let t = (times[times.length - 1].start - times[0].start) / (times.length - 1);
+                readout.innerHTML = `${t.toFixed(1)} msecs/frame (${(1000 / t).toFixed(1)} fps)`;
+                this.updateEnv();
+            }
 
-                if (optFunc) {
-                    optFunc();
-                }
-                if (keepGoing) {
-                    window.requestAnimationFrame(runBody);
-                    animationRequested = true;
-                } else {
-                    keepGoing = true;
-                }
+            this.updateClocks();
+
+            if (optFunc) {
+                optFunc();
+            }
+            if (keepGoing) {
+                window.requestAnimationFrame(runBody);
+                animationRequested = true;
+            } else {
+                keepGoing = true;
             }
         };
-        runBody();
+        runBody(performance.now());
     };
 
     Shadama.prototype.destroy = function() {
@@ -2791,7 +2801,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 gl.viewport(0, 0, T, T);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], T, T);
-            gl.uniform2f(prog.uniLocations["u_half"], 0.5/T, 0.5/T);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5 / T, 0.5 / T);
             gl.uniform2i(prog.uniLocations["u_videoExtent"], video.video.videoWidth, video.video.videoHeight);
 
             this.count = video.video.videoWidth * video.video.videoHeight;
@@ -2856,7 +2866,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 gl.viewport(0, 0, FW, FH);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform2f(prog.uniLocations["u_half"], 0.5/FW, 0.5/FH);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5 / FW, 0.5 / FH);
             gl.uniform1f(prog.uniLocations["u_pointSize"], this.pointSize);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
@@ -2935,7 +2945,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.uniformMatrix4fv(uniLocations["mvMatrix"], false, mvMatrix.elements);
             gl.uniformMatrix4fv(uniLocations["pMatrix"], false, pMatrix.elements);
             gl.uniform3f(prog.uniLocations["u_resolution"], VW, VH, VD);
-            gl.uniform3f(prog.uniLocations["u_half"], 0.5/VW, 0.5/VH, 0.5/VD);
+            gl.uniform3f(prog.uniLocations["u_half"], 0.5 / VW, 0.5 / VH, 0.5 / VD);
 
             gl.drawArrays(gl.POINTS, 0, this.count);
             gl.flush();
@@ -2968,7 +2978,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.uniform1i(uniLocations["u_that_y"], 1);
 
             gl.uniform2f(uniLocations["u_resolution"], FW, FH);
-            gl.uniform2f(uniLocations["u_half"], 0.5/FW, 0.5/FH);
+            gl.uniform2f(uniLocations["u_half"], 0.5 / FW, 0.5 / FH);
 
             if (typeof valueOrSrcName === "string") {
                 state.activeTexture(gl.TEXTURE2);
@@ -3025,9 +3035,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.uniform1i(uniLocations["u_that_z"], 2);
 
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
+            gl.uniform3f(prog.uniLocations["v_resolution"], VW / VS, VH / VS, VD / VS);
             gl.uniform1f(prog.uniLocations["v_step"], VS);
-            gl.uniform2f(uniLocations["u_half"], 0.5/FW, 0.5/FH);
+            gl.uniform2f(uniLocations["u_half"], 0.5 / FW, 0.5 / FH);
 
             if (typeof valueOrSrcName === "string") {
                 state.activeTexture(gl.TEXTURE3);
@@ -3109,7 +3119,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 gl.viewport(0, 0, FW, FH);
             }
             gl.uniform2f(prog.uniLocations["u_resolution"], FW, FH);
-            gl.uniform2f(prog.uniLocations["u_half"], 0.5/FW, 0.5/FH);
+            gl.uniform2f(prog.uniLocations["u_half"], 0.5 / FW, 0.5 / FH);
 
             gl.drawArrays(gl.POINTS, 0, FW * FH);
             gl.flush();
@@ -3163,9 +3173,9 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
             gl.uniformMatrix4fv(uniLocations["mvMatrix"], false, mvMatrix.elements);
             gl.uniformMatrix4fv(uniLocations["pMatrix"], false, pMatrix.elements);
             gl.uniform3f(prog.uniLocations["u_resolution"], VW, VH, VD);
-            gl.uniform3f(prog.uniLocations["v_resolution"], VW/VS, VH/VS, VD/VS);
+            gl.uniform3f(prog.uniLocations["v_resolution"], VW / VS, VH / VS, VD / VS);
             gl.uniform1i(prog.uniLocations["v_step"], VS);
-            gl.uniform3f(prog.uniLocations["u_half"], 0.5/VW, 0.5/VH, 0.5/VD);
+            gl.uniform3f(prog.uniLocations["u_half"], 0.5 / VW, 0.5 / VH, 0.5 / VD);
 
             gl.drawArrays(gl.POINTS, 0, VTW * VTH);
             gl.flush();
@@ -3205,7 +3215,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 gl.viewport(0, 0, FW, FH);
             }
 
-            gl.uniform2f(uniLocations["u_half"], 0.5/FW, 0.5/FH);
+            gl.uniform2f(uniLocations["u_half"], 0.5 / FW, 0.5 / FH);
 
             gl.drawArrays(gl.POINTS, 0, FW * FH);
             gl.flush();
@@ -3525,7 +3535,7 @@ Shadama {
                     if (p.children.length > 0) {
                         result = addAsSet(result, p.children[0].symTable(null));
                     }
-                    for (let i = 0; i< ds.children.length; i++) {
+                    for (let i = 0; i < ds.children.length; i++) {
                         let d = ds.children[i].symTable(null);
                         let ctor = ds.children[i].ctorName;
                         if (ctor === "Script" || ctor === "Static" || ctor === "Helper") {
@@ -3621,7 +3631,7 @@ Shadama {
 
                 StatementList(ss) { // an iter node
                     let table = this.args.table;
-                    for (let i = 0; i< ss.children.length; i++) {
+                    for (let i = 0; i < ss.children.length; i++) {
                         ss.children[i].symTable(table);
                     }
                     return table;
@@ -4594,7 +4604,7 @@ uniform sampler2D u_that_y;
                     for (let i = 0; i < r.children.length; i++) {
                         let c = r.children[i];
                         let innerStream = new CodeStream();
-                        c.static(table, innerStream, method, isOther(i+1));
+                        c.static(table, innerStream, method, isOther(i + 1));
                         result.push(innerStream.contents());
                     }
                     return result;
@@ -4733,12 +4743,12 @@ uniform sampler2D u_that_y;
                     let isOther = this.args.isOther;
                     let left = table[l.sourceString];
                     if (!left || (!left.isEvent() && !left.isStaticVariable())) {
-//                            let error = new Error("semantic error");
-//                            error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
-//                            error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
-//                            error.pos = l.source.endIdx;
-//                            error.src = null;
-//                            throw error;
+                        // let error = new Error("semantic error");
+                        // error.reason = `assignment into undeclared static variable or event ${l.sourceString}`;
+                        // error.expected = `assignment into undeclared static variable or event ${l.sourceString}`;
+                        // error.pos = l.source.endIdx;
+                        // error.src = null;
+                        // throw error;
                     }
                     js.push("env.");
                     js.push(l.sourceString);
@@ -4880,14 +4890,15 @@ uniform sampler2D u_that_y;
                     let table = this.args.table;
                     let js = this.args.js;
                     let prim = n.sourceString;
-                    let math = ["random", // 0 arg
-                                "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh",
-                                "cbrt", "ceil", "cos", "cosh", "exp", "expm1", "floor",
-                                "log", "log1p", "log10", "log2", "round", "sign", "sin",
-                                "sinh", "sqrt", "tan", "tanh", "trunc",
-                                "floatBitsToUint", // 1 arg
-                                "atan2", "max", "min", "pow" // 2 args
-                               ];
+                    let math = [
+                        "random", // 0 arg
+                        "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh",
+                        "cbrt", "ceil", "cos", "cosh", "exp", "expm1", "floor",
+                        "log", "log1p", "log10", "log2", "round", "sign", "sin",
+                        "sinh", "sqrt", "tan", "tanh", "trunc",
+                        "floatBitsToUint", // 1 arg
+                        "atan2", "max", "min", "pow" // 2 args
+                    ];
                     if (math.indexOf(prim) >= 0) {
                         let actuals = as.static_method_inner(table, null, null, false);
                         let str = actuals.join(", ");
@@ -4985,9 +4996,9 @@ uniform sampler2D u_that_y;
     ${params.contents()}
     func(objects, outs, ins, params);
 })()`;
-                js.push(callProgram);
-            },
-        });
+                    js.push(callProgram);
+                },
+            });
     }
 
     function shouldFire(trigger, env) {
@@ -5457,17 +5468,16 @@ highp float random(float f) {
 }
 `;
 
-/*
-
-highp float random(float seed) {
-   highp float a  = 12.9898;
-   highp float b  = 78.233;
-   highp float c  = 43758.5453;
-   highp float dt = seed * a + b;
-   highp float sn = mod(dt, 3.14159);
-   return fract(sin(sn) * c);
-}
-*/
+                    /*
+                      highp float random(float seed) {
+                      highp float a  = 12.9898;
+                      highp float b  = 78.233;
+                      highp float c  = 43758.5453;
+                      highp float dt = seed * a + b;
+                      highp float sn = mod(dt, 3.14159);
+                      return fract(sin(sn) * c);
+                      }
+                    */
                 }
                 if (globalTable[n] && globalTable[n].type === "helper") {
                     return globalTable[n].helperCode;
@@ -5681,10 +5691,11 @@ highp float random(float seed) {
             bigTitle.innerHTML = "Full Screen";
             bigTitle.onclick = () => shadama.setClimateFullScreen();
             if (useCroquet) {
-                join().then(session => {
+                /*join().then(session => {
                     croquetView = session.view;
                     croquetView.setShadama(shadama);
                 });
+                */
             }
         }
 
@@ -5750,7 +5761,7 @@ highp float random(float seed) {
         gl.getExtension("EXT_color_buffer_float");
         shadama = new Shadama();
         shadama.initDisplay();
-        shadama.initEnv(function() {
+        shadama.initEnv(() => {
             if (parent) {
                 shadama.env["Display"].loadProgram(defaultProgName);
                 parent.onAfterRender = shadama.makeOnAfterRender();
