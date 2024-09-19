@@ -10,7 +10,7 @@
 
 export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, optDOMTools) {
     let threeRenderer = frame ? frame.renderer : null;
-    let TEXTURE_SIZE = 1024;
+    let TEXTURE_SIZE = 2048;
     let FIELD_WIDTH = 512;
     let FIELD_HEIGHT = 512;
 
