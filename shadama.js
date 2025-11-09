@@ -1780,7 +1780,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
         let dir;
 
-        if (name.startWith("http")) {
+        if (name.startsWith("http")) {
             img.crossOrigin = "Anonymous";
             img.onerror = () => {
                 console.log("no internet");
