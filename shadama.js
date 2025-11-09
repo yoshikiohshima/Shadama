@@ -1780,15 +1780,7 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
 
         let dir;
 
-        if (location.startsWith("http")) {
-            if (frame) {
-                dir = frame.imagePath + name;
-            } else {
-                let slash = location.lastIndexOf("/");
-                dir = location.slice(0, slash) + "/" + name;
-            }
-            img.src = dir;
-        } else {
+        if (name.startWith("http")) {
             img.crossOrigin = "Anonymous";
             img.onerror = () => {
                 console.log("no internet");
@@ -1796,7 +1788,26 @@ export function ShadamaFactory(frame, optDimension, parent, optDefaultProgName, 
                 document.body.removeChild(img);
                 event.setValue(newImage);
             };
-            img.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+            img.src = name;
+        } else {      
+            if (location.startsWith("http")) {
+                if (frame) {
+                    dir = frame.imagePath + name;
+                } else {
+                    let slash = location.lastIndexOf("/");
+                    dir = location.slice(0, slash) + "/" + name;
+                }
+                img.src = dir;
+            } else {
+                img.crossOrigin = "Anonymous";
+                img.onerror = () => {
+                    console.log("no internet");
+                    let newImage = this.emptyImageData(256, 256);
+                    document.body.removeChild(img);
+                    event.setValue(newImage);
+                };
+                img.src = "http://tinlizzie.org/~ohshima/shadama2/" + name;
+            }
         }
 
         img.hidden = true;
